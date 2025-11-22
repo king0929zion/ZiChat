@@ -198,10 +198,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _loadMessages() async {
+    final bool hasStored = ChatStorage.hasMessages(widget.chatId);
     final List<Map<String, dynamic>> stored =
         await ChatStorage.loadMessages(widget.chatId);
     setState(() {
-      if (stored.isEmpty && widget.chatId == 'c1') {
+      if (!hasStored && stored.isEmpty && widget.chatId == 'c1') {
         // 首次进入第一个会话时，用内置的模拟消息做示例
         _messages = List<_ChatMessage>.from(_mockMessages);
       } else {
@@ -386,39 +387,48 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFEDEDED),
+            color: const Color(0xFFF7F7F7),
             child: Column(
               children: [
                 _Header(
                   title: widget.title,
                   unread: widget.unread,
                   onBack: () => Navigator.of(context).pop(),
-                  onMore: () {
-                    Navigator.of(context).push(
+                  onMore: () async {
+                    final bool? cleared = await Navigator.of(context).push<bool>(
                       MaterialPageRoute(
-                        builder: (_) => const ChatOptionsPage(),
+                        builder: (_) => ChatOptionsPage(chatId: widget.chatId),
                       ),
                     );
+                    if (!mounted) return;
+                    if (cleared == true) {
+                      setState(() {
+                        _messages = [];
+                      });
+                    }
                   },
                 ),
                 Expanded(
-                  child: GestureDetector(
-                    onTap: _closePanels,
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(
-                        parent: AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    color: const Color(0xFFEDEDED),
+                    child: GestureDetector(
+                      onTap: _closePanels,
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const ClampingScrollPhysics(),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                        itemCount: _messages.length,
+                        itemBuilder: (_, index) =>
+                            _MessageItem(message: _messages[index]),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      itemCount: _messages.length,
-                      itemBuilder: (_, index) => _MessageItem(message: _messages[index]),
                     ),
                   ),
                 ),
@@ -477,7 +487,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 44,
-      color: const Color(0xFFEDEDED),
+      color: const Color(0xFFF7F7F7),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Stack(
         children: [
@@ -1344,7 +1354,7 @@ class _FnPanelState extends State<_FnPanel> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
-              physics: const BouncingScrollPhysics(),
+              physics: const PageScrollPhysics(),
               itemCount: pages.length,
               onPageChanged: (index) {
                 setState(() {

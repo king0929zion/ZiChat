@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/storage/chat_storage.dart';
 
 class ChatOptionsPage extends StatelessWidget {
-  const ChatOptionsPage({super.key});
+  const ChatOptionsPage({super.key, required this.chatId});
+
+  final String chatId;
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +19,81 @@ class ChatOptionsPage extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 480),
             color: const Color(0xFFEDEDED),
             child: Column(
-              children: const [
-                _ChatOptionsHeader(),
-                Expanded(child: _ChatOptionsBody()),
+              children: [
+                const _ChatOptionsHeader(),
+                Expanded(child: _ChatOptionsBody(chatId: chatId)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClearChatItem extends StatelessWidget {
+  const _ClearChatItem({required this.chatId});
+
+  final String chatId;
+
+  Future<void> _handleClear(BuildContext context) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('清空聊天记录'),
+          content: const Text('确定要清空当前聊天的所有消息吗？此操作不可恢复。'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('清空'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    await ChatStorage.saveMessages(chatId, <Map<String, dynamic>>[]);
+    // 通知上层页面已清空，并返回聊天详情页
+    // ignore: use_build_context_synchronously
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () => _handleClear(context),
+        child: SizedBox(
+          height: 56,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '清空聊天记录',
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: Color(0xFFFA5151),
+                  ),
+                ),
+                SvgPicture.asset(
+                  'assets/icon/common/arrow-right.svg',
+                  width: 14,
+                  height: 14,
+                  colorFilter: const ColorFilter.mode(
+                    Colors.black26,
+                    BlendMode.srcIn,
+                  ),
+                ),
               ],
             ),
           ),
@@ -72,33 +147,33 @@ class _ChatOptionsHeader extends StatelessWidget {
 }
 
 class _ChatOptionsBody extends StatelessWidget {
-  const _ChatOptionsBody();
+  const _ChatOptionsBody({required this.chatId});
+
+  final String chatId;
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.only(top: 16),
-      children: const [
-        _MembersSection(),
-        SizedBox(height: 12),
-        _InfoListCard(items: [
+      children: [
+        const _MembersSection(),
+        const SizedBox(height: 12),
+        const _InfoListCard(items: [
           _InfoListItemData(title: '查找聊天记录'),
         ]),
-        SizedBox(height: 12),
-        _SwitchCard(),
-        SizedBox(height: 12),
-        _InfoListCard(items: [
+        const SizedBox(height: 12),
+        const _SwitchCard(),
+        const SizedBox(height: 12),
+        const _InfoListCard(items: [
           _InfoListItemData(title: '设置当前聊天背景'),
         ]),
-        SizedBox(height: 12),
-        _InfoListCard(items: [
-          _InfoListItemData(title: '清空聊天记录'),
-        ]),
-        SizedBox(height: 12),
-        _InfoListCard(items: [
+        const SizedBox(height: 12),
+        _ClearChatItem(chatId: chatId),
+        const SizedBox(height: 12),
+        const _InfoListCard(items: [
           _InfoListItemData(title: '投诉'),
         ]),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
       ],
     );
   }

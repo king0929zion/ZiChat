@@ -16,6 +16,10 @@ class ChatStorage {
     return <Map<String, dynamic>>[];
   }
 
+  static bool hasMessages(String chatId) {
+    return _box.containsKey(chatId);
+  }
+
   static Future<void> saveMessages(
     String chatId,
     List<Map<String, dynamic>> messages,
