@@ -32,7 +32,7 @@ class MyQrcodePage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 52,
-      color: const Color(0xFFF7F7F7),
+      color: const Color(0xFFFFFFFF),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
