@@ -200,25 +200,7 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 _HomeHeader(currentIndex: _currentIndex),
                 Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 160),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      final curved = CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeInOutCubic,
-                      );
-                      return FadeTransition(
-                        opacity: curved,
-                        child: child,
-                      );
-                    },
-                    child: KeyedSubtree(
-                      key: ValueKey<int>(_currentIndex),
-                      child: _buildBody(),
-                    ),
-                  ),
+                  child: _buildBody(),
                 ),
                 _HomeTabBar(
                   currentIndex: _currentIndex,
@@ -248,24 +230,7 @@ class _SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    if (route.settings.name == Navigator.defaultRouteName) {
-      return child;
-    }
-
-    final curved = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeInOutCubic,
-      reverseCurve: Curves.easeInOutCubic,
-    );
-    final fade = Tween<double>(
-      begin: 0.9,
-      end: 1.0,
-    ).animate(curved);
-
-    return FadeTransition(
-      opacity: fade,
-      child: child,
-    );
+    return child;
   }
 }
 
