@@ -201,7 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _HomeHeader(currentIndex: _currentIndex),
                 Expanded(
                   child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 220),
+                    duration: const Duration(milliseconds: 160),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
                     transitionBuilder: (child, animation) {
@@ -257,16 +257,14 @@ class _SmoothPageTransitionsBuilder extends PageTransitionsBuilder {
       curve: Curves.easeInOutCubic,
       reverseCurve: Curves.easeInOutCubic,
     );
+    final fade = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(curved);
 
     return FadeTransition(
-      opacity: curved,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0.02, 0),
-          end: Offset.zero,
-        ).animate(curved),
-        child: child,
-      ),
+      opacity: fade,
+      child: child,
     );
   }
 }

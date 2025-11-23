@@ -8,14 +8,14 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: const Color(0xFFEFEFF4),
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFF7F7F7),
+            color: const Color(0xFFEFEFF4),
             child: Column(
               children: [
                 _buildHeader(context),
@@ -33,7 +33,7 @@ class SettingsPage extends StatelessWidget {
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 52,
-      color: const Color(0xFFF7F7F7),
+      color: const Color(0xFFEFEFF4),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

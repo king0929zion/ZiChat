@@ -386,14 +386,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
+      backgroundColor: const Color(0xFFEDEDED),
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFF7F7F7),
+            color: const Color(0xFFEDEDED),
             child: Column(
               children: [
                 _Header(
@@ -486,7 +486,7 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 44,
-      color: const Color(0xFFF7F7F7),
+      color: const Color(0xFFEDEDED),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Stack(
         children: [
@@ -659,7 +659,7 @@ class _MessageContent extends StatelessWidget {
     return Align(
       alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 300),
+        constraints: const BoxConstraints(maxWidth: 260),
         child: bubble,
       ),
     );
@@ -734,13 +734,13 @@ class _ImageBubble extends StatelessWidget {
     if (imageAsset.startsWith('assets/')) {
       child = Image.asset(
         imageAsset,
-        width: 240,
+        width: 180,
         fit: BoxFit.cover,
       );
     } else {
       child = Image.file(
         File(imageAsset),
-        width: 240,
+        width: 180,
         fit: BoxFit.cover,
       );
     }
