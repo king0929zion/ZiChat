@@ -44,14 +44,14 @@ class _MomentsPageState extends State<MomentsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: Colors.white,
+            color: const Color(0xFFF7F7F7),
             child: Stack(
               children: [
                 _buildScrollContent(),
@@ -70,7 +70,7 @@ class _MomentsPageState extends State<MomentsPage> {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: _scrolled ? const Color(0xFFEDEDED) : Colors.transparent,
+        color: _scrolled ? const Color(0xFFF7F7F7) : Colors.transparent,
         border: _scrolled
             ? const Border(
                 bottom: BorderSide(

@@ -127,7 +127,7 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFEDEDED);
+    const Color bg = Color(0xFFF7F7F7);
     return Scaffold(
       backgroundColor: bg,
       body: SafeArea(
@@ -211,7 +211,7 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 52,
-      color: const Color(0xFFEDEDED),
+      color: const Color(0xFFF7F7F7),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

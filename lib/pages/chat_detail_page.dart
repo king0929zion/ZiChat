@@ -209,7 +209,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _messages = stored.map(_ChatMessage.fromMap).toList();
       }
     });
-    _scrollToBottom();
   }
 
   Future<void> _saveMessages() async {

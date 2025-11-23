@@ -15,10 +15,9 @@ class ContactsPage extends StatelessWidget {
       color: bg,
       child: ListView(
         children: [
-          const SizedBox(height: 8),
           // 顶部卡片入口
           Container(
-            margin: const EdgeInsets.only(top: 8),
+            margin: EdgeInsets.zero,
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(
