@@ -32,7 +32,7 @@ Future<void> main() async {
   await Hive.openBox('ai_config');
   
   // 初始化 AI 灵魂引擎
-  await AiSoulEngine.init();
+  await AiSoulEngine.instance.initialize();
   
   runApp(const MyApp());
 }
@@ -708,8 +708,8 @@ class _HeaderIconButtonState extends State<_HeaderIconButton>
             },
             child: SvgPicture.asset(
               widget.asset,
-              width: 24,
-              height: 24,
+              width: 22,
+              height: 22,
             ),
           ),
         ),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/ai_contact_prompt_page.dart';
+import 'package:zichat/pages/ai_soul_panel_page.dart';
 import 'package:zichat/storage/chat_storage.dart';
 
 class ChatOptionsPage extends StatelessWidget {
@@ -209,7 +211,7 @@ class _ChatOptionsBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 16),
       children: [
-        const _MembersSection(),
+        _MembersSection(chatId: chatId),
         const SizedBox(height: 12),
         const _InfoListCard(items: [
           _InfoListItemData(title: '查找聊天记录'),
@@ -235,7 +237,9 @@ class _ChatOptionsBody extends StatelessWidget {
 }
 
 class _MembersSection extends StatelessWidget {
-  const _MembersSection();
+  const _MembersSection({required this.chatId});
+
+  final String chatId;
 
   @override
   Widget build(BuildContext context) {
@@ -245,26 +249,61 @@ class _MembersSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/me.png',
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
+          // AI 头像 - 点击打开控制面板
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AiSoulPanelPage(chatId: chatId),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'ZION.',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF999999),
+              );
+            },
+            child: Column(
+              children: [
+                Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/me.png',
+                        width: 64,
+                        height: 64,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    // AI 标识
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF07C160),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'AI',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                const Text(
+                  '小紫',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF999999),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(width: 16),
           SizedBox(

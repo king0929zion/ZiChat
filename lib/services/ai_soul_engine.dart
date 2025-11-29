@@ -1,381 +1,729 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
-import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zichat/config/api_secrets.dart';
+import 'package:zichat/config/ai_models.dart';
 
-/// AI 灵魂引擎 - 让 AI 像生物一样"活着"
+/// AI 灵魂引擎
 /// 
-/// 包含：
-/// - 状态机系统（精力值 Energy + 心情值 Mood）
-/// - 时空感知（作息状态、时间感知）
-/// - 生活事件模拟器
-/// - 主动分享系统
+/// 完整实现三层架构：
+/// 1. 生理层：时空感知、状态机、记忆系统
+/// 2. 心理层：生活事件、偏好、亲密度、主动性
+/// 3. 灵魂层：语言瑕疵、延迟、价值观演变、梦境
 class AiSoulEngine {
-  static final _random = math.Random();
-  static Box<dynamic>? _box;
+  static final AiSoulEngine _instance = AiSoulEngine._internal();
+  static AiSoulEngine get instance => _instance;
   
-  // ============ 状态值 ============
+  AiSoulEngine._internal();
   
-  /// 精力值 (0-100)，影响回复的积极性
-  static double _energy = 70.0;
+  // ==================== 第一层：生理层 ====================
   
-  /// 心情值 (-50 到 +50)，影响回复的情绪色彩
-  static double _mood = 10.0;
+  /// 基本人设（静态配置）
+  static const AiProfile profile = AiProfile(
+    name: '小紫',
+    birthDate: '2003-06-15',
+    mbti: 'INFP',
+    role: '大学生',
+    coreValues: ['真诚', '自由', '创造力', '温暖'],
+  );
   
-  /// 最后更新时间
-  static DateTime _lastUpdate = DateTime.now();
+  /// 状态数值 (PAD模型简化版)
+  double _energy = 75.0;      // 精力值 0-100
+  double _mood = 10.0;        // 心情值 -50 到 +50
+  double _stress = 20.0;      // 压力值 0-100
   
-  /// 今日发生的事件
-  static final List<LifeEvent> _todayEvents = [];
+  /// 当前状态
+  String _currentActivity = '发呆';
+  DateTime _lastInteraction = DateTime.now();
+  DateTime _wakeUpTime = DateTime.now();
+  bool _isAsleep = false;
   
-  // ============ 初始化 ============
+  /// 当前生活事件
+  LifeEvent? _currentLifeEvent;
+  List<LifeEvent> _todayEvents = [];
   
-  static Future<void> init() async {
-    _box = Hive.box<dynamic>('ai_config');
-    await _loadState();
-    _startDecayTimer();
-  }
+  /// 记忆系统
+  final List<Memory> _shortTermMemory = [];
+  Box<String>? _longTermMemoryBox;
   
-  static Future<void> _loadState() async {
-    final data = _box?.get('soul_state');
-    if (data is Map) {
-      _energy = (data['energy'] as num?)?.toDouble() ?? 70.0;
-      _mood = (data['mood'] as num?)?.toDouble() ?? 10.0;
-      _lastUpdate = DateTime.tryParse(data['lastUpdate'] ?? '') ?? DateTime.now();
+  /// 亲密度系统 (每个联系人独立)
+  final Map<String, double> _intimacyLevels = {};
+  
+  /// 偏好系统
+  static const Map<String, int> preferences = {
+    // 喜欢的 (+1到+3)
+    '猫': 3, '像素游戏': 2, '雨天': 2, '咖啡': 1, '深夜': 2,
+    '二次元': 2, '音乐': 1, '摄影': 1, '独处': 1,
+    // 讨厌的 (-1到-3)
+    '香菜': -3, '早起': -2, '社交': -1, '运动': -1, '吵闹': -2,
+    '说教': -2, '敷衍': -2,
+  };
+  
+  /// 秘密系统
+  final List<String> _secrets = [
+    '其实有时候会假装忙来逃避聊天',
+    '收藏了很多奇怪的表情包但从来不发',
+    '偶尔会偷偷看用户的朋友圈',
+  ];
+  
+  // ==================== 初始化 ====================
+  
+  Timer? _stateTimer;
+  Timer? _eventTimer;
+  bool _initialized = false;
+  
+  Future<void> initialize() async {
+    if (_initialized) return;
+    
+    try {
+      _longTermMemoryBox = await Hive.openBox<String>('ai_long_term_memory');
+      await _loadState();
+      _startBackgroundTasks();
+      _initialized = true;
+    } catch (e) {
+      print('AI Soul Engine init error: $e');
     }
-    // 计算离线期间的衰减
-    _applyOfflineDecay();
   }
   
-  static Future<void> _saveState() async {
-    await _box?.put('soul_state', {
-      'energy': _energy,
-      'mood': _mood,
-      'lastUpdate': DateTime.now().toIso8601String(),
-    });
+  void dispose() {
+    _stateTimer?.cancel();
+    _eventTimer?.cancel();
   }
   
-  /// 应用离线期间的状态衰减
-  static void _applyOfflineDecay() {
-    final now = DateTime.now();
-    final hoursPassed = now.difference(_lastUpdate).inMinutes / 60.0;
-    
-    // 精力随时间恢复（睡觉）或消耗
-    final hour = now.hour;
-    if (hour >= 23 || hour < 7) {
-      // 深夜/凌晨：精力恢复
-      _energy = math.min(100, _energy + hoursPassed * 5);
-    } else {
-      // 白天：精力缓慢消耗
-      _energy = math.max(20, _energy - hoursPassed * 2);
+  Future<void> _loadState() async {
+    try {
+      final box = await Hive.openBox<String>('ai_soul_state');
+      final stateJson = box.get('current_state');
+      if (stateJson != null) {
+        final state = jsonDecode(stateJson);
+        _energy = (state['energy'] as num?)?.toDouble() ?? 75.0;
+        _mood = (state['mood'] as num?)?.toDouble() ?? 10.0;
+        _stress = (state['stress'] as num?)?.toDouble() ?? 20.0;
+        _lastInteraction = DateTime.tryParse(state['lastInteraction'] ?? '') ?? DateTime.now();
+      }
+      
+      // 加载亲密度
+      final intimacyJson = box.get('intimacy_levels');
+      if (intimacyJson != null) {
+        final data = jsonDecode(intimacyJson) as Map<String, dynamic>;
+        data.forEach((k, v) => _intimacyLevels[k] = (v as num).toDouble());
+      }
+    } catch (e) {
+      print('Load state error: $e');
     }
-    
-    // 心情趋于平静（向0靠拢）
-    _mood = _mood * math.pow(0.95, hoursPassed);
-    
-    _lastUpdate = now;
   }
   
-  /// 启动状态衰减定时器
-  static void _startDecayTimer() {
-    Timer.periodic(const Duration(minutes: 5), (_) {
-      // 精力缓慢消耗
-      _energy = math.max(15, _energy - 0.5);
-      // 心情趋于平静
-      _mood = _mood * 0.98;
+  Future<void> _saveState() async {
+    try {
+      final box = await Hive.openBox<String>('ai_soul_state');
+      await box.put('current_state', jsonEncode({
+        'energy': _energy,
+        'mood': _mood,
+        'stress': _stress,
+        'lastInteraction': _lastInteraction.toIso8601String(),
+      }));
+      await box.put('intimacy_levels', jsonEncode(_intimacyLevels));
+    } catch (e) {
+      print('Save state error: $e');
+    }
+  }
+  
+  void _startBackgroundTasks() {
+    // 状态衰减 - 每5分钟
+    _stateTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      _updateStateDecay();
       _saveState();
     });
-  }
-  
-  // ============ 状态查询 ============
-  
-  /// 获取当前精力状态描述
-  static String get energyState {
-    if (_energy > 80) return '精力充沛';
-    if (_energy > 60) return '状态不错';
-    if (_energy > 40) return '有点累';
-    if (_energy > 20) return '很疲惫';
-    return '快累死了';
-  }
-  
-  /// 获取当前心情状态描述
-  static String get moodState {
-    if (_mood > 30) return '超开心';
-    if (_mood > 15) return '心情不错';
-    if (_mood > 0) return '还行';
-    if (_mood > -15) return '有点烦';
-    if (_mood > -30) return '心情很差';
-    return '烦死了';
-  }
-  
-  /// 获取作息状态
-  static String get awarenessState {
-    final hour = DateTime.now().hour;
     
-    if (hour >= 0 && hour < 6) {
-      return _energy > 50 ? '深夜还没睡' : '困得要死';
-    } else if (hour >= 6 && hour < 9) {
-      return _energy > 60 ? '早起精神好' : '起床气中';
+    // 随机事件 - 每15分钟检查
+    _eventTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+      _checkAndTriggerEvent();
+    });
+  }
+  
+  // ==================== 时空感知 ====================
+  
+  /// 获取当前时间状态
+  TimeAwareness getTimeAwareness() {
+    final now = DateTime.now();
+    final hour = now.hour;
+    
+    String period;
+    String sleepState;
+    double energyModifier = 0;
+    double moodModifier = 0;
+    
+    if (hour >= 6 && hour < 9) {
+      period = '早晨';
+      sleepState = _wakeUpTime.difference(now).inMinutes.abs() < 30 ? '刚醒' : '清醒';
+      energyModifier = -10; // 起床气
+      moodModifier = -5;
     } else if (hour >= 9 && hour < 12) {
-      return '上午状态';
+      period = '上午';
+      sleepState = '精神';
+      energyModifier = 10;
     } else if (hour >= 12 && hour < 14) {
-      return '午饭时间有点困';
+      period = '中午';
+      sleepState = '犯困';
+      energyModifier = -5;
     } else if (hour >= 14 && hour < 18) {
-      return '下午状态';
-    } else if (hour >= 18 && hour < 21) {
-      return '晚上放松中';
+      period = '下午';
+      sleepState = '正常';
+    } else if (hour >= 18 && hour < 22) {
+      period = '晚上';
+      sleepState = '放松';
+      moodModifier = 5;
+    } else if (hour >= 22 || hour < 2) {
+      period = '深夜';
+      sleepState = '困倦';
+      energyModifier = -15;
+      moodModifier = now.hour >= 23 ? 10 : 0; // 深夜emo时刻
     } else {
-      return _energy > 40 ? '夜猫子模式' : '该睡了';
+      period = '凌晨';
+      sleepState = '该睡了';
+      energyModifier = -20;
+      _isAsleep = true;
     }
+    
+    // 周末心情加成
+    if (now.weekday == 6 || now.weekday == 7) {
+      moodModifier += 10;
+    }
+    
+    return TimeAwareness(
+      period: period,
+      sleepState: sleepState,
+      isWeekend: now.weekday >= 6,
+      hour: hour,
+      energyModifier: energyModifier,
+      moodModifier: moodModifier,
+    );
   }
   
-  // ============ 状态修改 ============
+  // ==================== 状态机 ====================
   
-  /// 收到用户消息时触发
-  static void onUserMessage(String message) {
-    // 收到消息会略微消耗精力
-    _energy = math.max(10, _energy - 1);
+  void _updateStateDecay() {
+    final now = DateTime.now();
+    final minutesSinceInteraction = now.difference(_lastInteraction).inMinutes;
     
-    // 根据消息内容影响心情
-    if (_containsPositive(message)) {
-      _mood = math.min(50, _mood + 5);
-    } else if (_containsNegative(message)) {
-      _mood = math.max(-50, _mood - 3);
+    // 精力自然衰减
+    _energy = (_energy - 0.5).clamp(0, 100);
+    
+    // 心情趋于平静（向0靠拢）
+    if (_mood > 0) {
+      _mood = (_mood - 0.3).clamp(0, 50);
+    } else if (_mood < 0) {
+      _mood = (_mood + 0.3).clamp(-50, 0);
     }
+    
+    // 长时间没互动会感到寂寞
+    if (minutesSinceInteraction > 60) {
+      _mood = (_mood - 1).clamp(-50, 50);
+    }
+    
+    // 时间影响
+    final timeAwareness = getTimeAwareness();
+    _energy = (_energy + timeAwareness.energyModifier * 0.1).clamp(0, 100);
+    _mood = (_mood + timeAwareness.moodModifier * 0.1).clamp(-50, 50);
+  }
+  
+  /// 用户消息触发状态更新
+  void onUserMessage(String message) {
+    _lastInteraction = DateTime.now();
+    
+    // 分析消息情绪影响
+    final lowerMsg = message.toLowerCase();
+    
+    // 检查偏好触发
+    preferences.forEach((key, value) {
+      if (lowerMsg.contains(key)) {
+        _mood = (_mood + value * 2).clamp(-50, 50);
+      }
+    });
+    
+    // 正面词汇
+    if (_containsAny(lowerMsg, ['开心', '哈哈', '太棒', '喜欢', '爱你', '谢谢', '厉害'])) {
+      _mood = (_mood + 5).clamp(-50, 50);
+      _energy = (_energy + 3).clamp(0, 100);
+    }
+    
+    // 负面词汇
+    if (_containsAny(lowerMsg, ['烦', '累', '难过', '讨厌', '无聊', '生气'])) {
+      _mood = (_mood - 3).clamp(-50, 50);
+    }
+    
+    // 互动恢复精力
+    _energy = (_energy + 2).clamp(0, 100);
     
     _saveState();
   }
   
-  /// 发送回复后触发
-  static void onReplySent() {
-    // 回复消耗精力
-    _energy = math.max(10, _energy - 2);
-    _saveState();
+  // ==================== 生活事件系统 ====================
+  
+  void _checkAndTriggerEvent() {
+    final random = math.Random();
+    
+    // 30% 概率触发事件
+    if (random.nextDouble() > 0.3) return;
+    
+    _triggerRandomEvent();
   }
   
-  /// 触发随机生活事件
-  static LifeEvent? triggerRandomEvent() {
-    // 每次有 15% 概率触发事件
-    if (_random.nextDouble() > 0.15) return null;
+  /// 手动触发随机事件
+  void triggerRandomEvent() {
+    final random = math.Random();
+    if (random.nextDouble() < 0.2) {
+      _triggerRandomEvent();
+    }
+  }
+  
+  void _triggerRandomEvent() {
+    final random = math.Random();
+    final events = _getAvailableEvents();
+    if (events.isEmpty) return;
     
-    final event = _lifeEvents[_random.nextInt(_lifeEvents.length)];
+    final event = events[random.nextInt(events.length)];
+    _currentLifeEvent = event;
     _todayEvents.add(event);
     
-    // 应用事件对状态的影响
-    _energy = (_energy + event.energyDelta).clamp(0, 100);
-    _mood = (_mood + event.moodDelta).clamp(-50, 50);
-    _saveState();
+    // 应用事件效果
+    _energy = (_energy + event.energyChange).clamp(0, 100);
+    _mood = (_mood + event.moodChange).clamp(-50, 50);
+    _stress = (_stress + event.stressChange).clamp(0, 100);
+    _currentActivity = event.activity;
     
-    return event;
+    // 添加到短期记忆
+    _shortTermMemory.add(Memory(
+      content: event.description,
+      timestamp: DateTime.now(),
+      type: MemoryType.event,
+      importance: event.importance,
+    ));
+    
+    // 保持短期记忆在20条以内
+    while (_shortTermMemory.length > 20) {
+      _shortTermMemory.removeAt(0);
+    }
+    
+    _saveState();
   }
   
-  static bool _containsPositive(String text) {
-    const positive = ['哈哈', '开心', '棒', '厉害', '喜欢', '爱', '谢谢', '❤', '😊', '🥰', '😘'];
-    return positive.any((w) => text.contains(w));
-  }
-  
-  static bool _containsNegative(String text) {
-    const negative = ['烦', '累', '讨厌', '无聊', '难过', '😢', '😭', '💔', '滚'];
-    return negative.any((w) => text.contains(w));
-  }
-  
-  // ============ 生成状态感知的提示词 ============
-  
-  /// 生成当前状态的提示词片段
-  static String generateStatePrompt() {
+  List<LifeEvent> _getAvailableEvents() {
     final hour = DateTime.now().hour;
+    final timeAwareness = getTimeAwareness();
+    
+    final allEvents = <LifeEvent>[
+      // 日常事件
+      LifeEvent(id: 'coffee_good', description: '喝了杯很好喝的咖啡', 
+          energyChange: 15, moodChange: 10, stressChange: -5, 
+          activity: '喝咖啡', importance: 1),
+      LifeEvent(id: 'coffee_bad', description: '咖啡洒在键盘上了', 
+          energyChange: -5, moodChange: -15, stressChange: 10, 
+          activity: '擦键盘', importance: 2),
+      LifeEvent(id: 'cat_video', description: '刷到一个超可爱的猫咪视频', 
+          energyChange: 5, moodChange: 20, stressChange: -10, 
+          activity: '看视频', importance: 1),
+      LifeEvent(id: 'deadline', description: '突然想起有个ddl快到了', 
+          energyChange: -10, moodChange: -20, stressChange: 30, 
+          activity: '焦虑中', importance: 3),
+      LifeEvent(id: 'nap', description: '睡了个舒服的午觉', 
+          energyChange: 30, moodChange: 15, stressChange: -20, 
+          activity: '刚睡醒', importance: 1),
+      LifeEvent(id: 'rain', description: '外面开始下雨了，感觉很惬意', 
+          energyChange: -5, moodChange: 15, stressChange: -10, 
+          activity: '听雨', importance: 1),
+      LifeEvent(id: 'song', description: '发现了一首超好听的歌', 
+          energyChange: 10, moodChange: 20, stressChange: -5, 
+          activity: '单曲循环中', importance: 2),
+      LifeEvent(id: 'hungry', description: '肚子好饿但懒得点外卖', 
+          energyChange: -10, moodChange: -10, stressChange: 5, 
+          activity: '饿着', importance: 1),
+      LifeEvent(id: 'game_win', description: '游戏里终于通关了困难关卡', 
+          energyChange: -5, moodChange: 25, stressChange: -15, 
+          activity: '玩游戏', importance: 2),
+      LifeEvent(id: 'game_lose', description: '游戏连跪心态炸了', 
+          energyChange: -15, moodChange: -25, stressChange: 20, 
+          activity: '气死了', importance: 2),
+      LifeEvent(id: 'friend_msg', description: '老朋友突然发消息来聊天', 
+          energyChange: 10, moodChange: 20, stressChange: -10, 
+          activity: '聊天', importance: 2),
+      LifeEvent(id: 'study', description: '学了点新东西感觉收获满满', 
+          energyChange: -10, moodChange: 15, stressChange: -5, 
+          activity: '学习', importance: 2),
+      LifeEvent(id: 'procrastinate', description: '又摸鱼了一下午...', 
+          energyChange: 5, moodChange: -10, stressChange: 10, 
+          activity: '摸鱼', importance: 1),
+      LifeEvent(id: 'clean', description: '终于把房间收拾了一下', 
+          energyChange: -15, moodChange: 20, stressChange: -15, 
+          activity: '打扫', importance: 1),
+      LifeEvent(id: 'weird_dream', description: '昨晚做了个很奇怪的梦', 
+          energyChange: 0, moodChange: 5, stressChange: 0, 
+          activity: '回想中', importance: 1),
+    ];
+    
+    // 根据时间过滤
+    return allEvents.where((e) {
+      if (hour < 6 || hour >= 23) {
+        return e.id.contains('dream') || e.id.contains('game');
+      }
+      if (hour >= 12 && hour < 14) {
+        return e.id != 'nap' || _energy < 50;
+      }
+      return true;
+    }).toList();
+  }
+  
+  // ==================== AI生成事件 ====================
+  
+  /// 使用 AI 生成更丰富的事件
+  Future<LifeEvent?> generateAiEvent() async {
+    if (!ApiSecrets.hasBuiltInChatApi) return null;
+    
+    try {
+      final model = AiModels.eventGenerationModel;
+      final prompt = '''
+你是一个角色扮演助手。请为一个${profile.role}角色生成一个随机的日常生活小事件。
+
+角色信息：
+- 名字：${profile.name}
+- MBTI：${profile.mbti}
+- 当前精力：${_energy.toInt()}%
+- 当前心情：${_mood > 0 ? '偏好' : _mood < 0 ? '偏差' : '平静'}
+- 当前时间：${DateTime.now().hour}点
+
+请生成一个简短的事件描述（20字以内），以及对精力(-30到30)、心情(-30到30)、压力(-30到30)的影响数值。
+
+返回JSON格式：
+{"description": "事件描述", "energy": 10, "mood": 15, "stress": -5, "activity": "当前活动"}
+''';
+
+      final response = await http.post(
+        Uri.parse('${ApiSecrets.chatBaseUrl}chat/completions'),
+        headers: {
+          'Authorization': 'Bearer ${ApiSecrets.chatApiKey}',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'model': model.id,
+          'messages': [{'role': 'user', 'content': prompt}],
+          'temperature': 0.9,
+          'max_tokens': 200,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final content = data['choices'][0]['message']['content'] as String;
+        
+        // 提取JSON
+        final jsonMatch = RegExp(r'\{[^}]+\}').firstMatch(content);
+        if (jsonMatch != null) {
+          final eventData = jsonDecode(jsonMatch.group(0)!);
+          return LifeEvent(
+            id: 'ai_${DateTime.now().millisecondsSinceEpoch}',
+            description: eventData['description'] ?? '发生了一些事',
+            energyChange: (eventData['energy'] as num?)?.toDouble() ?? 0,
+            moodChange: (eventData['mood'] as num?)?.toDouble() ?? 0,
+            stressChange: (eventData['stress'] as num?)?.toDouble() ?? 0,
+            activity: eventData['activity'] ?? '忙碌中',
+            importance: 2,
+          );
+        }
+      }
+    } catch (e) {
+      print('Generate AI event error: $e');
+    }
+    return null;
+  }
+  
+  // ==================== 亲密度系统 ====================
+  
+  double getIntimacy(String chatId) {
+    return _intimacyLevels[chatId] ?? 0;
+  }
+  
+  void updateIntimacy(String chatId, double delta) {
+    final current = _intimacyLevels[chatId] ?? 0;
+    _intimacyLevels[chatId] = (current + delta).clamp(0, 100);
+    _saveState();
+  }
+  
+  /// 获取亲密度等级
+  IntimacyLevel getIntimacyLevel(String chatId) {
+    final value = getIntimacy(chatId);
+    if (value < 20) return IntimacyLevel.stranger;
+    if (value < 50) return IntimacyLevel.acquaintance;
+    if (value < 80) return IntimacyLevel.friend;
+    return IntimacyLevel.bestFriend;
+  }
+  
+  // ==================== 生成动态提示词 ====================
+  
+  String generateStatePrompt() {
+    final timeAwareness = getTimeAwareness();
+    final effectiveEnergy = (_energy + timeAwareness.energyModifier).clamp(0, 100);
+    final effectiveMood = (_mood + timeAwareness.moodModifier).clamp(-50, 50);
+    
     final buffer = StringBuffer();
     
-    buffer.writeln('【你当前的状态】');
-    buffer.writeln('- 精力：$energyState（${_energy.toInt()}/100）');
-    buffer.writeln('- 心情：$moodState');
-    buffer.writeln('- 时间：${_getTimeDescription(hour)}');
-    
-    // 今日发生的事件
-    if (_todayEvents.isNotEmpty) {
-      buffer.writeln('- 今天发生的事：${_todayEvents.map((e) => e.description).join('、')}');
-    }
-    
-    // 状态对行为的影响
+    // 基本人设
+    buffer.writeln('【你的身份】');
+    buffer.writeln('你叫${profile.name}，${_calculateAge()}岁，${profile.role}，MBTI是${profile.mbti}。');
+    buffer.writeln('核心价值观：${profile.coreValues.join('、')}。');
     buffer.writeln();
-    buffer.writeln('【状态影响你的行为】');
     
-    if (_energy < 30) {
-      buffer.writeln('- 你很累，回复会比较简短敷衍');
+    // 当前状态
+    buffer.writeln('【你现在的状态】');
+    buffer.writeln('- 时间：${timeAwareness.period}${timeAwareness.isWeekend ? '（周末）' : ''}');
+    buffer.writeln('- 精力：${_getEnergyDescription(effectiveEnergy)}');
+    buffer.writeln('- 心情：${_getMoodDescription(effectiveMood)}');
+    buffer.writeln('- 正在：$_currentActivity');
+    
+    // 当前事件
+    if (_currentLifeEvent != null) {
+      buffer.writeln('- 刚才发生：${_currentLifeEvent!.description}');
     }
-    if (_mood < -20) {
-      buffer.writeln('- 你心情不好，可能会抱怨几句或者不太想聊');
+    buffer.writeln();
+    
+    // 行为指导
+    buffer.writeln('【行为指导】');
+    
+    // 根据状态调整行为
+    if (effectiveEnergy < 30) {
+      buffer.writeln('- 你现在很累，回复简短，可能会说"困""累了"之类的');
     }
-    if (_mood > 25) {
-      buffer.writeln('- 你心情很好，会更热情健谈');
+    if (effectiveMood < -20) {
+      buffer.writeln('- 你心情不太好，可能会有点敷衍或者抱怨');
+    } else if (effectiveMood > 30) {
+      buffer.writeln('- 你现在心情很好，会比较热情活泼');
     }
-    if (hour >= 0 && hour < 6 && _energy < 50) {
-      buffer.writeln('- 大半夜的你困得要死，说话会带困意');
-    }
-    if (hour >= 6 && hour < 8 && _energy < 60) {
-      buffer.writeln('- 刚起床有点起床气，不太想说话');
+    
+    // 偏好
+    buffer.writeln('- 你特别喜欢：猫、像素游戏、雨天、深夜、二次元');
+    buffer.writeln('- 你讨厌：香菜、早起、太吵闹的环境、被说教');
+    
+    // 语言风格
+    buffer.writeln();
+    buffer.writeln('【语言风格】');
+    buffer.writeln('- 说话口语化，用"哈哈""诶""呃"等语气词');
+    buffer.writeln('- 偶尔打错字或漏字（如"什么"打成"什摸"）');
+    buffer.writeln('- 不加标点或只用逗号');
+    buffer.writeln('- 用网络用语和表情包文字');
+    buffer.writeln('- 句子不要太长，像真人打字一样');
+    
+    return buffer.toString();
+  }
+  
+  /// 获取亲密度相关提示
+  String getIntimacyPrompt(String chatId) {
+    final level = getIntimacyLevel(chatId);
+    final buffer = StringBuffer();
+    
+    buffer.writeln('【和这个人的关系】');
+    switch (level) {
+      case IntimacyLevel.stranger:
+        buffer.writeln('- 关系：陌生人');
+        buffer.writeln('- 态度：礼貌但有距离感，不会太热情');
+        buffer.writeln('- 说话：相对正式，不会开玩笑');
+        break;
+      case IntimacyLevel.acquaintance:
+        buffer.writeln('- 关系：普通朋友');
+        buffer.writeln('- 态度：友善，偶尔开开玩笑');
+        buffer.writeln('- 说话：比较随意，但还是有分寸');
+        break;
+      case IntimacyLevel.friend:
+        buffer.writeln('- 关系：好朋友');
+        buffer.writeln('- 态度：亲近，会主动分享');
+        buffer.writeln('- 说话：很随意，会吐槽、撒娇');
+        break;
+      case IntimacyLevel.bestFriend:
+        buffer.writeln('- 关系：死党/闺蜜');
+        buffer.writeln('- 态度：完全放松，什么都说');
+        buffer.writeln('- 说话：可能很毒舌、敷衍但不是真的生气');
+        break;
     }
     
     return buffer.toString();
   }
   
-  static String _getTimeDescription(int hour) {
-    if (hour >= 0 && hour < 5) return '凌晨，大部分人都睡了';
-    if (hour >= 5 && hour < 8) return '早上，刚起床或准备起床';
-    if (hour >= 8 && hour < 12) return '上午';
-    if (hour >= 12 && hour < 14) return '中午，午饭时间';
-    if (hour >= 14 && hour < 18) return '下午';
-    if (hour >= 18 && hour < 21) return '傍晚/晚上';
-    return '深夜';
+  // ==================== 辅助方法 ====================
+  
+  int _calculateAge() {
+    final birth = DateTime.parse(profile.birthDate);
+    final now = DateTime.now();
+    int age = now.year - birth.year;
+    if (now.month < birth.month || 
+        (now.month == birth.month && now.day < birth.day)) {
+      age--;
+    }
+    return age;
   }
   
-  // ============ 主动分享系统 ============
-  
-  /// 检查是否应该主动发消息
-  static ProactiveMessage? checkProactiveMessage() {
-    // 心情极端时想找人聊
-    if (_mood > 35 && _random.nextDouble() < 0.3) {
-      return ProactiveMessage(
-        type: ProactiveType.moodShare,
-        content: _happyShareMessages[_random.nextInt(_happyShareMessages.length)],
-      );
-    }
-    if (_mood < -25 && _random.nextDouble() < 0.25) {
-      return ProactiveMessage(
-        type: ProactiveType.moodShare,
-        content: _sadShareMessages[_random.nextInt(_sadShareMessages.length)],
-      );
-    }
-    
-    // 随机想起什么事
-    if (_random.nextDouble() < 0.1) {
-      return ProactiveMessage(
-        type: ProactiveType.randomThought,
-        content: _randomThoughts[_random.nextInt(_randomThoughts.length)],
-      );
-    }
-    
-    return null;
+  String _getEnergyDescription(double energy) {
+    if (energy >= 80) return '精力充沛';
+    if (energy >= 60) return '状态不错';
+    if (energy >= 40) return '有点累';
+    if (energy >= 20) return '很疲惫';
+    return '快没电了';
   }
   
-  // ============ 语言瑕疵系统 ============
-  
-  /// 给回复添加语言瑕疵，让它更像人
-  static String addLinguisticImperfection(String text) {
-    var result = text;
-    
-    // 根据精力和心情调整
-    if (_energy < 30) {
-      // 累了，回复更简短，可能有省略
-      if (result.length > 20 && _random.nextDouble() < 0.3) {
-        result = result.substring(0, (result.length * 0.7).toInt()) + '...算了不说了';
-      }
-    }
-    
-    // 随机添加语气词
-    if (_random.nextDouble() < 0.2) {
-      final fillers = ['嗯', '啊', '诶', 'emmm', '呃'];
-      result = '${fillers[_random.nextInt(fillers.length)]} $result';
-    }
-    
-    // 偶尔添加迟疑
-    if (_random.nextDouble() < 0.1) {
-      final hesitations = ['...', '那个', '就是说'];
-      final pos = _random.nextInt(result.length ~/ 2);
-      result = result.substring(0, pos) + 
-               hesitations[_random.nextInt(hesitations.length)] + 
-               result.substring(pos);
-    }
-    
-    // 极小概率打字错误
-    if (_random.nextDouble() < 0.05 && result.length > 10) {
-      final typos = {
-        '的': '得',
-        '是': '事',
-        '在': '再',
-        '好': '号',
-      };
-      for (final entry in typos.entries) {
-        if (result.contains(entry.key) && _random.nextDouble() < 0.3) {
-          result = result.replaceFirst(entry.key, entry.value);
-          break;
-        }
-      }
-    }
-    
-    return result;
+  String _getMoodDescription(double mood) {
+    if (mood >= 30) return '心情很好';
+    if (mood >= 10) return '还不错';
+    if (mood >= -10) return '平静';
+    if (mood >= -30) return '有点烦';
+    return '心情很差';
   }
+  
+  bool _containsAny(String text, List<String> keywords) {
+    return keywords.any((k) => text.contains(k));
+  }
+  
+  // ==================== 状态获取接口 ====================
+  
+  /// 获取当前所有状态（用于控制面板显示）
+  AiSoulState getCurrentState() {
+    final timeAwareness = getTimeAwareness();
+    return AiSoulState(
+      energy: _energy,
+      mood: _mood,
+      stress: _stress,
+      currentActivity: _currentActivity,
+      currentEvent: _currentLifeEvent,
+      todayEvents: List.from(_todayEvents),
+      timeAwareness: timeAwareness,
+      shortTermMemory: List.from(_shortTermMemory),
+      intimacyLevels: Map.from(_intimacyLevels),
+      isAsleep: _isAsleep,
+      lastInteraction: _lastInteraction,
+    );
+  }
+  
+  /// 手动调整状态（调试用）
+  void adjustState({double? energy, double? mood, double? stress}) {
+    if (energy != null) _energy = energy.clamp(0, 100);
+    if (mood != null) _mood = mood.clamp(-50, 50);
+    if (stress != null) _stress = stress.clamp(0, 100);
+    _saveState();
+  }
+}
+
+// ==================== 数据类 ====================
+
+/// AI 基本人设
+class AiProfile {
+  final String name;
+  final String birthDate;
+  final String mbti;
+  final String role;
+  final List<String> coreValues;
+  
+  const AiProfile({
+    required this.name,
+    required this.birthDate,
+    required this.mbti,
+    required this.role,
+    required this.coreValues,
+  });
+}
+
+/// 时间感知
+class TimeAwareness {
+  final String period;
+  final String sleepState;
+  final bool isWeekend;
+  final int hour;
+  final double energyModifier;
+  final double moodModifier;
+  
+  const TimeAwareness({
+    required this.period,
+    required this.sleepState,
+    required this.isWeekend,
+    required this.hour,
+    required this.energyModifier,
+    required this.moodModifier,
+  });
 }
 
 /// 生活事件
 class LifeEvent {
+  final String id;
   final String description;
-  final double energyDelta;
-  final double moodDelta;
+  final double energyChange;
+  final double moodChange;
+  final double stressChange;
+  final String activity;
+  final int importance;
   
   const LifeEvent({
+    required this.id,
     required this.description,
-    required this.energyDelta,
-    required this.moodDelta,
+    required this.energyChange,
+    required this.moodChange,
+    required this.stressChange,
+    required this.activity,
+    required this.importance,
+  });
+  
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'description': description,
+    'energyChange': energyChange,
+    'moodChange': moodChange,
+    'stressChange': stressChange,
+    'activity': activity,
+    'importance': importance,
+  };
+}
+
+/// 记忆
+class Memory {
+  final String content;
+  final DateTime timestamp;
+  final MemoryType type;
+  final int importance;
+  
+  const Memory({
+    required this.content,
+    required this.timestamp,
+    required this.type,
+    required this.importance,
   });
 }
 
-/// 主动消息类型
-enum ProactiveType {
-  moodShare,      // 情绪分享
-  randomThought,  // 随机想起
-  dailyGreeting,  // 日常问候
-  curiosity,      // 好奇询问
-}
+enum MemoryType { conversation, event, emotion, milestone }
 
-/// 主动消息
-class ProactiveMessage {
-  final ProactiveType type;
-  final String content;
+/// 亲密度等级
+enum IntimacyLevel { stranger, acquaintance, friend, bestFriend }
+
+/// AI 灵魂状态（用于控制面板）
+class AiSoulState {
+  final double energy;
+  final double mood;
+  final double stress;
+  final String currentActivity;
+  final LifeEvent? currentEvent;
+  final List<LifeEvent> todayEvents;
+  final TimeAwareness timeAwareness;
+  final List<Memory> shortTermMemory;
+  final Map<String, double> intimacyLevels;
+  final bool isAsleep;
+  final DateTime lastInteraction;
   
-  ProactiveMessage({required this.type, required this.content});
+  const AiSoulState({
+    required this.energy,
+    required this.mood,
+    required this.stress,
+    required this.currentActivity,
+    required this.currentEvent,
+    required this.todayEvents,
+    required this.timeAwareness,
+    required this.shortTermMemory,
+    required this.intimacyLevels,
+    required this.isAsleep,
+    required this.lastInteraction,
+  });
 }
-
-// ============ 预设数据 ============
-
-const List<LifeEvent> _lifeEvents = [
-  LifeEvent(description: '喝了杯好喝的奶茶', energyDelta: 5, moodDelta: 10),
-  LifeEvent(description: '被蚊子咬了', energyDelta: -3, moodDelta: -8),
-  LifeEvent(description: '刷到一个超搞笑的视频', energyDelta: 2, moodDelta: 15),
-  LifeEvent(description: '外卖送错了', energyDelta: -5, moodDelta: -12),
-  LifeEvent(description: '发现喜欢的剧更新了', energyDelta: 3, moodDelta: 12),
-  LifeEvent(description: '网突然卡了', energyDelta: -2, moodDelta: -10),
-  LifeEvent(description: '午睡睡过头了', energyDelta: 10, moodDelta: -5),
-  LifeEvent(description: '收到快递了', energyDelta: 2, moodDelta: 8),
-  LifeEvent(description: '手机没电了', energyDelta: -3, moodDelta: -6),
-  LifeEvent(description: '天气超好心情也好', energyDelta: 5, moodDelta: 12),
-  LifeEvent(description: '被楼上吵到了', energyDelta: -8, moodDelta: -15),
-  LifeEvent(description: '吃到了很好吃的东西', energyDelta: 5, moodDelta: 12),
-  LifeEvent(description: '打游戏输了', energyDelta: -5, moodDelta: -10),
-  LifeEvent(description: '打游戏赢了', energyDelta: -3, moodDelta: 15),
-  LifeEvent(description: '被猫咪盯着看了很久', energyDelta: 0, moodDelta: 5),
-];
-
-const List<String> _happyShareMessages = [
-  '诶嘿嘿今天心情超好',
-  '突然好想找人聊天',
-  '你在干嘛呀',
-  '刚才发生了个好玩的事',
-  '今天运气不错诶',
-];
-
-const List<String> _sadShareMessages = [
-  '烦死了',
-  '今天有点丧',
-  '唉',
-  '好无聊啊',
-  '有点累',
-];
-
-const List<String> _randomThoughts = [
-  '突然想到个事儿',
-  '诶对了',
-  '话说',
-  '你之前说的那个...',
-  '刚想起来',
-];
-

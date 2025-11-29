@@ -35,9 +35,7 @@ jobs:
         run: |
           flutter build apk --release --target-platform android-arm64 \
             --dart-define=CHAT_API_KEY=${{ secrets.CHAT_API_KEY }} \
-            --dart-define=CHAT_BASE_URL=${{ secrets.CHAT_BASE_URL }} \
-            --dart-define=IMAGE_API_KEY=${{ secrets.IMAGE_API_KEY }} \
-            --dart-define=IMAGE_BASE_URL=${{ secrets.IMAGE_BASE_URL }}
+            --dart-define=IMAGE_API_KEY=${{ secrets.IMAGE_API_KEY }}
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4

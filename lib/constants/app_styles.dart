@@ -78,10 +78,10 @@ class AppStyles {
   static const double radiusLarge = 14.0;
   static const double radiusXLarge = 20.0;
 
-  // 动画时长
-  static const Duration animationFast = Duration(milliseconds: 150);
-  static const Duration animationNormal = Duration(milliseconds: 250);
-  static const Duration animationSlow = Duration(milliseconds: 350);
+  // 动画时长（加快速度）
+  static const Duration animationFast = Duration(milliseconds: 80);
+  static const Duration animationNormal = Duration(milliseconds: 150);
+  static const Duration animationSlow = Duration(milliseconds: 200);
 
   // 动画曲线
   static const Curve curveDefault = Curves.easeOutCubic;

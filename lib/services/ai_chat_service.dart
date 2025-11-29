@@ -89,10 +89,13 @@ class AiChatService {
     _addToHistory(chatId, 'user', userInput);
     
     // 触发灵魂引擎状态更新
-    AiSoulEngine.onUserMessage(userInput);
+    AiSoulEngine.instance.onUserMessage(userInput);
     
     // 随机触发生活事件
-    AiSoulEngine.triggerRandomEvent();
+    AiSoulEngine.instance.triggerRandomEvent();
+    
+    // 增加亲密度
+    AiSoulEngine.instance.updateIntimacy(chatId, 0.5);
 
     // 内置 API 都是 OpenAI 兼容格式，使用流式输出
     final buffer = StringBuffer();
@@ -156,25 +159,18 @@ class AiChatService {
       buffer.writeln(basePrompt.trim());
     }
     
-    // 增强拟人化的补充提示
-    buffer.writeln('''
-
-【重要补充】
-- 记住之前聊过的内容，自然地延续话题
-- 偶尔可以主动提起之前聊过的事
-- 回复时考虑对话的情绪走向
-- 可以用语气词，比如"哈哈"、"嗯"、"诶"、"啊"
-- 如果对方说的话很短，你也可以回复很短
-- 不要每次都问"你呢"或反问句结尾''');
-    
-    // 加入状态感知（灵魂引擎）
+    // 加入完整的灵魂引擎状态提示
     buffer.writeln();
-    buffer.writeln(AiSoulEngine.generateStatePrompt());
+    buffer.writeln(AiSoulEngine.instance.generateStatePrompt());
+    
+    // 加入亲密度相关提示
+    buffer.writeln();
+    buffer.writeln(AiSoulEngine.instance.getIntimacyPrompt(chatId));
     
     // 用户自定义人设
     if (persona.trim().isNotEmpty) {
       buffer.writeln();
-      buffer.writeln('【你的人设】');
+      buffer.writeln('【额外人设补充】');
       buffer.writeln(persona.trim());
     }
     

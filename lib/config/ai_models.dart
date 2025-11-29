@@ -5,26 +5,26 @@ class AiModels {
   /// 内置对话模型列表
   static const List<ChatModel> builtInChatModels = [
     ChatModel(
-      id: 'kimi-k2-0711',
+      id: 'kimi-k2-0905',
       name: 'Kimi K2',
       description: '月之暗面最新模型，擅长中文对话',
       provider: 'iflow',
     ),
     ChatModel(
-      id: 'qwen3-235b-a22b',
+      id: 'qwen3-max',
       name: 'Qwen3 Max',
       description: '阿里通义千问，综合能力强',
       provider: 'iflow',
     ),
     ChatModel(
-      id: 'glm-4-plus',
+      id: 'glm-4.6',
       name: 'GLM-4.6',
       description: '智谱 AI，逻辑推理出色',
       provider: 'iflow',
     ),
     ChatModel(
-      id: 'deepseek-chat',
-      name: 'DeepSeek V3',
+      id: 'deepseek-v3.2',
+      name: 'DeepSeek V3.2',
       description: '深度求索，代码和推理能力强',
       provider: 'iflow',
     ),
@@ -45,6 +45,12 @@ class AiModels {
   
   /// 获取默认图像模型
   static ImageModel get defaultImageModel => builtInImageModels.first;
+  
+  /// 获取事件生成专用模型（DeepSeek V3.2）
+  static ChatModel get eventGenerationModel => builtInChatModels.firstWhere(
+    (m) => m.id == 'deepseek-v3.2',
+    orElse: () => defaultChatModel,
+  );
 }
 
 /// 对话模型

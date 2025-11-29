@@ -1,12 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:zichat/config/api_secrets.dart';
 import 'package:zichat/config/ai_models.dart';
 
 /// 图像生成服务
 /// 
-/// 使用 ModelScope API 生成图片
+/// 使用 ModelScope API (OpenAI兼容格式) 生成图片
 class ImageGenService {
   /// 生成图片
   /// 
@@ -26,7 +25,8 @@ class ImageGenService {
     }
     
     try {
-      final url = '${ApiSecrets.imageBaseUrl}api/v1/models/${useModel.id}/text-to-image';
+      // 使用 OpenAI 兼容的 images/generations 接口
+      final url = '${ApiSecrets.imageBaseUrl}images/generations';
       
       final response = await http.post(
         Uri.parse(url),
@@ -35,38 +35,31 @@ class ImageGenService {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'input': {
-            'prompt': prompt,
-          },
-          'parameters': {
-            'size': '1024*1024',
-            'n': 1,
-          },
+          'model': useModel.id,
+          'prompt': prompt,
+          'size': '1024x1024',
+          'n': 1,
+          'response_format': 'b64_json',
         }),
-      ).timeout(const Duration(seconds: 60));
+      ).timeout(const Duration(seconds: 120));
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         
-        // ModelScope 返回格式处理
-        if (data['output'] != null && data['output']['results'] != null) {
-          final results = data['output']['results'] as List;
-          if (results.isNotEmpty) {
-            // 可能返回 URL 或 base64
-            final result = results[0];
-            if (result['url'] != null) {
-              // 如果是 URL，下载图片并转为 base64
-              return await _downloadAndEncode(result['url']);
-            } else if (result['b64_image'] != null) {
-              return result['b64_image'];
-            }
+        // OpenAI 兼容格式返回
+        if (data['data'] != null && (data['data'] as List).isNotEmpty) {
+          final result = data['data'][0];
+          if (result['b64_json'] != null) {
+            return result['b64_json'];
+          } else if (result['url'] != null) {
+            return await _downloadAndEncode(result['url']);
           }
         }
         
         throw Exception('生成结果格式异常');
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? '生成失败: ${response.statusCode}');
+        throw Exception(error['error']?['message'] ?? '生成失败: ${response.statusCode}');
       }
     } catch (e) {
       rethrow;
