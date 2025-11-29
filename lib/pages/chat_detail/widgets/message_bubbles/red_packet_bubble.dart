@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
@@ -157,7 +157,7 @@ class _RedPacketBubbleState extends State<RedPacketBubble>
               right: widget.isOutgoing ? -4 : null,
               left: widget.isOutgoing ? null : -4,
               child: Transform.rotate(
-                angle: pi / 4,
+                angle: math.pi / 4,
                 child: Container(
                   width: 8,
                   height: 8,

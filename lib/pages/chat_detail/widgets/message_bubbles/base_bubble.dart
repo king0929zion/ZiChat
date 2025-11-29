@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
@@ -40,7 +40,7 @@ class BaseBubble extends StatelessWidget {
           right: isOutgoing ? -4 : null,
           left: isOutgoing ? null : -4,
           child: Transform.rotate(
-            angle: pi / 4,
+            angle: math.pi / 4,
             child: Container(
               width: 8,
               height: 8,

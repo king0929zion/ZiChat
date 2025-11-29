@@ -256,18 +256,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       _aiRequesting = true;
     });
 
-    // 创建一个临时的 AI 消息，用于流式更新
-    final aiMessageId = 'ai-${DateTime.now().millisecondsSinceEpoch}';
+    // 先显示"正在输入"状态
+    final typingId = 'typing-${DateTime.now().millisecondsSinceEpoch}';
     setState(() {
-      _messages.add(ChatMessage.text(
-        id: aiMessageId,
-        text: '',
-        isOutgoing: false,
+      _messages.add(ChatMessage.system(
+        id: typingId,
+        text: '对方正在输入...',
       ));
     });
     _scrollToBottom();
 
     final buffer = StringBuffer();
+    bool firstChunkReceived = false;
+    final aiMessageId = 'ai-${DateTime.now().millisecondsSinceEpoch}';
 
     try {
       await for (final chunk in AiChatService.sendChatStream(
@@ -275,6 +276,19 @@ class _ChatDetailPageState extends State<ChatDetailPage>
         userInput: text,
       )) {
         if (!mounted) return;
+        
+        // 收到第一个字符时，移除"正在输入"，创建真正的消息
+        if (!firstChunkReceived) {
+          firstChunkReceived = true;
+          setState(() {
+            _messages.removeWhere((m) => m.id == typingId);
+            _messages.add(ChatMessage.text(
+              id: aiMessageId,
+              text: '',
+              isOutgoing: false,
+            ));
+          });
+        }
         
         buffer.write(chunk);
         
@@ -328,8 +342,8 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        // 移除临时消息
-        _messages.removeWhere((m) => m.id == aiMessageId);
+        // 移除所有临时消息
+        _messages.removeWhere((m) => m.id == typingId || m.id == aiMessageId);
         
         _messages.add(ChatMessage.system(
           id: 'sys-${DateTime.now().millisecondsSinceEpoch}',

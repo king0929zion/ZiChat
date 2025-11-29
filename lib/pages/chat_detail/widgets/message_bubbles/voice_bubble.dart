@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -118,7 +119,7 @@ class _VoiceBubbleState extends State<VoiceBubble>
       animation: _playingController,
       builder: (context, child) {
         final opacity = _isPlaying
-            ? 0.3 + 0.7 * (0.5 + 0.5 * (_playingController.value * 2 * 3.14159).sin().abs())
+            ? 0.3 + 0.7 * (0.5 + 0.5 * math.sin(_playingController.value * 2 * math.pi).abs())
             : 1.0;
         return Opacity(
           opacity: opacity,
@@ -136,20 +137,3 @@ class _VoiceBubbleState extends State<VoiceBubble>
     );
   }
 }
-
-extension on double {
-  double sin() => _sin(this);
-}
-
-double _sin(double x) {
-  // 简单的 sin 实现用于动画
-  x = x % (2 * 3.14159);
-  double result = x;
-  double term = x;
-  for (int i = 1; i <= 7; i++) {
-    term *= -x * x / ((2 * i) * (2 * i + 1));
-    result += term;
-  }
-  return result;
-}
-

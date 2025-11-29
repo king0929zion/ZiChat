@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
@@ -19,6 +20,9 @@ class AiChatService {
   
   // 最大 token 估算 (用于控制上下文长度)
   static const int _maxContextTokens = 3000;
+  
+  // 随机数生成器
+  static final _random = math.Random();
 
   static Future<String> _getBasePrompt() async {
     if (_basePromptCache.isNotEmpty) return _basePromptCache;
@@ -43,6 +47,10 @@ class AiChatService {
         config.model.trim().isEmpty) {
       throw Exception('AI 配置不完整，请先在"我-设置-通用-AI 配置"中填写。');
     }
+
+    // 模拟真人回复延迟 (800ms - 2000ms)
+    final initialDelay = 800 + _random.nextInt(1200);
+    await Future.delayed(Duration(milliseconds: initialDelay));
 
     // 构建系统提示词
     final systemPrompt = await _buildSystemPrompt(chatId, config.persona);
@@ -210,12 +218,34 @@ class AiChatService {
   }
 
   /// 模拟流式输出 (用于不支持流式的 API)
+  /// 包含自然的打字节奏：快速连打 + 偶尔停顿
   static Stream<String> _simulateStream(String text) async* {
-    // 按字符输出，模拟打字效果
+    int consecutiveChars = 0;
+    
     for (int i = 0; i < text.length; i++) {
-      yield text[i];
-      // 随机延迟，让打字更自然
-      await Future.delayed(Duration(milliseconds: 20 + (i % 3) * 10));
+      final char = text[i];
+      yield char;
+      consecutiveChars++;
+      
+      // 标点符号后稍微停顿
+      if ('，。！？、；：'.contains(char)) {
+        await Future.delayed(Duration(milliseconds: 150 + _random.nextInt(200)));
+        consecutiveChars = 0;
+      }
+      // 反斜线（分句符）后停顿更长
+      else if (char == '\\') {
+        await Future.delayed(Duration(milliseconds: 300 + _random.nextInt(300)));
+        consecutiveChars = 0;
+      }
+      // 每打几个字后偶尔停顿一下，模拟思考
+      else if (consecutiveChars > 5 && _random.nextDouble() < 0.15) {
+        await Future.delayed(Duration(milliseconds: 100 + _random.nextInt(150)));
+        consecutiveChars = 0;
+      }
+      // 正常打字速度
+      else {
+        await Future.delayed(Duration(milliseconds: 25 + _random.nextInt(35)));
+      }
     }
   }
 

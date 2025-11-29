@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -145,7 +145,7 @@ class _TransferBubbleState extends State<TransferBubble>
             right: widget.isOutgoing ? -4 : null,
             left: widget.isOutgoing ? null : -4,
             child: Transform.rotate(
-              angle: pi / 4,
+              angle: math.pi / 4,
               child: Container(
                 width: 8,
                 height: 8,
@@ -166,7 +166,7 @@ class _TransferBubbleState extends State<TransferBubble>
           return child!;
         }
         // 未收款时添加闪烁效果
-        final shimmer = 0.7 + 0.3 * (1 + (_shimmerController.value * 2 * pi).sin()) / 2;
+        final shimmer = 0.7 + 0.3 * (1 + math.sin(_shimmerController.value * 2 * math.pi)) / 2;
         return Opacity(
           opacity: shimmer,
           child: child,
