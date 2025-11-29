@@ -1,12 +1,24 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:zichat/storage/ai_config_storage.dart';
 
-/// 统一的 AI 对话服务，支持 OpenAI / Gemini 两种 provider
+/// 统一的 AI 对话服务
+/// 支持 OpenAI / Gemini 两种 provider
+/// 支持流式响应和智能上下文管理
 class AiChatService {
   static String _basePromptCache = '';
+  
+  // 对话历史缓存 (内存中)
+  static final Map<String, List<_HistoryItem>> _historyCache = {};
+  
+  // 最大历史条数
+  static const int _maxHistoryItems = 20;
+  
+  // 最大 token 估算 (用于控制上下文长度)
+  static const int _maxContextTokens = 3000;
 
   static Future<String> _getBasePrompt() async {
     if (_basePromptCache.isNotEmpty) return _basePromptCache;
@@ -18,39 +30,32 @@ class AiChatService {
     return _basePromptCache;
   }
 
-  /// 调用 AI 接口，返回按反斜线分句后的多条回复
-  static Future<List<String>> sendChat({
+  /// 流式发送消息 - 实现打字机效果
+  /// 返回 Stream，每次 yield 一个字符或词
+  static Stream<String> sendChatStream({
     required String chatId,
     required String userInput,
-    List<Map<String, String>>? history,
-  }) async {
+  }) async* {
     final config = await AiConfigStorage.loadGlobalConfig();
     if (config == null ||
         config.apiBaseUrl.trim().isEmpty ||
         config.apiKey.trim().isEmpty ||
         config.model.trim().isEmpty) {
-      throw Exception('AI 配置不完整，请先在“我-设置-通用-AI 配置”中填写。');
+      throw Exception('AI 配置不完整，请先在"我-设置-通用-AI 配置"中填写。');
     }
 
-    final String basePrompt = await _getBasePrompt();
-    final String contactPrompt =
-        (await AiConfigStorage.loadContactPrompt(chatId)) ?? '';
+    // 构建系统提示词
+    final systemPrompt = await _buildSystemPrompt(chatId, config.persona);
+    
+    // 获取智能上下文历史
+    final history = _getSmartHistory(chatId, userInput);
 
-    final buffer = StringBuffer();
-    if (basePrompt.trim().isNotEmpty) {
-      buffer.writeln(basePrompt.trim());
-    }
-    if (config.persona.trim().isNotEmpty) {
-      buffer.writeln(config.persona.trim());
-    }
-    if (contactPrompt.trim().isNotEmpty) {
-      buffer.writeln(contactPrompt.trim());
-    }
-    final String systemPrompt = buffer.toString().trim();
+    // 记录用户消息到历史
+    _addToHistory(chatId, 'user', userInput);
 
-    final String raw;
     if (config.provider == 'gemini') {
-      raw = await _callGemini(
+      // Gemini 暂不支持流式，使用普通请求后模拟流式输出
+      final result = await _callGemini(
         baseUrl: config.apiBaseUrl.trim(),
         apiKey: config.apiKey.trim(),
         model: config.model.trim(),
@@ -58,17 +63,51 @@ class AiChatService {
         userInput: userInput,
         history: history,
       );
+      
+      // 模拟流式输出
+      yield* _simulateStream(result);
+      
+      // 记录 AI 回复到历史
+      _addToHistory(chatId, 'assistant', result);
     } else {
-      raw = await _callOpenAiCompatible(
+      // OpenAI 真正的流式输出
+      final buffer = StringBuffer();
+      
+      await for (final chunk in _callOpenAiStream(
         baseUrl: config.apiBaseUrl.trim(),
         apiKey: config.apiKey.trim(),
         model: config.model.trim(),
         systemPrompt: systemPrompt,
         userInput: userInput,
         history: history,
-      );
+      )) {
+        buffer.write(chunk);
+        yield chunk;
+      }
+      
+      // 记录 AI 回复到历史
+      _addToHistory(chatId, 'assistant', buffer.toString());
     }
+  }
 
+  /// 普通发送 (兼容旧接口)
+  static Future<List<String>> sendChat({
+    required String chatId,
+    required String userInput,
+    List<Map<String, String>>? history,
+  }) async {
+    final buffer = StringBuffer();
+    
+    await for (final chunk in sendChatStream(
+      chatId: chatId,
+      userInput: userInput,
+    )) {
+      buffer.write(chunk);
+    }
+    
+    final raw = buffer.toString();
+    
+    // 按反斜线分句
     final List<String> parts = raw
         .split('\\')
         .map((e) => e.trim())
@@ -82,6 +121,188 @@ class AiChatService {
     return parts;
   }
 
+  /// 构建系统提示词 (增强拟人化)
+  static Future<String> _buildSystemPrompt(String chatId, String persona) async {
+    final basePrompt = await _getBasePrompt();
+    final contactPrompt = (await AiConfigStorage.loadContactPrompt(chatId)) ?? '';
+    
+    final buffer = StringBuffer();
+    
+    // 基础提示词
+    if (basePrompt.trim().isNotEmpty) {
+      buffer.writeln(basePrompt.trim());
+    }
+    
+    // 增强拟人化的补充提示
+    buffer.writeln('''
+
+【重要补充】
+- 记住之前聊过的内容，自然地延续话题
+- 偶尔可以主动提起之前聊过的事
+- 回复时考虑对话的情绪走向
+- 可以用语气词，比如"哈哈"、"嗯"、"诶"、"啊"
+- 如果对方说的话很短，你也可以回复很短
+- 不要每次都问"你呢"或反问句结尾''');
+    
+    // 用户自定义人设
+    if (persona.trim().isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('【你的人设】');
+      buffer.writeln(persona.trim());
+    }
+    
+    // 联系人专属提示词
+    if (contactPrompt.trim().isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('【针对这个朋友的特别说明】');
+      buffer.writeln(contactPrompt.trim());
+    }
+    
+    return buffer.toString().trim();
+  }
+
+  /// 智能历史窗口 - 考虑上下文连贯性
+  static List<Map<String, String>> _getSmartHistory(String chatId, String currentInput) {
+    final history = _historyCache[chatId] ?? [];
+    if (history.isEmpty) return [];
+    
+    final result = <Map<String, String>>[];
+    int tokenCount = _estimateTokens(currentInput);
+    
+    // 从最近的消息开始，往前取
+    for (int i = history.length - 1; i >= 0; i--) {
+      final item = history[i];
+      final tokens = _estimateTokens(item.content);
+      
+      if (tokenCount + tokens > _maxContextTokens) break;
+      
+      tokenCount += tokens;
+      result.insert(0, {
+        'role': item.role,
+        'content': item.content,
+      });
+    }
+    
+    return result;
+  }
+
+  /// 添加消息到历史
+  static void _addToHistory(String chatId, String role, String content) {
+    _historyCache.putIfAbsent(chatId, () => []);
+    _historyCache[chatId]!.add(_HistoryItem(role: role, content: content));
+    
+    // 限制历史长度
+    if (_historyCache[chatId]!.length > _maxHistoryItems) {
+      _historyCache[chatId]!.removeAt(0);
+    }
+  }
+
+  /// 清除某个聊天的历史
+  static void clearHistory(String chatId) {
+    _historyCache.remove(chatId);
+  }
+
+  /// 估算 token 数量 (粗略)
+  static int _estimateTokens(String text) {
+    // 中文约 1.5 字/token，英文约 4 字/token
+    // 这里用一个折中值
+    return (text.length / 2).ceil();
+  }
+
+  /// 模拟流式输出 (用于不支持流式的 API)
+  static Stream<String> _simulateStream(String text) async* {
+    // 按字符输出，模拟打字效果
+    for (int i = 0; i < text.length; i++) {
+      yield text[i];
+      // 随机延迟，让打字更自然
+      await Future.delayed(Duration(milliseconds: 20 + (i % 3) * 10));
+    }
+  }
+
+  /// OpenAI 流式请求
+  static Stream<String> _callOpenAiStream({
+    required String baseUrl,
+    required String apiKey,
+    required String model,
+    required String systemPrompt,
+    required String userInput,
+    required List<Map<String, String>> history,
+  }) async* {
+    final uri = _joinUri(baseUrl, 'v1/chat/completions');
+
+    final List<Map<String, dynamic>> messages = [];
+
+    if (systemPrompt.isNotEmpty) {
+      messages.add({'role': 'system', 'content': systemPrompt});
+    }
+
+    for (final item in history) {
+      messages.add({'role': item['role'], 'content': item['content']});
+    }
+
+    messages.add({'role': 'user', 'content': userInput});
+
+    final body = jsonEncode({
+      'model': model,
+      'messages': messages,
+      'temperature': 0.8,
+      'stream': true,
+    });
+
+    final request = http.Request('POST', uri);
+    request.headers['Content-Type'] = 'application/json';
+    request.headers['Authorization'] = 'Bearer $apiKey';
+    request.body = body;
+
+    final client = http.Client();
+    
+    try {
+      final response = await client.send(request).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () => throw TimeoutException('请求超时'),
+      );
+
+      if (response.statusCode != 200) {
+        final body = await response.stream.bytesToString();
+        throw Exception('API 错误 (${response.statusCode}): $body');
+      }
+
+      String buffer = '';
+      
+      await for (final chunk in response.stream.transform(utf8.decoder)) {
+        buffer += chunk;
+        
+        // 处理 SSE 格式
+        while (buffer.contains('\n')) {
+          final index = buffer.indexOf('\n');
+          final line = buffer.substring(0, index).trim();
+          buffer = buffer.substring(index + 1);
+          
+          if (line.isEmpty) continue;
+          if (line == 'data: [DONE]') return;
+          if (!line.startsWith('data: ')) continue;
+          
+          try {
+            final jsonStr = line.substring(6);
+            final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+            final choices = data['choices'] as List<dynamic>?;
+            if (choices != null && choices.isNotEmpty) {
+              final delta = choices[0]['delta'] as Map<String, dynamic>?;
+              final content = delta?['content'] as String?;
+              if (content != null && content.isNotEmpty) {
+                yield content;
+              }
+            }
+          } catch (_) {
+            // 忽略解析错误，继续处理
+          }
+        }
+      }
+    } finally {
+      client.close();
+    }
+  }
+
   static Uri _joinUri(String base, String path) {
     if (base.endsWith('/')) {
       return Uri.parse('$base$path');
@@ -89,84 +310,14 @@ class AiChatService {
     return Uri.parse('$base/$path');
   }
 
-  static Future<String> _callOpenAiCompatible({
-    required String baseUrl,
-    required String apiKey,
-    required String model,
-    required String systemPrompt,
-    required String userInput,
-    List<Map<String, String>>? history,
-  }) async {
-    final uri = _joinUri(baseUrl, 'v1/chat/completions');
-
-    final List<Map<String, String>> messages = <Map<String, String>>[];
-
-    if (systemPrompt.isNotEmpty) {
-      messages.add(<String, String>{
-        'role': 'system',
-        'content': systemPrompt,
-      });
-    }
-
-    if (history != null) {
-      for (final Map<String, String> item in history) {
-        final String content = (item['content'] ?? '').trim();
-        if (content.isEmpty) continue;
-        final String role = item['role'] ?? 'user';
-        messages.add(<String, String>{
-          'role': role,
-          'content': content,
-        });
-      }
-    }
-
-    messages.add(<String, String>{
-      'role': 'user',
-      'content': userInput,
-    });
-
-    final body = <String, dynamic>{
-      'model': model,
-      'messages': messages,
-      'temperature': 0.7,
-    };
-
-    final resp = await http.post(
-      uri,
-      headers: <String, String>{
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $apiKey',
-      },
-      body: jsonEncode(body),
-    );
-
-    if (resp.statusCode != 200) {
-      throw Exception('OpenAI 接口错误(${resp.statusCode}): ${resp.body}');
-    }
-
-    final Map<String, dynamic> data = jsonDecode(resp.body);
-    final List<dynamic>? choices = data['choices'] as List<dynamic>?;
-    if (choices == null || choices.isEmpty) {
-      throw Exception('OpenAI 返回内容为空');
-    }
-    final dynamic message = choices.first['message'];
-    if (message is Map<String, dynamic>) {
-      final dynamic content = message['content'];
-      if (content is String) {
-        return content;
-      }
-      return content.toString();
-    }
-    return message.toString();
-  }
-
+  /// Gemini 请求 (非流式)
   static Future<String> _callGemini({
     required String baseUrl,
     required String apiKey,
     required String model,
     required String systemPrompt,
     required String userInput,
-    List<Map<String, String>>? history,
+    required List<Map<String, String>> history,
   }) async {
     final String cleanedBase =
         baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
@@ -174,71 +325,70 @@ class AiChatService {
       '$cleanedBase/v1beta/models/$model:generateContent?key=$apiKey',
     );
 
-    final StringBuffer buffer = StringBuffer();
+    final buffer = StringBuffer();
     if (systemPrompt.isNotEmpty) {
       buffer.writeln(systemPrompt.trim());
       buffer.writeln();
     }
 
-    if (history != null) {
-      for (final Map<String, String> item in history) {
-        final String content = (item['content'] ?? '').trim();
-        if (content.isEmpty) continue;
-        final String role = item['role'] ?? 'user';
-        final String prefix = role == 'assistant' ? '朋友：' : '我：';
-        buffer.writeln('$prefix$content');
-      }
+    // 加入历史对话
+    for (final item in history) {
+      final content = item['content'] ?? '';
+      if (content.isEmpty) continue;
+      final role = item['role'] ?? 'user';
+      final prefix = role == 'assistant' ? '朋友：' : '我：';
+      buffer.writeln('$prefix$content');
     }
 
     buffer.writeln('我：$userInput');
-    final String promptText = buffer.toString().trim();
+    final promptText = buffer.toString().trim();
 
-    final body = <String, dynamic>{
+    final body = jsonEncode({
       'contents': [
         {
-          'parts': [
-            {
-              'text': promptText,
-            },
-          ],
+          'parts': [{'text': promptText}],
         },
       ],
-    };
+      'generationConfig': {
+        'temperature': 0.8,
+      },
+    });
 
     final resp = await http.post(
       uri,
-      headers: const <String, String>{
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode(body),
+      headers: {'Content-Type': 'application/json'},
+      body: body,
+    ).timeout(
+      const Duration(seconds: 60),
+      onTimeout: () => throw TimeoutException('请求超时'),
     );
 
     if (resp.statusCode != 200) {
       throw Exception('Gemini 接口错误(${resp.statusCode}): ${resp.body}');
     }
 
-    final Map<String, dynamic> data = jsonDecode(resp.body);
-    final List<dynamic>? candidates = data['candidates'] as List<dynamic>?;
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final candidates = data['candidates'] as List<dynamic>?;
     if (candidates == null || candidates.isEmpty) {
       throw Exception('Gemini 返回内容为空');
     }
 
-    final dynamic content = candidates.first['content'];
+    final content = candidates.first['content'];
     if (content is Map<String, dynamic>) {
-      final List<dynamic>? parts = content['parts'] as List<dynamic>?;
+      final parts = content['parts'] as List<dynamic>?;
       if (parts == null || parts.isEmpty) {
         throw Exception('Gemini 返回内容为空');
       }
-      final buffer = StringBuffer();
-      for (final dynamic p in parts) {
+      final resultBuffer = StringBuffer();
+      for (final p in parts) {
         if (p is Map<String, dynamic>) {
-          final dynamic text = p['text'];
+          final text = p['text'];
           if (text != null) {
-            buffer.write(text.toString());
+            resultBuffer.write(text.toString());
           }
         }
       }
-      final result = buffer.toString();
+      final result = resultBuffer.toString();
       if (result.isEmpty) {
         throw Exception('Gemini 返回内容为空');
       }
@@ -247,4 +397,21 @@ class AiChatService {
 
     return content.toString();
   }
+}
+
+/// 历史消息项
+class _HistoryItem {
+  final String role;
+  final String content;
+  
+  _HistoryItem({required this.role, required this.content});
+}
+
+/// 超时异常
+class TimeoutException implements Exception {
+  final String message;
+  TimeoutException(this.message);
+  
+  @override
+  String toString() => message;
 }

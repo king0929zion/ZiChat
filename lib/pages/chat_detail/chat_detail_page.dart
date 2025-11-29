@@ -256,41 +256,69 @@ class _ChatDetailPageState extends State<ChatDetailPage>
       _aiRequesting = true;
     });
 
-    // 显示 typing indicator
-    final typingId = 'typing-${DateTime.now().millisecondsSinceEpoch}';
+    // 创建一个临时的 AI 消息，用于流式更新
+    final aiMessageId = 'ai-${DateTime.now().millisecondsSinceEpoch}';
     setState(() {
-      _messages.add(ChatMessage.system(
-        id: typingId,
-        text: '对方正在输入...',
+      _messages.add(ChatMessage.text(
+        id: aiMessageId,
+        text: '',
+        isOutgoing: false,
       ));
     });
     _scrollToBottom();
 
-    final List<Map<String, String>> history = _buildAiHistory();
+    final buffer = StringBuffer();
 
     try {
-      final List<String> replies = await AiChatService.sendChat(
+      await for (final chunk in AiChatService.sendChatStream(
         chatId: widget.chatId,
         userInput: text,
-        history: history,
-      );
+      )) {
+        if (!mounted) return;
+        
+        buffer.write(chunk);
+        
+        // 实时更新消息内容
+        setState(() {
+          final index = _messages.indexWhere((m) => m.id == aiMessageId);
+          if (index != -1) {
+            _messages[index] = _messages[index].copyWith(
+              text: buffer.toString(),
+            );
+          }
+        });
+        _scrollToBottom();
+      }
+
       if (!mounted) return;
+      
+      // 流式完成后，按反斜线分句处理
+      final fullText = buffer.toString();
+      final parts = fullText
+          .split('\\')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
 
       setState(() {
-        // 移除 typing indicator
-        _messages.removeWhere((m) => m.id == typingId);
-
-        if (replies.isEmpty) {
-          _aiRequesting = false;
-          return;
-        }
-
-        for (int i = 0; i < replies.length; i++) {
+        // 移除临时消息
+        _messages.removeWhere((m) => m.id == aiMessageId);
+        
+        // 添加分句后的消息
+        if (parts.isEmpty && fullText.trim().isNotEmpty) {
           _messages.add(ChatMessage.text(
-            id: 'ai-${DateTime.now().millisecondsSinceEpoch}-$i',
-            text: replies[i],
+            id: aiMessageId,
+            text: fullText.trim(),
             isOutgoing: false,
           ));
+        } else {
+          for (int i = 0; i < parts.length; i++) {
+            _messages.add(ChatMessage.text(
+              id: '$aiMessageId-$i',
+              text: parts[i],
+              isOutgoing: false,
+            ));
+          }
         }
         _aiRequesting = false;
       });
@@ -300,12 +328,12 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        // 移除 typing indicator
-        _messages.removeWhere((m) => m.id == typingId);
+        // 移除临时消息
+        _messages.removeWhere((m) => m.id == aiMessageId);
         
         _messages.add(ChatMessage.system(
           id: 'sys-${DateTime.now().millisecondsSinceEpoch}',
-          text: 'AI 出错：$e',
+          text: '出错了：$e',
         ));
         _aiRequesting = false;
       });
