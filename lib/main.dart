@@ -12,6 +12,7 @@ import 'package:zichat/pages/me_page.dart';
 import 'package:zichat/pages/add_contacts_page.dart';
 import 'package:zichat/pages/code_scanner_page.dart';
 import 'package:zichat/pages/money_qrcode_page.dart';
+import 'package:zichat/services/ai_soul_engine.dart';
 import 'package:zichat/services/svg_precache_service.dart';
 
 Future<void> main() async {
@@ -29,6 +30,9 @@ Future<void> main() async {
   await Hive.initFlutter();
   await Hive.openBox('chat_messages');
   await Hive.openBox('ai_config');
+  
+  // 初始化 AI 灵魂引擎
+  await AiSoulEngine.init();
   
   runApp(const MyApp());
 }

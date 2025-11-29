@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:zichat/services/ai_soul_engine.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
 
 /// 统一的 AI 对话服务
@@ -60,6 +61,12 @@ class AiChatService {
 
     // 记录用户消息到历史
     _addToHistory(chatId, 'user', userInput);
+    
+    // 触发灵魂引擎状态更新
+    AiSoulEngine.onUserMessage(userInput);
+    
+    // 随机触发生活事件
+    AiSoulEngine.triggerRandomEvent();
 
     if (config.provider == 'gemini') {
       // Gemini 暂不支持流式，使用普通请求后模拟流式输出
@@ -129,7 +136,7 @@ class AiChatService {
     return parts;
   }
 
-  /// 构建系统提示词 (增强拟人化)
+  /// 构建系统提示词 (增强拟人化 + 状态感知)
   static Future<String> _buildSystemPrompt(String chatId, String persona) async {
     final basePrompt = await _getBasePrompt();
     final contactPrompt = (await AiConfigStorage.loadContactPrompt(chatId)) ?? '';
@@ -151,6 +158,10 @@ class AiChatService {
 - 可以用语气词，比如"哈哈"、"嗯"、"诶"、"啊"
 - 如果对方说的话很短，你也可以回复很短
 - 不要每次都问"你呢"或反问句结尾''');
+    
+    // 加入状态感知（灵魂引擎）
+    buffer.writeln();
+    buffer.writeln(AiSoulEngine.generateStatePrompt());
     
     // 用户自定义人设
     if (persona.trim().isNotEmpty) {
