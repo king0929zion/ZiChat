@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,6 +8,7 @@ import 'package:zichat/models/chat_message.dart';
 import 'package:zichat/pages/chat_options_page.dart';
 import 'package:zichat/pages/transfer_page.dart';
 import 'package:zichat/services/ai_chat_service.dart';
+import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/storage/chat_storage.dart';
 import 'widgets/widgets.dart';
 
@@ -288,9 +290,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
       if (!mounted) return;
       
-      // 流式完成后，按反斜线分句处理
+      // 流式完成后，解析工具调用和分句
       final fullText = buffer.toString();
-      final parts = fullText
+      
+      // 解析工具调用
+      final toolCalls = AiToolsService.parseToolCalls(fullText);
+      
+      // 移除工具标记后的文本
+      final cleanText = AiToolsService.removeToolMarkers(fullText);
+      
+      // 按反斜线分句处理
+      final parts = cleanText
           .split('\\')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
@@ -301,10 +311,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _messages.removeWhere((m) => m.id == aiMessageId);
         
         // 添加分句后的消息
-        if (parts.isEmpty && fullText.trim().isNotEmpty) {
+        if (parts.isEmpty && cleanText.trim().isNotEmpty) {
           _messages.add(ChatMessage.text(
             id: aiMessageId,
-            text: fullText.trim(),
+            text: cleanText.trim(),
             isOutgoing: false,
           ));
         } else {
@@ -318,6 +328,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         }
         _aiRequesting = false;
       });
+      
+      // 处理工具调用
+      await _processToolCalls(toolCalls, aiMessageId);
 
       _saveMessages();
       _scrollToBottom();
@@ -336,6 +349,102 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       _saveMessages();
       _scrollToBottom();
     }
+  }
+
+  /// 处理 AI 工具调用
+  Future<void> _processToolCalls(List<AiToolCall> toolCalls, String baseId) async {
+    if (toolCalls.isEmpty) return;
+    
+    final random = math.Random();
+    int toolIndex = 0;
+    
+    for (final call in toolCalls) {
+      // 每个工具调用之间有自然延迟
+      await Future.delayed(Duration(milliseconds: 500 + random.nextInt(1000)));
+      
+      if (!mounted) return;
+      
+      switch (call.type) {
+        case AiToolType.sendImage:
+          // 发送图片
+          final description = call.params['description'] as String? ?? '';
+          final imagePath = _getImageForDescription(description);
+          if (imagePath != null) {
+            setState(() {
+              _messages.add(ChatMessage.image(
+                id: '$baseId-tool-$toolIndex',
+                imagePath: imagePath,
+                isOutgoing: false,
+              ));
+            });
+          }
+          break;
+          
+        case AiToolType.sendTransfer:
+          // 发送转账
+          final amount = call.params['amount'] as double? ?? 0;
+          if (amount > 0) {
+            setState(() {
+              _messages.add(ChatMessage.transfer(
+                id: '$baseId-tool-$toolIndex',
+                amount: amount.toStringAsFixed(2),
+                note: '给你的小惊喜',
+                isOutgoing: false,
+              ));
+            });
+          }
+          break;
+          
+        case AiToolType.sendEmoji:
+          // 发送表情（暂时用文字替代）
+          final emoji = call.params['emoji'] as String? ?? '';
+          if (emoji.isNotEmpty) {
+            setState(() {
+              _messages.add(ChatMessage.text(
+                id: '$baseId-tool-$toolIndex',
+                text: '[$emoji]',
+                isOutgoing: false,
+              ));
+            });
+          }
+          break;
+          
+        case AiToolType.sendVoice:
+          // 发送语音（未实现）
+          break;
+      }
+      
+      toolIndex++;
+      _scrollToBottom();
+    }
+  }
+  
+  /// 根据描述获取对应的图片资源
+  String? _getImageForDescription(String description) {
+    final lowerDesc = description.toLowerCase();
+    
+    // 使用现有的图片资源
+    final availableImages = [
+      'assets/icon/discover/moments.jpeg',
+      'assets/icon/discover/channels.jpeg',
+      'assets/icon/discover/live.jpeg',
+      'assets/icon/discover/scan.jpeg',
+      'assets/icon/discover/shake.jpeg',
+      'assets/img-default.jpg',
+    ];
+    
+    // 根据描述关键词选择图片
+    if (lowerDesc.contains('风景') || lowerDesc.contains('天') || 
+        lowerDesc.contains('外面') || lowerDesc.contains('景')) {
+      return 'assets/icon/discover/moments.jpeg';
+    }
+    
+    if (lowerDesc.contains('视频') || lowerDesc.contains('直播')) {
+      return 'assets/icon/discover/channels.jpeg';
+    }
+    
+    // 默认随机选择
+    return availableImages[math.Random().nextInt(availableImages.length)];
   }
 
   Future<void> _pickImage(ImageSource source) async {

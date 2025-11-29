@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:zichat/services/ai_soul_engine.dart';
+import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
 
 /// 统一的 AI 对话服务
@@ -176,6 +177,10 @@ class AiChatService {
       buffer.writeln('【针对这个朋友的特别说明】');
       buffer.writeln(contactPrompt.trim());
     }
+    
+    // 工具使用提示
+    buffer.writeln();
+    buffer.writeln(AiToolsService.generateToolPrompt());
     
     return buffer.toString().trim();
   }

@@ -619,7 +619,7 @@ class _HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          const SizedBox(width: 36, height: 36),
+          const SizedBox(width: 36),
           Expanded(
             child: Center(
               child: TweenAnimationBuilder<double>(
@@ -639,11 +639,7 @@ class _HomeHeader extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(
-            width: 36,
-            height: 36,
-            child: action,
-          ),
+          action,
         ],
       ),
     );
