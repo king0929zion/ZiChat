@@ -690,6 +690,7 @@ class _HeaderIconButtonState extends State<_HeaderIconButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _controller.forward(),
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
@@ -697,18 +698,24 @@ class _HeaderIconButtonState extends State<_HeaderIconButton>
         HapticFeedback.lightImpact();
         widget.onTap();
       },
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: SvgPicture.asset(
-          widget.asset,
-          width: 22,
-          height: 22,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Center(
+          child: AnimatedBuilder(
+            animation: _scaleAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: child,
+              );
+            },
+            child: SvgPicture.asset(
+              widget.asset,
+              width: 24,
+              height: 24,
+            ),
+          ),
         ),
       ),
     );

@@ -89,18 +89,44 @@ class _ChatListItemState extends State<_ChatListItem>
           );
         },
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // iOS 风格的页面切换：新页面从右滑入 + 轻微缩放 + 淡入
+          final slideAnimation = Tween<Offset>(
+            begin: const Offset(0.3, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          ));
+          
+          final fadeAnimation = Tween<double>(
+            begin: 0.0,
+            end: 1.0,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
+          ));
+          
+          // 当前页面轻微缩小和淡出
+          final secondarySlide = Tween<Offset>(
+            begin: Offset.zero,
+            end: const Offset(-0.1, 0),
+          ).animate(CurvedAnimation(
+            parent: secondaryAnimation,
+            curve: Curves.easeOutCubic,
+          ));
+          
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
-            child: child,
+            position: secondarySlide,
+            child: SlideTransition(
+              position: slideAnimation,
+              child: FadeTransition(
+                opacity: fadeAnimation,
+                child: child,
+              ),
+            ),
           );
         },
-        transitionDuration: AppStyles.animationNormal,
+        transitionDuration: const Duration(milliseconds: 300),
       ),
     );
   }

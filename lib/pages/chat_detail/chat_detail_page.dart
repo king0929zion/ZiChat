@@ -34,8 +34,7 @@ class ChatDetailPage extends StatefulWidget {
   State<ChatDetailPage> createState() => _ChatDetailPageState();
 }
 
-class _ChatDetailPageState extends State<ChatDetailPage>
-    with TickerProviderStateMixin {
+class _ChatDetailPageState extends State<ChatDetailPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _inputController = TextEditingController();
 
@@ -46,25 +45,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   List<ChatMessage> _messages = [];
   final List<String> _recentEmojis = [];
 
-  // 动画控制器
-  late AnimationController _pageEnterController;
-  late Animation<double> _pageEnterAnimation;
-
   @override
   void initState() {
     super.initState();
-    
-    // 页面进入动画
-    _pageEnterController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _pageEnterAnimation = CurvedAnimation(
-      parent: _pageEnterController,
-      curve: Curves.easeOutCubic,
-    );
-    _pageEnterController.forward();
-
     _inputController.addListener(_onInputChanged);
     _loadMessages();
   }
@@ -73,7 +56,6 @@ class _ChatDetailPageState extends State<ChatDetailPage>
   void dispose() {
     _scrollController.dispose();
     _inputController.dispose();
-    _pageEnterController.dispose();
     super.dispose();
   }
 
@@ -423,12 +405,9 @@ class _ChatDetailPageState extends State<ChatDetailPage>
     }
   }
 
-  Future<void> _handleBack() async {
+  void _handleBack() {
     HapticFeedback.lightImpact();
-    await _pageEnterController.reverse();
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop();
   }
 
   Future<void> _handleMore() async {
@@ -448,38 +427,24 @@ class _ChatDetailPageState extends State<ChatDetailPage>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _pageEnterAnimation,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _pageEnterAnimation.value,
-          child: Transform.translate(
-            offset: Offset(
-              (1 - _pageEnterAnimation.value) * 50,
-              0,
-            ),
-            child: child,
-          ),
-        );
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.backgroundChat,
-        body: SafeArea(
-          top: true,
-          bottom: true,
-          child: Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 480),
-              color: AppColors.backgroundChat,
-              child: Column(
-                children: [
-                  // Header
-                  ChatHeader(
-                    title: widget.title,
-                    unread: widget.unread,
-                    onBack: _handleBack,
-                    onMore: _handleMore,
-                  ),
+    return Scaffold(
+      backgroundColor: AppColors.backgroundChat,
+      body: SafeArea(
+        top: true,
+        bottom: true,
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 480),
+            color: AppColors.backgroundChat,
+            child: Column(
+              children: [
+                // Header
+                ChatHeader(
+                  title: widget.title,
+                  unread: widget.unread,
+                  onBack: _handleBack,
+                  onMore: _handleMore,
+                ),
                   // Message List
                   Expanded(
                     child: GestureDetector(
