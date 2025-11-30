@@ -12,7 +12,7 @@ class ApiSecrets {
   );
   
   // 固定的对话API地址
-  static const String chatBaseUrl = 'https://apis.iflow.cn/v1/';
+  static const String chatBaseUrl = 'https://apis.iflow.cn/v1';
   
   // 图像生成 API (ModelScope) - 内置URL，只需配置API Key
   static const String imageApiKey = String.fromEnvironment(
@@ -21,7 +21,7 @@ class ApiSecrets {
   );
   
   // 固定的图像生成API地址
-  static const String imageBaseUrl = 'https://api-inference.modelscope.cn/v1/';
+  static const String imageBaseUrl = 'https://api-inference.modelscope.cn/v1';
   
   /// 检查是否配置了内置 API
   static bool get hasBuiltInChatApi => chatApiKey.isNotEmpty;

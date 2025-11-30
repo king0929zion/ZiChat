@@ -26,7 +26,7 @@ class ImageGenService {
     
     try {
       // 使用 OpenAI 兼容的 images/generations 接口
-      final url = '${ApiSecrets.imageBaseUrl}images/generations';
+      final url = '${ApiSecrets.imageBaseUrl}/images/generations';
       
       final response = await http.post(
         Uri.parse(url),

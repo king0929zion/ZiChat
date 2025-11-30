@@ -13,12 +13,14 @@ class ChatHeader extends StatelessWidget {
     required this.unread,
     required this.onBack,
     required this.onMore,
+    this.isTyping = false,
   });
 
   final String title;
   final int unread;
   final VoidCallback onBack;
   final VoidCallback onMore;
+  final bool isTyping;
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +38,18 @@ class ChatHeader extends StatelessWidget {
               onTap: onBack,
             ),
           ),
-          // 标题
+          // 标题（正在输入时显示状态）
           Align(
             alignment: Alignment.center,
-            child: Text(
-              title,
-              style: AppStyles.titleLarge,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 150),
+              child: Text(
+                isTyping ? '对方正在输入...' : title,
+                key: ValueKey(isTyping),
+                style: isTyping 
+                    ? AppStyles.bodyMedium.copyWith(color: AppColors.textSecondary)
+                    : AppStyles.titleLarge,
+              ),
             ),
           ),
           // 更多按钮

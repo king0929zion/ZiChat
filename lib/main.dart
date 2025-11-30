@@ -623,7 +623,7 @@ class _HomeHeader extends StatelessWidget {
 
     return Container(
       height: 52,
-      color: AppColors.background,
+      color: AppColors.surface,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
@@ -716,8 +716,8 @@ class _HeaderIconButtonState extends State<_HeaderIconButton>
             },
             child: SvgPicture.asset(
               widget.asset,
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
             ),
           ),
         ),
@@ -740,9 +740,9 @@ class _HomeTabBar extends StatelessWidget {
     return Container(
       height: 60,
       decoration: const BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.surface,
         border: Border(
-          top: BorderSide(color: AppColors.border, width: 1),
+          top: BorderSide(color: AppColors.border, width: 0.5),
         ),
       ),
       child: Row(

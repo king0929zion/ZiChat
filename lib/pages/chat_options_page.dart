@@ -261,38 +261,14 @@ class _MembersSection extends StatelessWidget {
             },
             child: Column(
               children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        'assets/me.png',
-                        width: 64,
-                        height: 64,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                    // AI 标识
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF07C160),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'AI',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/me.png',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(

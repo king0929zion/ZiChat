@@ -244,16 +244,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       _aiRequesting = true;
     });
 
-    // 先显示"正在输入"状态
-    final typingId = 'typing-${DateTime.now().millisecondsSinceEpoch}';
-    setState(() {
-      _messages.add(ChatMessage.system(
-        id: typingId,
-        text: '对方正在输入...',
-      ));
-    });
-    _scrollToBottom();
-
     final buffer = StringBuffer();
     bool firstChunkReceived = false;
     final aiMessageId = 'ai-${DateTime.now().millisecondsSinceEpoch}';
@@ -265,11 +255,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       )) {
         if (!mounted) return;
         
-        // 收到第一个字符时，移除"正在输入"，创建真正的消息
+        // 收到第一个字符时，创建真正的消息
         if (!firstChunkReceived) {
           firstChunkReceived = true;
           setState(() {
-            _messages.removeWhere((m) => m.id == typingId);
             _messages.add(ChatMessage.text(
               id: aiMessageId,
               text: '',
@@ -341,8 +330,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        // 移除所有临时消息
-        _messages.removeWhere((m) => m.id == typingId || m.id == aiMessageId);
+        // 移除临时消息
+        _messages.removeWhere((m) => m.id == aiMessageId);
         
         _messages.add(ChatMessage.system(
           id: 'sys-${DateTime.now().millisecondsSinceEpoch}',
@@ -611,6 +600,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   unread: widget.unread,
                   onBack: _handleBack,
                   onMore: _handleMore,
+                  isTyping: _aiRequesting,
                 ),
                 // Message List
                 Expanded(

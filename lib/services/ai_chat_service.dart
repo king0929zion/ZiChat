@@ -277,7 +277,7 @@ class AiChatService {
     required String userInput,
     required List<Map<String, String>> history,
   }) async* {
-    final uri = _joinUri(baseUrl, 'v1/chat/completions');
+    final uri = _joinUri(baseUrl, 'chat/completions');
 
     final List<Map<String, dynamic>> messages = [];
 

@@ -228,19 +228,7 @@ class _MessageContent extends StatelessWidget {
               isOutgoing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             bubble,
-            // 发送状态指示
-            if (message.sendStatus == 'sending')
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1.5,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
+            // 只显示发送失败状态
             if (message.sendStatus == 'failed')
               Padding(
                 padding: const EdgeInsets.only(top: 4),

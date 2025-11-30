@@ -400,7 +400,7 @@ class AiSoulEngine {
 ''';
 
       final response = await http.post(
-        Uri.parse('${ApiSecrets.chatBaseUrl}chat/completions'),
+        Uri.parse('${ApiSecrets.chatBaseUrl}/chat/completions'),
         headers: {
           'Authorization': 'Bearer ${ApiSecrets.chatApiKey}',
           'Content-Type': 'application/json',
