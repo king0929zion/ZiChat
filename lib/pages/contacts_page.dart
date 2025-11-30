@@ -216,7 +216,7 @@ class _AddFriendButton extends StatelessWidget {
             const SizedBox(width: 12),
             const Expanded(
               child: Text(
-                '添加 AI 好友',
+                '添加好友',
                 style: TextStyle(
                   fontSize: 17,
                   color: Color(0xFF07C160),
