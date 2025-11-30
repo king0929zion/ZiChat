@@ -154,7 +154,6 @@ class _ChatListItemState extends State<_ChatListItem>
                     child: _ChatAvatar(
                       avatar: widget.chat.avatar,
                       unread: widget.chat.unread,
-                      online: widget.chat.online,
                     ),
                   ),
                   Expanded(
@@ -233,12 +232,10 @@ class _ChatAvatar extends StatelessWidget {
   const _ChatAvatar({
     required this.avatar,
     required this.unread,
-    required this.online,
   });
 
   final String avatar;
   final int unread;
-  final bool online;
 
   @override
   Widget build(BuildContext context) {
@@ -294,23 +291,6 @@ class _ChatAvatar extends StatelessWidget {
                 ),
               ),
             ),
-          if (online)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: AppColors.online,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: AppColors.surface,
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -326,7 +306,6 @@ class _ChatItem {
     required this.latestTime,
     required this.unread,
     required this.muted,
-    required this.online,
   });
 
   final String id;
@@ -336,7 +315,6 @@ class _ChatItem {
   final String latestTime;
   final int unread;
   final bool muted;
-  final bool online;
 }
 
 const List<_ChatItem> _mockChats = [
@@ -348,7 +326,6 @@ const List<_ChatItem> _mockChats = [
     latestTime: '09:41',
     unread: 2,
     muted: false,
-    online: true,
   ),
   _ChatItem(
     id: 'c2',
@@ -358,7 +335,6 @@ const List<_ChatItem> _mockChats = [
     latestTime: '昨天',
     unread: 0,
     muted: true,
-    online: true,
   ),
   _ChatItem(
     id: 'c3',
@@ -368,7 +344,6 @@ const List<_ChatItem> _mockChats = [
     latestTime: '昨天',
     unread: 0,
     muted: false,
-    online: false,
   ),
   _ChatItem(
     id: 'c4',
@@ -378,7 +353,6 @@ const List<_ChatItem> _mockChats = [
     latestTime: '周三',
     unread: 5,
     muted: false,
-    online: false,
   ),
   _ChatItem(
     id: 'c5',
@@ -388,6 +362,5 @@ const List<_ChatItem> _mockChats = [
     latestTime: '周二',
     unread: 1,
     muted: false,
-    online: false,
   ),
 ];

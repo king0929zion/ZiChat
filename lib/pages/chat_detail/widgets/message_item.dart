@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/chat_message.dart';
 import 'message_bubbles/message_bubbles.dart';
+import 'message_action_menu.dart';
 
 /// 单条消息组件
 class MessageItem extends StatefulWidget {
@@ -10,10 +12,14 @@ class MessageItem extends StatefulWidget {
     super.key,
     required this.message,
     this.showAnimation = true,
+    this.onDelete,
+    this.onQuote,
   });
 
   final ChatMessage message;
   final bool showAnimation;
+  final VoidCallback? onDelete;
+  final Function(String)? onQuote;
 
   @override
   State<MessageItem> createState() => _MessageItemState();
@@ -138,6 +144,7 @@ class _MessageItemState extends State<MessageItem>
         child: _MessageContent(
           message: widget.message,
           isOutgoing: isOutgoing,
+          onLongPress: () => _showActionMenu(context),
         ),
       ),
     ];
@@ -150,6 +157,39 @@ class _MessageItemState extends State<MessageItem>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: isOutgoing ? rowChildren.reversed.toList() : rowChildren,
       ),
+    );
+  }
+
+  final GlobalKey _messageKey = GlobalKey();
+
+  void _showActionMenu(BuildContext context) {
+    MessageActionOverlay.show(
+      context: context,
+      messageKey: _messageKey,
+      message: widget.message.text ?? '',
+      isOutgoing: widget.message.isOutgoing,
+      onAction: (action) {
+        switch (action) {
+          case 'copy':
+            // 已在 Overlay 中处理
+            break;
+          case 'delete':
+            widget.onDelete?.call();
+            break;
+          case 'quote':
+            widget.onQuote?.call(widget.message.text ?? '');
+            break;
+          case 'forward':
+            // TODO: 实现转发
+            break;
+          case 'revoke':
+            // TODO: 实现撤回
+            break;
+          case 'multiSelect':
+            // TODO: 实现多选
+            break;
+        }
+      },
     );
   }
 }
@@ -189,47 +229,72 @@ class _MessageAvatar extends StatelessWidget {
 }
 
 /// 消息内容组件
-class _MessageContent extends StatelessWidget {
+class _MessageContent extends StatefulWidget {
   const _MessageContent({
     required this.message,
     required this.isOutgoing,
+    this.onLongPress,
   });
 
   final ChatMessage message;
   final bool isOutgoing;
+  final VoidCallback? onLongPress;
+
+  @override
+  State<_MessageContent> createState() => _MessageContentState();
+}
+
+class _MessageContentState extends State<_MessageContent> {
+  final GlobalKey _bubbleKey = GlobalKey();
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     Widget bubble;
 
-    switch (message.type) {
+    switch (widget.message.type) {
       case 'image':
-        bubble = ImageBubble(message: message);
+        bubble = ImageBubble(message: widget.message);
         break;
       case 'voice':
-        bubble = VoiceBubble(message: message, isOutgoing: isOutgoing);
+        bubble = VoiceBubble(message: widget.message, isOutgoing: widget.isOutgoing);
         break;
       case 'red-packet':
-        bubble = RedPacketBubble(message: message, isOutgoing: isOutgoing);
+        bubble = RedPacketBubble(message: widget.message, isOutgoing: widget.isOutgoing);
         break;
       case 'transfer':
-        bubble = TransferBubble(message: message, isOutgoing: isOutgoing);
+        bubble = TransferBubble(message: widget.message, isOutgoing: widget.isOutgoing);
         break;
       default:
-        bubble = TextBubble(message: message, isOutgoing: isOutgoing);
+        bubble = TextBubble(message: widget.message, isOutgoing: widget.isOutgoing);
     }
 
     return Align(
-      alignment: isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: widget.isOutgoing ? Alignment.centerRight : Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 260),
         child: Column(
           crossAxisAlignment:
-              isOutgoing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              widget.isOutgoing ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            bubble,
+            GestureDetector(
+              key: _bubbleKey,
+              onLongPress: () {
+                HapticFeedback.mediumImpact();
+                _showActionMenu();
+              },
+              onTapDown: (_) => setState(() => _pressed = true),
+              onTapUp: (_) => setState(() => _pressed = false),
+              onTapCancel: () => setState(() => _pressed = false),
+              onLongPressEnd: (_) => setState(() => _pressed = false),
+              child: AnimatedScale(
+                scale: _pressed ? 0.95 : 1.0,
+                duration: AppStyles.animationFast,
+                child: bubble,
+              ),
+            ),
             // 只显示发送失败状态
-            if (message.sendStatus == 'failed')
+            if (widget.message.sendStatus == 'failed')
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Icon(
@@ -241,6 +306,21 @@ class _MessageContent extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showActionMenu() {
+    final renderBox = _bubbleKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    MessageActionOverlay.show(
+      context: context,
+      messageKey: _bubbleKey,
+      message: widget.message.text ?? '',
+      isOutgoing: widget.isOutgoing,
+      onAction: (action) {
+        // 操作在 Overlay 中处理
+      },
     );
   }
 }
