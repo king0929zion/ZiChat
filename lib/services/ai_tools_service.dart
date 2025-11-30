@@ -4,11 +4,10 @@ import 'package:zichat/services/image_gen_service.dart';
 /// AI 工具服务 - 让 AI 可以调用各种工具
 /// 
 /// 支持的工具：
-/// - 发送图片（分享生活）
-/// - AI 生成图片
-/// - 发起转账
-/// - 发送表情
-/// - 发送语音（模拟）
+/// - image(描述) - 发送图片
+/// - image_gen(描述) - AI 生成图片
+/// - transfer(金额) - 发起转账
+/// - emoji(名称) - 发送表情
 class AiToolsService {
   static final _random = math.Random();
   
@@ -32,14 +31,14 @@ class AiToolsService {
   ];
   
   /// 解析 AI 回复中的工具调用
-  /// 返回工具调用列表，如果没有工具调用则返回空列表
+  /// 支持格式：tool_name(参数) 或 [旧格式:参数]
   static List<AiToolCall> parseToolCalls(String response) {
     final calls = <AiToolCall>[];
     
-    // 检测 AI 生图指令：[生成图片:xxx] 或 [画:xxx]
-    final genImagePattern = RegExp(r'\[(?:生成图片|画|绘制)[：:]\s*([^\]]+)\]');
+    // 新格式: image_gen(xxx)
+    final genImagePattern = RegExp(r'image_gen\(([^)]+)\)');
     for (final match in genImagePattern.allMatches(response)) {
-      final prompt = match.group(1) ?? '';
+      final prompt = match.group(1)?.trim() ?? '';
       if (prompt.isNotEmpty && ImageGenService.isAvailable) {
         calls.add(AiToolCall(
           type: AiToolType.generateImage,
@@ -48,18 +47,44 @@ class AiToolsService {
       }
     }
     
-    // 检测图片分享指令：[图片:xxx] 或 [发图:xxx]
-    final imagePattern = RegExp(r'\[(?:图片|发图|分享图片)[：:]\s*([^\]]+)\]');
-    for (final match in imagePattern.allMatches(response)) {
-      final description = match.group(1) ?? '';
-      calls.add(AiToolCall(
-        type: AiToolType.sendImage,
-        params: {'description': description},
-      ));
+    // 旧格式兼容: [生成图片:xxx]
+    final genImageOldPattern = RegExp(r'\[(?:生成图片|画|绘制)[：:]\s*([^\]]+)\]');
+    for (final match in genImageOldPattern.allMatches(response)) {
+      final prompt = match.group(1)?.trim() ?? '';
+      if (prompt.isNotEmpty && ImageGenService.isAvailable) {
+        calls.add(AiToolCall(
+          type: AiToolType.generateImage,
+          params: {'prompt': prompt},
+        ));
+      }
     }
     
-    // 检测转账指令：[转账:金额] 或 [发红包:金额]
-    final transferPattern = RegExp(r'\[(?:转账|发红包)[：:]\s*([\d.]+)\]');
+    // 新格式: image(xxx)
+    final imagePattern = RegExp(r'(?<!_)image\(([^)]+)\)');
+    for (final match in imagePattern.allMatches(response)) {
+      final description = match.group(1)?.trim() ?? '';
+      if (description.isNotEmpty) {
+        calls.add(AiToolCall(
+          type: AiToolType.sendImage,
+          params: {'description': description},
+        ));
+      }
+    }
+    
+    // 旧格式兼容: [图片:xxx]
+    final imageOldPattern = RegExp(r'\[(?:图片|发图|分享图片)[：:]\s*([^\]]+)\]');
+    for (final match in imageOldPattern.allMatches(response)) {
+      final description = match.group(1)?.trim() ?? '';
+      if (description.isNotEmpty) {
+        calls.add(AiToolCall(
+          type: AiToolType.sendImage,
+          params: {'description': description},
+        ));
+      }
+    }
+    
+    // 新格式: transfer(金额)
+    final transferPattern = RegExp(r'transfer\(([\d.]+)\)');
     for (final match in transferPattern.allMatches(response)) {
       final amount = double.tryParse(match.group(1) ?? '0') ?? 0;
       if (amount > 0) {
@@ -70,14 +95,40 @@ class AiToolsService {
       }
     }
     
-    // 检测表情指令：[表情:xxx]
-    final emojiPattern = RegExp(r'\[表情[：:]\s*([^\]]+)\]');
+    // 旧格式兼容: [转账:金额]
+    final transferOldPattern = RegExp(r'\[(?:转账|发红包)[：:]\s*([\d.]+)\]');
+    for (final match in transferOldPattern.allMatches(response)) {
+      final amount = double.tryParse(match.group(1) ?? '0') ?? 0;
+      if (amount > 0) {
+        calls.add(AiToolCall(
+          type: AiToolType.sendTransfer,
+          params: {'amount': amount},
+        ));
+      }
+    }
+    
+    // 新格式: emoji(xxx)
+    final emojiPattern = RegExp(r'emoji\(([^)]+)\)');
     for (final match in emojiPattern.allMatches(response)) {
-      final emoji = match.group(1) ?? '';
-      calls.add(AiToolCall(
-        type: AiToolType.sendEmoji,
-        params: {'emoji': emoji},
-      ));
+      final emoji = match.group(1)?.trim() ?? '';
+      if (emoji.isNotEmpty) {
+        calls.add(AiToolCall(
+          type: AiToolType.sendEmoji,
+          params: {'emoji': emoji},
+        ));
+      }
+    }
+    
+    // 旧格式兼容: [表情:xxx]
+    final emojiOldPattern = RegExp(r'\[表情[：:]\s*([^\]]+)\]');
+    for (final match in emojiOldPattern.allMatches(response)) {
+      final emoji = match.group(1)?.trim() ?? '';
+      if (emoji.isNotEmpty) {
+        calls.add(AiToolCall(
+          type: AiToolType.sendEmoji,
+          params: {'emoji': emoji},
+        ));
+      }
     }
     
     return calls;
@@ -86,6 +137,12 @@ class AiToolsService {
   /// 移除回复中的工具调用标记
   static String removeToolMarkers(String response) {
     return response
+        // 新格式
+        .replaceAll(RegExp(r'image_gen\([^)]*\)'), '')
+        .replaceAll(RegExp(r'(?<!_)image\([^)]*\)'), '')
+        .replaceAll(RegExp(r'transfer\([^)]*\)'), '')
+        .replaceAll(RegExp(r'emoji\([^)]*\)'), '')
+        // 旧格式
         .replaceAll(RegExp(r'\[(?:生成图片|画|绘制)[：:][^\]]*\]'), '')
         .replaceAll(RegExp(r'\[(?:图片|发图|分享图片)[：:][^\]]*\]'), '')
         .replaceAll(RegExp(r'\[(?:转账|发红包)[：:][^\]]*\]'), '')
@@ -94,9 +151,7 @@ class AiToolsService {
   }
   
   /// 根据对话上下文，判断是否应该发送图片
-  /// 返回图片路径和配文，如果不需要发图则返回 null
   static ShareImageResult? shouldShareImage(String userMessage, String aiResponse) {
-    // 15% 基础概率
     if (_random.nextDouble() > 0.15) return null;
     
     final lowerUser = userMessage.toLowerCase();
@@ -117,7 +172,6 @@ class AiToolsService {
   
   /// 根据情绪判断是否应该发红包/转账
   static TransferResult? shouldSendTransfer(String userMessage, double mood) {
-    // 只在心情特别好 + 用户提到相关话题时
     if (mood < 30) return null;
     if (_random.nextDouble() > 0.1) return null;
     
@@ -125,7 +179,6 @@ class AiToolsService {
     final hasTriger = triggers.any((t) => userMessage.contains(t));
     if (!hasTriger) return null;
     
-    // 随机小额
     final amounts = [0.01, 0.66, 1.88, 6.66, 8.88];
     final amount = amounts[_random.nextInt(amounts.length)];
     final notes = ['小红包', '开心一下', '请你喝水', '小意思'];
@@ -185,4 +238,3 @@ class TransferResult {
   
   TransferResult({required this.amount, required this.note});
 }
-
