@@ -311,8 +311,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         buffer.write(chunk);
         lastUpdate = DateTime.now();
         
-        // 实时更新消息内容，同时过滤 thinking 标签
-        final displayText = _removeThinkingContent(buffer.toString());
+        // 实时更新消息内容，过滤 thinking 标签和工具调用标记
+        var displayText = _removeThinkingContent(buffer.toString());
+        displayText = AiToolsService.removeToolMarkers(displayText);
         
         // 只有有实际内容时才更新显示
         if (displayText.isNotEmpty) {
