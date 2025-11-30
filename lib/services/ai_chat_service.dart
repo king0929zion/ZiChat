@@ -60,6 +60,11 @@ class AiChatService {
       apiKey = ApiSecrets.chatApiKey;
       final selectedModel = await ModelSelectionStorage.getChatModel();
       model = selectedModel.id;
+      debugPrint('Using built-in API: $apiBaseUrl, model: $model, key length: ${apiKey.length}');
+    } else if (useBuiltIn && !ApiSecrets.hasBuiltInChatApi) {
+      // 内置 API 但没有配置 Key
+      debugPrint('Built-in API key not configured! CHAT_API_KEY is empty.');
+      throw Exception('API Key 未配置，请在 GitHub Secrets 中添加 CHAT_API_KEY');
     } else {
       // 使用用户自定义 API
       final config = await AiConfigStorage.loadGlobalConfig();
@@ -334,6 +339,10 @@ class AiChatService {
     request.headers['Content-Type'] = 'application/json';
     request.headers['Authorization'] = 'Bearer $apiKey';
     request.body = body;
+    
+    debugPrint('API Request URL: $uri');
+    debugPrint('API Request Model: $model');
+    debugPrint('API Request Messages count: ${messages.length}');
 
     final client = http.Client();
     bool hasYielded = false;
@@ -343,9 +352,12 @@ class AiChatService {
         const Duration(seconds: 60),
         onTimeout: () => throw TimeoutException('请求超时'),
       );
+      
+      debugPrint('API Response Status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         final respBody = await response.stream.bytesToString();
+        debugPrint('API Error Response: $respBody');
         throw Exception('API 错误 (${response.statusCode}): $respBody');
       }
 
