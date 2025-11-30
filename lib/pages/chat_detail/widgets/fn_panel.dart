@@ -85,7 +85,7 @@ class _FnPanelState extends State<FnPanel> with SingleTickerProviderStateMixin {
     return SlideTransition(
       position: _slideAnimation,
       child: Container(
-        color: AppColors.background,
+        color: AppColors.backgroundChat,
         height: 220,
         child: Column(
           children: [

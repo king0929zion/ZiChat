@@ -38,7 +38,7 @@ class ChatToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.background,
+        color: AppColors.backgroundChat,
         border: Border(
           top: BorderSide(
             color: AppColors.border,

@@ -304,6 +304,7 @@ class AiChatService {
     request.body = body;
 
     final client = http.Client();
+    bool hasYielded = false;
     
     try {
       final response = await client.send(request).timeout(
@@ -312,8 +313,8 @@ class AiChatService {
       );
 
       if (response.statusCode != 200) {
-        final body = await response.stream.bytesToString();
-        throw Exception('API 错误 (${response.statusCode}): $body');
+        final respBody = await response.stream.bytesToString();
+        throw Exception('API 错误 (${response.statusCode}): $respBody');
       }
 
       String buffer = '';
@@ -328,18 +329,56 @@ class AiChatService {
           buffer = buffer.substring(index + 1);
           
           if (line.isEmpty) continue;
-          if (line == 'data: [DONE]') return;
-          if (!line.startsWith('data: ')) continue;
+          if (line == 'data: [DONE]') {
+            // 如果到这里还没有输出内容，尝试解析非流式响应
+            if (!hasYielded && buffer.isNotEmpty) {
+              try {
+                final data = jsonDecode(buffer) as Map<String, dynamic>;
+                final content = _extractContent(data);
+                if (content.isNotEmpty) {
+                  yield content;
+                  hasYielded = true;
+                }
+              } catch (_) {}
+            }
+            return;
+          }
+          if (!line.startsWith('data: ')) {
+            // 可能是非 SSE 格式的 JSON 响应
+            try {
+              final data = jsonDecode(line) as Map<String, dynamic>;
+              final content = _extractContent(data);
+              if (content.isNotEmpty) {
+                yield content;
+                hasYielded = true;
+              }
+            } catch (_) {}
+            continue;
+          }
           
           try {
             final jsonStr = line.substring(6);
             final data = jsonDecode(jsonStr) as Map<String, dynamic>;
             final choices = data['choices'] as List<dynamic>?;
             if (choices != null && choices.isNotEmpty) {
-              final delta = choices[0]['delta'] as Map<String, dynamic>?;
-              final content = delta?['content'] as String?;
-              if (content != null && content.isNotEmpty) {
-                yield content;
+              final choice = choices[0] as Map<String, dynamic>;
+              // 尝试流式格式
+              final delta = choice['delta'] as Map<String, dynamic>?;
+              if (delta != null) {
+                final content = delta['content'] as String?;
+                if (content != null && content.isNotEmpty) {
+                  yield content;
+                  hasYielded = true;
+                }
+              }
+              // 尝试非流式格式
+              final message = choice['message'] as Map<String, dynamic>?;
+              if (message != null) {
+                final content = message['content'] as String?;
+                if (content != null && content.isNotEmpty) {
+                  yield content;
+                  hasYielded = true;
+                }
               }
             }
           } catch (_) {
@@ -347,9 +386,38 @@ class AiChatService {
           }
         }
       }
+      
+      // 处理剩余的 buffer（可能是完整的 JSON 响应）
+      if (!hasYielded && buffer.trim().isNotEmpty) {
+        try {
+          final data = jsonDecode(buffer.trim()) as Map<String, dynamic>;
+          final content = _extractContent(data);
+          if (content.isNotEmpty) {
+            yield content;
+          }
+        } catch (_) {}
+      }
     } finally {
       client.close();
     }
+  }
+  
+  /// 从响应中提取内容
+  static String _extractContent(Map<String, dynamic> data) {
+    // 尝试标准 OpenAI 格式
+    final choices = data['choices'] as List<dynamic>?;
+    if (choices != null && choices.isNotEmpty) {
+      final choice = choices[0] as Map<String, dynamic>;
+      final message = choice['message'] as Map<String, dynamic>?;
+      if (message != null) {
+        return message['content'] as String? ?? '';
+      }
+      final delta = choice['delta'] as Map<String, dynamic>?;
+      if (delta != null) {
+        return delta['content'] as String? ?? '';
+      }
+    }
+    return '';
   }
 
   static Uri _joinUri(String base, String path) {

@@ -64,7 +64,7 @@ class _EmojiPanelState extends State<EmojiPanel>
     return SlideTransition(
       position: _slideAnimation,
       child: Container(
-        color: AppColors.background,
+        color: AppColors.backgroundChat,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
