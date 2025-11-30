@@ -380,7 +380,7 @@ class AiChatService {
           
           debugPrint('Processing line: ${line.substring(0, line.length > 100 ? 100 : line.length)}...');
           
-          if (line == 'data: [DONE]') {
+          if (line == 'data: [DONE]' || line == 'data:[DONE]') {
             debugPrint('Stream done, hasYielded: $hasYielded');
             // 如果到这里还没有输出内容，尝试解析非流式响应
             if (!hasYielded && buffer.isNotEmpty) {
@@ -398,7 +398,13 @@ class AiChatService {
             }
             return;
           }
-          if (!line.startsWith('data: ')) {
+          // 支持 "data: {...}" 和 "data:{...}" 两种格式
+          String jsonStr;
+          if (line.startsWith('data: ')) {
+            jsonStr = line.substring(6);
+          } else if (line.startsWith('data:')) {
+            jsonStr = line.substring(5);
+          } else {
             debugPrint('Non-SSE line, trying JSON parse');
             // 可能是非 SSE 格式的 JSON 响应
             try {
@@ -415,7 +421,6 @@ class AiChatService {
           }
           
           try {
-            final jsonStr = line.substring(6);
             final data = jsonDecode(jsonStr) as Map<String, dynamic>;
             final choices = data['choices'] as List<dynamic>?;
             if (choices != null && choices.isNotEmpty) {
