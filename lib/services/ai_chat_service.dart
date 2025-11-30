@@ -99,8 +99,7 @@ class AiChatService {
 
     // 内置 API 都是 OpenAI 兼容格式，使用流式输出
     final buffer = StringBuffer();
-    final thinkingBuffer = StringBuffer();
-    bool inThinking = false;
+    final rawBuffer = StringBuffer(); // 保存原始内容用于后处理
     
     await for (final chunk in _callOpenAiStream(
       baseUrl: apiBaseUrl,
@@ -110,47 +109,43 @@ class AiChatService {
       userInput: userInput,
       history: history,
     )) {
-      // 处理 thinking 标签（DeepSeek 等模型）
-      String processedChunk = chunk;
+      rawBuffer.write(chunk);
       
-      // 检测 <think> 开始标签
-      if (processedChunk.contains('<think>')) {
-        inThinking = true;
-        final parts = processedChunk.split('<think>');
-        if (parts[0].isNotEmpty) {
-          buffer.write(parts[0]);
-          yield parts[0];
-        }
-        if (parts.length > 1) {
-          thinkingBuffer.write(parts[1]);
-        }
-        continue;
-      }
-      
-      // 检测 </think> 结束标签
-      if (inThinking) {
-        if (processedChunk.contains('</think>')) {
-          inThinking = false;
-          final parts = processedChunk.split('</think>');
-          // 丢弃 thinking 内容，只保留后面的
-          if (parts.length > 1 && parts[1].isNotEmpty) {
-            buffer.write(parts[1]);
-            yield parts[1];
-          }
-        } else {
-          // 仍在 thinking 中，丢弃
-          thinkingBuffer.write(processedChunk);
-        }
-        continue;
-      }
-      
-      // 普通内容
-      buffer.write(processedChunk);
-      yield processedChunk;
+      // 实时输出（暂时不过滤，让用户看到内容在生成）
+      buffer.write(chunk);
+      yield chunk;
     }
     
-    // 记录 AI 回复到历史（不包含 thinking）
-    _addToHistory(chatId, 'assistant', buffer.toString());
+    // 流结束后，过滤 thinking 标签内容
+    String finalContent = rawBuffer.toString();
+    finalContent = _removeThinkingContent(finalContent);
+    
+    // 记录 AI 回复到历史（过滤后的内容）
+    _addToHistory(chatId, 'assistant', finalContent);
+  }
+  
+  /// 移除 thinking 标签及其内容
+  static String _removeThinkingContent(String text) {
+    // 支持多种 thinking 标签格式
+    // <think>...</think>
+    // <thinking>...</thinking>
+    // 【思考】...【/思考】
+    
+    String result = text;
+    
+    // 移除 <think>...</think>
+    result = result.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '');
+    
+    // 移除 <thinking>...</thinking>
+    result = result.replaceAll(RegExp(r'<thinking>[\s\S]*?</thinking>', caseSensitive: false), '');
+    
+    // 移除中文格式的思考标签
+    result = result.replaceAll(RegExp(r'【思考】[\s\S]*?【/思考】'), '');
+    
+    // 清理多余的空行
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    
+    return result.trim();
   }
 
   /// 普通发送 (兼容旧接口)

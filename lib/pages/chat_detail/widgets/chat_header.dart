@@ -46,9 +46,7 @@ class ChatHeader extends StatelessWidget {
               child: Text(
                 isTyping ? '对方正在输入...' : title,
                 key: ValueKey(isTyping),
-                style: isTyping 
-                    ? AppStyles.bodyMedium.copyWith(color: AppColors.textSecondary)
-                    : AppStyles.titleLarge,
+                style: AppStyles.titleLarge,
               ),
             ),
           ),

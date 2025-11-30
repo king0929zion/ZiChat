@@ -292,16 +292,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         buffer.write(chunk);
         lastUpdate = DateTime.now();
         
-        // 实时更新消息内容（节流：至少 50ms 间隔）
-        setState(() {
-          final index = _messages.indexWhere((m) => m.id == aiMessageId);
-          if (index != -1) {
-            _messages[index] = _messages[index].copyWith(
-              text: buffer.toString(),
-            );
-          }
-        });
-        _scrollToBottom();
+        // 实时更新消息内容，同时过滤 thinking 标签
+        final displayText = _removeThinkingContent(buffer.toString());
+        
+        // 只有有实际内容时才更新显示
+        if (displayText.isNotEmpty) {
+          setState(() {
+            final index = _messages.indexWhere((m) => m.id == aiMessageId);
+            if (index != -1) {
+              _messages[index] = _messages[index].copyWith(
+                text: displayText,
+              );
+            }
+          });
+          _scrollToBottom();
+        }
       }
 
       if (!mounted) return;
@@ -309,9 +314,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       // 流式完成后，解析工具调用和分句
       final fullText = buffer.toString();
       
-      // 如果没有收到任何内容
-      if (fullText.isEmpty) {
+      // 过滤 thinking 标签内容
+      final filteredText = _removeThinkingContent(fullText);
+      
+      // 如果过滤后没有内容
+      if (filteredText.isEmpty) {
         setState(() {
+          // 移除临时消息
+          _messages.removeWhere((m) => m.id == aiMessageId);
           _messages.add(ChatMessage.system(
             id: 'sys-${DateTime.now().millisecondsSinceEpoch}',
             text: 'AI 正在思考中，请稍后再试...',
@@ -323,10 +333,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
       
       // 解析工具调用
-      final toolCalls = AiToolsService.parseToolCalls(fullText);
+      final toolCalls = AiToolsService.parseToolCalls(filteredText);
       
       // 移除工具标记后的文本
-      final cleanText = AiToolsService.removeToolMarkers(fullText);
+      final cleanText = AiToolsService.removeToolMarkers(filteredText);
       
       // 按反斜线分句处理
       final parts = cleanText
@@ -528,6 +538,28 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     
     // 默认随机选择
     return availableImages[math.Random().nextInt(availableImages.length)];
+  }
+  
+  /// 移除 thinking 标签及其内容
+  String _removeThinkingContent(String text) {
+    String result = text;
+    
+    // 移除 <think>...</think>（包括未闭合的）
+    result = result.replaceAll(RegExp(r'<think>[\s\S]*?</think>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<think>[\s\S]*$', caseSensitive: false), ''); // 未闭合的
+    
+    // 移除 <thinking>...</thinking>
+    result = result.replaceAll(RegExp(r'<thinking>[\s\S]*?</thinking>', caseSensitive: false), '');
+    result = result.replaceAll(RegExp(r'<thinking>[\s\S]*$', caseSensitive: false), '');
+    
+    // 移除中文格式的思考标签
+    result = result.replaceAll(RegExp(r'【思考】[\s\S]*?【/思考】'), '');
+    result = result.replaceAll(RegExp(r'【思考】[\s\S]*$'), '');
+    
+    // 清理多余的空行
+    result = result.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+    
+    return result.trim();
   }
 
   Future<void> _pickImage(ImageSource source) async {
