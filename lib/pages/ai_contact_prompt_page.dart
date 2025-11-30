@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
 
 /// AI 提示词配置页面 - 微信风格
