@@ -31,30 +31,42 @@ Future<void> main() async {
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
-  // 初始化 Hive
+  // 关键初始化：Hive 必须首先完成
   await Hive.initFlutter();
-  await Hive.openBox('chat_messages');
-  await Hive.openBox('ai_config');
   
-  // 初始化 AI 灵魂引擎
-  await AiSoulEngine.instance.initialize();
+  // 并行打开必要的 Hive Box（提升启动速度）
+  await Future.wait([
+    Hive.openBox('chat_messages'),
+    Hive.openBox('ai_config'),
+  ]);
   
-  // 初始化主动消息服务
-  await ProactiveMessageService.instance.initialize();
+  // 并行初始化核心存储服务
+  await Future.wait([
+    FriendStorage.initialize(),
+    ChatBackgroundStorage.initialize(),
+  ]);
   
-  // 初始化聊天事件管理器
-  await ChatEventManager.instance.initialize();
-  
-  // 初始化通知服务
-  await NotificationService.instance.initialize();
-  
-  // 初始化好友存储
-  await FriendStorage.initialize();
-  
-  // 初始化聊天背景存储
-  await ChatBackgroundStorage.initialize();
-  
+  // 启动应用（不等待非关键服务）
   runApp(const MyApp());
+  
+  // 后台延迟初始化非关键服务
+  _initBackgroundServices();
+}
+
+/// 后台初始化非关键服务
+Future<void> _initBackgroundServices() async {
+  // 延迟 500ms 后初始化，避免影响首屏渲染
+  await Future.delayed(const Duration(milliseconds: 500));
+  
+  // 并行初始化后台服务
+  await Future.wait([
+    AiSoulEngine.instance.initialize(),
+    ChatEventManager.instance.initialize(),
+    NotificationService.instance.initialize(),
+  ]);
+  
+  // 主动消息服务最后初始化（依赖其他服务）
+  await ProactiveMessageService.instance.initialize();
 }
 
 void _showChatsQuickActions(BuildContext context) {

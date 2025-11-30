@@ -59,11 +59,19 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   List<ChatMessage> _messages = [];
   final List<String> _recentEmojis = [];
   String? _backgroundPath;
+  
+  // 分页加载相关
+  static const int _pageSize = 30;
+  int _currentOffset = 0;
+  bool _hasMoreMessages = true;
+  bool _isLoadingMore = false;
+  List<ChatMessage> _allMessages = [];
 
   @override
   void initState() {
     super.initState();
     _inputController.addListener(_onInputChanged);
+    _scrollController.addListener(_onScroll);
     _loadMessages();
     _loadBackground();
   }
@@ -81,6 +89,15 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   void _onInputChanged() {
     setState(() {});
+  }
+
+  /// 滚动监听 - 上拉加载更多历史
+  void _onScroll() {
+    if (_scrollController.position.pixels <= 100 && 
+        _hasMoreMessages && 
+        !_isLoadingMore) {
+      _loadMoreMessages();
+    }
   }
 
   void _scrollToBottom({bool animated = true}) {
@@ -103,20 +120,31 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _loadMessages() async {
     final List<Map<String, dynamic>> stored =
         await ChatStorage.loadMessages(widget.chatId);
+    
+    _allMessages = stored.map(ChatMessage.fromMap).toList();
+    
+    // 初始只加载最近的消息
+    final totalCount = _allMessages.length;
+    final startIndex = (totalCount - _pageSize).clamp(0, totalCount);
+    
     setState(() {
-      _messages = stored.map(ChatMessage.fromMap).toList();
+      _messages = _allMessages.sublist(startIndex);
+      _currentOffset = startIndex;
+      _hasMoreMessages = startIndex > 0;
     });
     
     // 处理主动消息
     if (widget.pendingMessage != null && widget.pendingMessage!.isNotEmpty) {
       await Future.delayed(const Duration(milliseconds: 500));
       if (mounted) {
+        final newMsg = ChatMessage.text(
+          id: 'proactive-${DateTime.now().millisecondsSinceEpoch}',
+          text: widget.pendingMessage!,
+          isOutgoing: false,
+        );
         setState(() {
-          _messages.add(ChatMessage.text(
-            id: 'proactive-${DateTime.now().millisecondsSinceEpoch}',
-            text: widget.pendingMessage!,
-            isOutgoing: false,
-          ));
+          _messages.add(newMsg);
+          _allMessages.add(newMsg);
         });
         _saveMessages();
       }
@@ -125,22 +153,80 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _scrollToBottom(animated: false);
   }
 
+  /// 加载更多历史消息
+  Future<void> _loadMoreMessages() async {
+    if (_isLoadingMore || !_hasMoreMessages) return;
+    
+    setState(() => _isLoadingMore = true);
+    
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    final loadCount = _pageSize;
+    final startIndex = (_currentOffset - loadCount).clamp(0, _currentOffset);
+    final moreMessages = _allMessages.sublist(startIndex, _currentOffset);
+    
+    if (mounted) {
+      final oldOffset = _scrollController.offset;
+      final oldMaxExtent = _scrollController.position.maxScrollExtent;
+      
+      setState(() {
+        _messages.insertAll(0, moreMessages);
+        _currentOffset = startIndex;
+        _hasMoreMessages = startIndex > 0;
+        _isLoadingMore = false;
+      });
+      
+      // 恢复滚动位置
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          final newMaxExtent = _scrollController.position.maxScrollExtent;
+          _scrollController.jumpTo(oldOffset + (newMaxExtent - oldMaxExtent));
+        }
+      });
+    }
+  }
+
   Future<void> _saveMessages() async {
-    final list = _messages.map((m) => m.toMap()).toList();
+    // 合并当前显示的消息到 _allMessages
+    _syncAllMessages();
+    
+    final list = _allMessages.map((m) => m.toMap()).toList();
     await ChatStorage.saveMessages(widget.chatId, list);
     
     // 更新好友的最后消息
-    final lastTextMessage = _messages.lastWhere(
-      (m) => m.type == 'text' && m.text != null && m.text!.isNotEmpty,
-      orElse: () => _messages.last,
-    );
-    String lastMsg = lastTextMessage.text ?? '';
-    if (lastTextMessage.type == 'image') lastMsg = '[图片]';
-    if (lastTextMessage.type == 'transfer') lastMsg = '[转账]';
-    if (lastTextMessage.type == 'voice') lastMsg = '[语音]';
-    if (lastMsg.isNotEmpty) {
-      await FriendStorage.updateLastMessage(widget.chatId, lastMsg);
+    if (_allMessages.isNotEmpty) {
+      final lastTextMessage = _allMessages.lastWhere(
+        (m) => m.type == 'text' && m.text != null && m.text!.isNotEmpty,
+        orElse: () => _allMessages.last,
+      );
+      String lastMsg = lastTextMessage.text ?? '';
+      if (lastTextMessage.type == 'image') lastMsg = '[图片]';
+      if (lastTextMessage.type == 'transfer') lastMsg = '[转账]';
+      if (lastTextMessage.type == 'voice') lastMsg = '[语音]';
+      if (lastMsg.isNotEmpty) {
+        await FriendStorage.updateLastMessage(widget.chatId, lastMsg);
+      }
     }
+  }
+
+  /// 同步当前消息到 _allMessages
+  void _syncAllMessages() {
+    // 如果有分页，_allMessages 的前部分 + _messages 的后部分
+    if (_currentOffset > 0) {
+      // 保留 _allMessages 前 _currentOffset 条，替换后面的
+      final prefix = _allMessages.sublist(0, _currentOffset);
+      _allMessages = [...prefix, ..._messages];
+    } else {
+      _allMessages = List.from(_messages);
+    }
+  }
+
+  /// 添加消息的辅助方法
+  void _addMessage(ChatMessage message) {
+    setState(() {
+      _messages.add(message);
+      _allMessages.add(message);
+    });
   }
 
   void _toggleVoice() {
@@ -849,6 +935,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                       messages: _messages,
                       isAiRequesting: _aiRequesting,
                       backgroundPath: _backgroundPath,
+                      hasMoreMessages: _hasMoreMessages,
+                      isLoadingMore: _isLoadingMore,
                     ),
                   ),
                 ),
@@ -910,12 +998,16 @@ class _MessageList extends StatelessWidget {
     required this.messages,
     required this.isAiRequesting,
     this.backgroundPath,
+    this.hasMoreMessages = false,
+    this.isLoadingMore = false,
   });
 
   final ScrollController scrollController;
   final List<ChatMessage> messages;
   final bool isAiRequesting;
   final String? backgroundPath;
+  final bool hasMoreMessages;
+  final bool isLoadingMore;
 
   Color _getBackgroundColor() {
     if (backgroundPath == null) return AppColors.backgroundChat;
@@ -932,6 +1024,9 @@ class _MessageList extends StatelessWidget {
         !backgroundPath!.startsWith('color:') && 
         File(backgroundPath!).existsSync();
 
+    // 计算实际显示的项数（可能包含加载指示器）
+    final itemCount = messages.length + (hasMoreMessages || isLoadingMore ? 1 : 0);
+
     return Container(
       decoration: BoxDecoration(
         color: _getBackgroundColor(),
@@ -947,8 +1042,44 @@ class _MessageList extends StatelessWidget {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         cacheExtent: 500,
-        itemCount: messages.length,
+        itemCount: itemCount,
         itemBuilder: (_, index) {
+          // 第一项显示加载提示
+          if (hasMoreMessages || isLoadingMore) {
+            if (index == 0) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: isLoadingMore
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.textHint,
+                          ),
+                        )
+                      : const Text(
+                          '上拉加载更多',
+                          style: TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 12,
+                          ),
+                        ),
+                ),
+              );
+            }
+            // 调整实际消息的索引
+            final messageIndex = index - 1;
+            final message = messages[messageIndex];
+            final showAnimation = messageIndex >= messages.length - 3;
+            return MessageItem(
+              key: ValueKey(message.id),
+              message: message,
+              showAnimation: showAnimation,
+            );
+          }
+          
           final message = messages[index];
           // 只对最后几条消息使用动画
           final showAnimation = index >= messages.length - 3;
