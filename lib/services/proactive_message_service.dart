@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:zichat/config/api_secrets.dart';
 import 'package:zichat/config/ai_models.dart';
 import 'package:zichat/services/ai_soul_engine.dart';
+import 'package:zichat/services/notification_service.dart';
 
 /// 主动消息服务
 /// 
@@ -129,6 +130,13 @@ class ProactiveMessageService {
     if (message != null && message.isNotEmpty && reason != null) {
       await _messageBox?.put('last_proactive_time', now.toIso8601String());
       await _messageBox?.put('last_proactive_reason', reason);
+      
+      // 推送通知
+      await NotificationService.instance.showMessageNotification(
+        chatId: 'default',
+        senderName: AiSoulEngine.profile.name,
+        message: message,
+      );
       
       // 通知 UI
       onProactiveMessage?.call('default', message);

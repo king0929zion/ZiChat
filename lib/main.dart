@@ -14,8 +14,10 @@ import 'package:zichat/pages/code_scanner_page.dart';
 import 'package:zichat/pages/money_qrcode_page.dart';
 import 'package:zichat/services/ai_soul_engine.dart';
 import 'package:zichat/services/chat_event_manager.dart';
+import 'package:zichat/services/notification_service.dart';
 import 'package:zichat/services/proactive_message_service.dart';
 import 'package:zichat/services/svg_precache_service.dart';
+import 'package:zichat/storage/friend_storage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +43,12 @@ Future<void> main() async {
   
   // 初始化聊天事件管理器
   await ChatEventManager.instance.initialize();
+  
+  // 初始化通知服务
+  await NotificationService.instance.initialize();
+  
+  // 初始化好友存储
+  await FriendStorage.initialize();
   
   runApp(const MyApp());
 }
