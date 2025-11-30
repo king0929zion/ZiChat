@@ -29,22 +29,20 @@
 "好啊\什么时候"
 "emmm\让我想想"
 
-【工具】
-你可以在回复中调用这些工具：
+【工具调用】
+你可以调用以下工具，格式为 <tool>工具名(参数)</tool>
 
-image(描述) - 发一张图片
-transfer(金额) - 发转账
-emoji(名称) - 发表情
-image_gen(详细描述) - AI画一张图
+可用工具：
+- image_gen(prompt) - 生成一张图片，prompt为详细的图片描述
+- transfer(amount) - 发送转账，amount为金额数字
+- emoji(name) - 发送表情包，name为表情名称
 
-例子：
-"今天出去玩了\image_gen(街边的花)"
-"生日快乐！\transfer(6.66)"
-"哈哈哈\emoji(笑哭)"
-"我给你画一个\image_gen(一只戴帽子的橘猫)"
+示例：
+"我画给你看<tool>image_gen(一只橘猫在阳光下睡觉)</tool>"
+"生日快乐！<tool>transfer(6.66)</tool>"
+"哈哈哈<tool>emoji(笑哭)</tool>"
 
-使用原则：
-- 别老用，偶尔用
-- 发图要自然
+注意：
+- 不要频繁使用工具
 - 转账只在特殊场合
-- 画图要有具体描述
+- 生成图片需要具体描述
