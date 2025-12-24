@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/ai_config_page.dart';
+import 'package:zichat/pages/api_list_page.dart';
+import 'package:zichat/pages/settings_language_page.dart';
 import 'package:zichat/pages/settings_model_page.dart';
 
 class SettingsGeneralPage extends StatefulWidget {
@@ -38,89 +40,15 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
   }
 
   Future<void> _openLanguageDialog() async {
-    final String? result = await showDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return Center(
-          child: Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: Color(0xFFE5E6EB),
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    child: const Text(
-                      '选择语言',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF1D2129),
-                      ),
-                    ),
-                  ),
-                  _LanguageOption(
-                    label: '简体中文',
-                    selected: _language == 'zh-CN',
-                    onTap: () {
-                      Navigator.of(dialogContext).pop('zh-CN');
-                    },
-                  ),
-                  _LanguageOption(
-                    label: '英语',
-                    selected: _language == 'en',
-                    onTap: () {
-                      Navigator.of(dialogContext).pop('en');
-                    },
-                  ),
-                  SizedBox(
-                    height: 56,
-                    width: double.infinity,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.of(dialogContext).pop();
-                      },
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF07C160),
-                      ),
-                      child: const Text(
-                        '取消',
-                        style: TextStyle(
-                          fontSize: 17,
-                          color: Color(0xFF07C160),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsLanguagePage()),
     );
-
-    if (result != null && result != _language) {
-      setState(() {
-        _language = result;
-      });
-      _showSnack(result == 'zh-CN' ? '已切换到简体中文' : '已切换到英语');
-    }
+    // 重新加载语言设置
+    // final prefs = await SharedPreferences.getInstance();
+    // final lang = prefs.getString('app_language') ?? 'zh-CN';
+    // setState(() {
+    //   _language = lang;
+    // });
   }
 
   void _showFeatureDevToast() {
@@ -136,6 +64,12 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
   void _openModelSettings() {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsModelPage()),
+    );
+  }
+
+  void _openApiList() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ApiListPage()),
     );
   }
 
@@ -210,6 +144,11 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
                         label: 'AI 配置（自定义）',
                         right: const _ArrowOnly(),
                         onTap: _openAiConfig,
+                      ),
+                      _SettingsRow(
+                        label: 'API 管理',
+                        right: const _ArrowOnly(),
+                        onTap: _openApiList,
                       ),
                       _SettingsRow(
                         label: '发现页管理',
@@ -456,58 +395,6 @@ class _ToggleSwitch extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LanguageOption extends StatelessWidget {
-  const _LanguageOption({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: Color(0xFFE5E6EB),
-              width: 0.5,
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 17,
-                color: Color(0xFF1D2129),
-              ),
-            ),
-            if (selected)
-              const Text(
-                '√',
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Color(0xFF07C160),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-          ],
         ),
       ),
     );

@@ -8,8 +8,9 @@ import 'package:zichat/services/chat_event_manager.dart';
 import 'package:zichat/services/notification_service.dart';
 import 'package:zichat/services/proactive_message_service.dart';
 import 'package:zichat/services/svg_precache_service.dart';
-import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
+import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/widgets/splash_screen.dart';
 
 /// 应用入口
@@ -54,6 +55,7 @@ Future<void> _initializeCoreServices() async {
   await Future.wait([
     FriendStorage.initialize(),
     ChatBackgroundStorage.initialize(),
+    ApiConfigStorage.initialize(),
   ]);
 }
 

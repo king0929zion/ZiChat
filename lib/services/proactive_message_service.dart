@@ -4,9 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'package:zichat/config/api_secrets.dart';
-import 'package:zichat/config/ai_models.dart';
+import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/notification_service.dart';
+import 'package:zichat/storage/api_config_storage.dart';
 
 /// 主动消息服务（简化版）
 ///
@@ -51,7 +51,11 @@ class ProactiveMessageService {
 
   /// 检查并触发主动消息
   Future<void> _checkAndTrigger() async {
-    if (!ApiSecrets.hasBuiltInChatApi) return;
+    // 检查是否有配置的 API
+    final config = ApiConfigStorage.getActiveConfig();
+    if (config == null || config.models.isEmpty) {
+      return; // 没有配置 API，不触发
+    }
 
     final now = DateTime.now();
 
@@ -79,7 +83,7 @@ class ProactiveMessageService {
     }
 
     // 生成消息
-    final message = await _generateRandomMessage();
+    final message = await _generateRandomMessage(config);
 
     // 发送消息
     if (message != null && message.isNotEmpty) {
@@ -107,7 +111,7 @@ class ProactiveMessageService {
   }
 
   /// 生成随机主动消息
-  Future<String?> _generateRandomMessage() async {
+  Future<String?> _generateRandomMessage(ApiConfig config) async {
     try {
       final prompts = [
         '突然想到你了，发条消息看看你在干嘛。生成一条简短的打招呼消息。',
@@ -130,14 +134,18 @@ $prompt
 - 用 || 分隔多条消息
 ''';
 
+      // 使用配置的第一个模型
+      final model = config.models.first;
+      final uri = _joinUri(config.baseUrl, 'chat/completions');
+
       final response = await http.post(
-        Uri.parse('${ApiSecrets.chatBaseUrl}/chat/completions'),
+        uri,
         headers: {
-          'Authorization': 'Bearer ${ApiSecrets.chatApiKey}',
+          'Authorization': 'Bearer ${config.apiKey}',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'model': AiModels.eventGenerationModel.id,
+          'model': model,
           'messages': [{'role': 'user', 'content': fullPrompt}],
           'temperature': 0.9,
           'max_tokens': 100,
@@ -169,4 +177,12 @@ $prompt
   Future<void> forceCheck() async {
     await _checkAndTrigger();
   }
+
+  static Uri _joinUri(String base, String path) {
+    if (base.endsWith('/')) {
+      return Uri.parse('$base$path');
+    }
+    return Uri.parse('$base/$path');
+  }
 }
+

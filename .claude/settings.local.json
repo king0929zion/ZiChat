@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: 简化 AI 架构，移除灵魂引擎，添加 CI/CD\n\n主要改动：\n- 简化 AI 提示词为幽默毒舌风格\n- 移除复杂的灵魂引擎依赖\n- 简化主动消息服务\n- 移除预设好友，只保留一个默认 AI 助手\n- 添加 GitHub Actions 自动构建和发布\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nrefactor: 移除内置API，添加API管理系统，重构设置页面\n\n主要改动：\n- 移除 api_secrets.dart 中的硬编码密钥\n- 添加 ApiConfig 模型和 ApiConfigStorage 存储服务\n- 添加 API 管理页面（列表、添加/编辑、检测模型）\n- 将语言设置从弹窗改为普通页面\n- 重构 ai_chat_service.dart 使用新的 API 配置系统\n- 重构 proactive_message_service.dart 和 image_gen_service.dart\n- settings_model_page.dart 重定向到 API 管理页面\n- 添加 uuid 依赖\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
