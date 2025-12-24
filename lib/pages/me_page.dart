@@ -1,16 +1,38 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/settings_page.dart';
 import 'package:zichat/pages/services_page.dart';
 import 'package:zichat/pages/my_qrcode_page.dart';
+import 'package:zichat/pages/me/my_profile_page.dart';
+import 'package:zichat/storage/user_profile_storage.dart';
 
-class MePage extends StatelessWidget {
+class MePage extends StatefulWidget {
   const MePage({super.key});
+
+  @override
+  State<MePage> createState() => _MePageState();
+}
+
+class _MePageState extends State<MePage> {
+  late UserProfile _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    _profile = UserProfileStorage.getProfile();
+  }
+
+  void _loadProfile() {
+    setState(() {
+      _profile = UserProfileStorage.getProfile();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFEFEFF4), // HTML: background: #EFEFF4
+      color: const Color(0xFFEFEFF4),
       child: ListView(
         padding: const EdgeInsets.only(bottom: 12),
         children: [
@@ -20,7 +42,7 @@ class MePage extends StatelessWidget {
             _MeItem(
               icon: 'assets/icon/me/pay-success-outline.svg',
               label: '支付与服务',
-              iconColor: const Color(0xFF07C160), // 绿色
+              iconColor: const Color(0xFF07C160),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ServicesPage()),
@@ -30,25 +52,25 @@ class MePage extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           _buildSection([
-            _MeItem(
+            const _MeItem(
               icon: 'assets/icon/me/favorites.svg',
               label: '收藏',
-              iconColor: const Color(0xFF5B8FD7), // 蓝色
+              iconColor: Color(0xFF5B8FD7),
             ),
-            _MeItem(
+            const _MeItem(
               icon: 'assets/icon/me/album-outline.svg',
               label: '朋友圈',
-              iconColor: const Color(0xFFEEAA4D), // 黄橙色
+              iconColor: Color(0xFFEEAA4D),
             ),
-            _MeItem(
+            const _MeItem(
               icon: 'assets/icon/me/cards-offers.svg',
               label: '卡包',
-              iconColor: const Color(0xFF07C160), // 绿色
+              iconColor: Color(0xFF07C160),
             ),
-            _MeItem(
+            const _MeItem(
               icon: 'assets/icon/keyboard-panel/emoji-icon.svg',
               label: '表情',
-              iconColor: const Color(0xFFEEAA4D), // 黄橙色
+              iconColor: Color(0xFFEEAA4D),
             ),
           ]),
           const SizedBox(height: 12),
@@ -56,7 +78,7 @@ class MePage extends StatelessWidget {
             _MeItem(
               icon: 'assets/icon/common/setting-outline.svg',
               label: '设置',
-              iconColor: const Color(0xFF5B8FD7), // 蓝色
+              iconColor: const Color(0xFF5B8FD7),
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SettingsPage()),
@@ -70,174 +92,174 @@ class MePage extends StatelessWidget {
   }
 
   Widget _buildProfileCard(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.fromLTRB(24, 32, 16, 24), // HTML: padding: 32px 16px 24px 24px
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4), // HTML: border-radius: 4px
-            child: Image.asset(
-              'assets/me.png', // HTML: me.png
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
+    ImageProvider avatarProvider;
+    if (_profile.avatar.startsWith('assets/')) {
+      avatarProvider = AssetImage(_profile.avatar);
+    } else {
+      avatarProvider = FileImage(File(_profile.avatar));
+    }
+
+    return InkWell(
+      onTap: () async {
+        await Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MyProfilePage()),
+        );
+        _loadProfile();
+      },
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.fromLTRB(24, 60, 16, 32), // More spacing for status bar
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: Image(
+                image: avatarProvider,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Image.asset('assets/me.png', width: 64, height: 64),
+              ),
             ),
-          ),
-          const SizedBox(width: 24), // HTML: margin-right: 24px
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Bella',
-                  style: TextStyle(
-                    fontSize: 24, // HTML: font-size: 24px
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF111111), // HTML: color: #111
-                    height: 1.1, // HTML: line-height: 1.1
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _profile.name,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF111111),
+                      height: 1.1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'ID：zion_guoguoguo', // HTML: 微信号
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF8D8D8D), // HTML: color: #8d8d8d
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '微信号：${_profile.wechatId}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF7F7F7F),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    InkWell(
-                      onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const MyQrcodePage(),
-                          ),
-                        );
-                      },
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/icon/qr-code.svg',
-                            width: 18, // HTML: width: 18px
-                            height: 18,
-                          ),
-                          const SizedBox(width: 8), // HTML: gap: 8px
-                          SvgPicture.asset(
-                            'assets/icon/common/arrow-right.svg',
-                            width: 10, // HTML: width: 10px
-                            height: 16, // HTML: height: 16px
-                            colorFilter: const ColorFilter.mode(
-                              Color(0x73000000), // HTML: opacity: 0.45
-                              BlendMode.srcIn,
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const MyQrcodePage(),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4), // HTML: gap: 6px 调整
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), // HTML: padding: 4px 8px
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SvgPicture.asset(
-                            'assets/icon/common/plus.svg',
-                            width: 14,
-                            height: 14,
-                            colorFilter: const ColorFilter.mode(
-                              Color(0xFF9B9B9B),
-                              BlendMode.srcIn,
+                          );
+                        },
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SvgPicture.asset(
+                              'assets/icon/qr-code.svg',
+                              width: 16,
+                              height: 16,
+                              colorFilter: const ColorFilter.mode(
+                                Color(0xFF7F7F7F),
+                                BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            '状态',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF9B9B9B),
+                            const SizedBox(width: 12),
+                            SvgPicture.asset(
+                              'assets/icon/common/arrow-right.svg',
+                              width: 10,
+                              height: 16,
+                              colorFilter: const ColorFilter.mode(
+                                Color(0x73000000),
+                                BlendMode.srcIn,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(4, 2, 8, 2), // HTML: padding: 2px 8px 2px 4px
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE0E0E0)),
-                        color: Colors.white,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _avatarStack(),
-                          const SizedBox(width: 4),
-                          const Text(
-                            '还有 9 位朋友',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Color(0xFF9B9B9B),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E5E5)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.add, size: 14, color: Color(0xFF7F7F7F)),
+                            const SizedBox(width: 4),
+                            const Text(
+                              '状态',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF555555),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            width: 6, // HTML: width: 6px
-                            height: 6, // HTML: height: 6px
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF54A45), // HTML: background: #f54a45
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 8),
+                      // Status bubble with friends
+                      Container(
+                         padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
+                         decoration: BoxDecoration(
+                           borderRadius: BorderRadius.circular(14),
+                           border: Border.all(color: const Color(0xFFE5E5E5)),
+                         ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                             _avatarStack(),
+                             const SizedBox(width: 4),
+                             const Text(
+                               '还有 9 位朋友',
+                               style: TextStyle(fontSize: 12, color: Color(0xFF7F7F7F)),
+                             ),
+                             const SizedBox(width: 4),
+                             Container(
+                               width: 6,
+                               height: 6,
+                               decoration: BoxDecoration(
+                                 color: const Color(0xFFF54A45),
+                                 shape: BoxShape.circle,
+                               ),
+                             ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _avatarStack() {
-    // HTML: margin-left: -4px 实现头像重叠效果
     return SizedBox(
       height: 16,
-      width: 32, // 16 + 12 + 4 = 32
+      width: 32,
       child: Stack(
-        clipBehavior: Clip.none,
         children: const [
-          Positioned(
-            left: 0,
-            child: _MiniAvatar('assets/bella.jpeg'),
-          ),
-          Positioned(
-            left: 12, // 16 - 4 = 12
-            child: _MiniAvatar('assets/me.png'),
-          ),
-          Positioned(
-            left: 24, // 16 + 16 - 4 - 4 = 24
-            child: _MiniAvatar('assets/avatar.png'),
-          ),
+          Positioned(left: 0, child: _MiniAvatar('assets/bella.jpeg')),
+          Positioned(left: 10, child: _MiniAvatar('assets/me.png')),
+          Positioned(left: 20, child: _MiniAvatar('assets/avatar.png')),
         ],
       ),
     );

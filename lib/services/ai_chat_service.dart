@@ -343,12 +343,6 @@ class AiChatService {
       cleanBase = cleanBase.substring(0, cleanBase.length - 1);
     }
 
-  static Uri _joinUri(String base, String path) {
-    String cleanBase = base.trim();
-    if (cleanBase.endsWith('/')) {
-      cleanBase = cleanBase.substring(0, cleanBase.length - 1);
-    }
-
     // 1. 如果用户填写的 URL 已经包含了具体的 endpoint 路径
     if (cleanBase.endsWith(path)) {
       return Uri.parse(cleanBase);

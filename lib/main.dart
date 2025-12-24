@@ -11,6 +11,7 @@ import 'package:zichat/services/svg_precache_service.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/storage/user_profile_storage.dart';
 import 'package:zichat/widgets/splash_screen.dart';
 
 /// 应用入口
@@ -56,6 +57,7 @@ Future<void> _initializeCoreServices() async {
     FriendStorage.initialize(),
     ChatBackgroundStorage.initialize(),
     ApiConfigStorage.initialize(),
+    UserProfileStorage.initialize(),
   ]);
 }
 
