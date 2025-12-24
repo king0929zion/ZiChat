@@ -57,8 +57,8 @@ class AiChatService {
     // 获取活动配置
     final config = await _getActiveConfig();
 
-    // 使用配置的第一个模型（或随机选择）
-    final model = config.models.first;
+    // 使用配置的选定模型（或第一个作为后备）
+    final model = config.selectedModel ?? config.models.first;
 
     // 模拟真人回复延迟 (800ms - 2000ms)
     final initialDelay = 800 + _random.nextInt(1200);

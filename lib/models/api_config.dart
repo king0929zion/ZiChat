@@ -7,6 +7,7 @@ class ApiConfig {
     required this.apiKey,
     required this.models,
     this.isActive = false,
+    this.selectedModel,
     this.createdAt,
   });
 
@@ -16,6 +17,7 @@ class ApiConfig {
   final String apiKey;
   final List<String> models;
   final bool isActive;
+  final String? selectedModel;
   final DateTime? createdAt;
 
   ApiConfig copyWith({
@@ -25,6 +27,7 @@ class ApiConfig {
     String? apiKey,
     List<String>? models,
     bool? isActive,
+    String? selectedModel,
     DateTime? createdAt,
   }) {
     return ApiConfig(
@@ -34,6 +37,7 @@ class ApiConfig {
       apiKey: apiKey ?? this.apiKey,
       models: models ?? this.models,
       isActive: isActive ?? this.isActive,
+      selectedModel: selectedModel ?? this.selectedModel,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -46,6 +50,7 @@ class ApiConfig {
       'apiKey': apiKey,
       'models': models,
       'isActive': isActive,
+      'selectedModel': selectedModel,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -58,6 +63,7 @@ class ApiConfig {
       apiKey: map['apiKey'] as String,
       models: (map['models'] as List<dynamic>).cast<String>(),
       isActive: map['isActive'] as bool? ?? false,
+      selectedModel: map['selectedModel'] as String?,
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String)
           : null,
