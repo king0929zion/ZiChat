@@ -141,7 +141,7 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
                         onTap: _openModelSettings,
                       ),
                       _SettingsRow(
-                        label: 'AI 配置（自定义）',
+                        label: '全局提示词',
                         right: const _ArrowOnly(),
                         onTap: _openAiConfig,
                       ),
