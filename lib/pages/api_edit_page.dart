@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/model_detector_service.dart';
 
@@ -24,7 +27,6 @@ class _ApiEditPageState extends State<ApiEditPage> {
   final _apiKeyController = TextEditingController();
 
   bool _isEdit = false;
-  bool _saving = false;
   bool _detecting = false;
   List<String> _detectedModels = [];
   String? _error;
@@ -110,7 +112,7 @@ class _ApiEditPageState extends State<ApiEditPage> {
       baseUrl: baseUrl,
       apiKey: apiKey,
       models: _detectedModels,
-      isActive: !_isEdit, // 新添加的默认激活
+      isActive: !_isEdit,
       createdAt: widget.editConfig?.createdAt ?? DateTime.now(),
     );
 
@@ -120,251 +122,327 @@ class _ApiEditPageState extends State<ApiEditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDEDED),
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: SvgPicture.asset(
-            'assets/icon/common/go-back.svg',
+            AppAssets.iconGoBack,
             width: 12,
             height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
           ),
         ),
         title: Text(
           _isEdit ? '编辑 API' : '添加 API',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D2129),
+          style: AppStyles.titleLarge,
+        ),
+        centerTitle: true,
+        actions: [
+          Center(
+            child: TextButton(
+              onPressed: _detecting ? null : _save,
+              child: _detecting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text(
+                      '保存',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.primary,
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ListView(
+              padding: const EdgeInsets.only(top: 12, bottom: 20),
+              children: [
+                _buildSection(
+                  title: '基本信息',
+                  children: [
+                    _InputTile(
+                      label: '名称',
+                      placeholder: '例如: OpenAI、DeepSeek',
+                      controller: _nameController,
+                    ),
+                    _InputTile(
+                      label: 'API 地址',
+                      placeholder: 'https://api.openai.com/v1',
+                      controller: _baseUrlController,
+                    ),
+                    _InputTile(
+                      label: 'API 密钥',
+                      placeholder: 'sk-...',
+                      controller: _apiKeyController,
+                      obscureText: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildDetectSection(),
+                if (_detectedModels.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _buildModelsSection(),
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  _buildErrorCard(),
+                ],
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Text(
-                    '保存',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF07C160),
+      ),
+    );
+  }
+
+  Widget _buildSection({required String title, required List<Widget> children}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(title, style: AppStyles.caption),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+            ),
+            child: Column(children: children),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetectSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Text('可用模型', style: AppStyles.bodyMedium),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                '点击按钮自动检测该 API 支持的模型列表',
+                style: AppStyles.caption,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _detecting ? null : _detectModels,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.textHint,
+                    minimumSize: const Size(double.infinity, 44),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        children: [
-          _buildInputCard(
-            label: '名称',
-            hint: '例如: OpenAI、DeepSeek',
-            controller: _nameController,
-          ),
-          const SizedBox(height: 8),
-          _buildInputCard(
-            label: 'API 地址',
-            hint: 'https://api.openai.com/v1',
-            controller: _baseUrlController,
-          ),
-          const SizedBox(height: 8),
-          _buildInputCard(
-            label: 'API 密钥',
-            hint: 'sk-...',
-            controller: _apiKeyController,
-            obscureText: true,
-          ),
-          const SizedBox(height: 8),
-          _buildDetectCard(),
-          if (_detectedModels.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _buildModelsCard(),
+                  child: _detecting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('检测可用模型'),
+                ),
+              ),
+            ),
           ],
-          if (_error != null) ...[
-            const SizedBox(height: 8),
-            _buildErrorCard(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModelsSection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('已检测模型', style: AppStyles.bodyMedium),
+                  Text(
+                    '${_detectedModels.length} 个',
+                    style: AppStyles.caption.copyWith(color: AppColors.primary),
+                  ),
+                ],
+              ),
+            ),
+            if (_detectedModels.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _detectedModels.map((model) {
+                    return Chip(
+                      label: Text(
+                        model,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      deleteIcon: const Icon(Icons.close, size: 16),
+                      onDeleted: () {
+                        setState(() {
+                          _detectedModels.remove(model);
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
           ],
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInputCard({
-    required String label,
-    required String hint,
-    required TextEditingController controller,
-    bool obscureText = false,
-  }) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF4E5969),
-            ),
-          ),
-          const SizedBox(height: 6),
-          TextField(
-            controller: controller,
-            obscureText: obscureText,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFFB8C0CC),
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFFE5E6EB), width: 0.8),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFFE5E6EB), width: 0.8),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFF07C160), width: 1),
-              ),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetectCard() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '可用模型',
-            style: TextStyle(
-              fontSize: 15,
-              color: Color(0xFF4E5969),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _detecting ? null : _detectModels,
-            icon: _detecting
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.search),
-            label: Text(_detecting ? '检测中...' : '检测可用模型'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF07C160),
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 44),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '点击按钮自动检测该 API 支持的模型列表',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFFB8C0CC),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModelsCard() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                '已检测模型',
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF4E5969),
-                ),
-              ),
-              Text(
-                '${_detectedModels.length} 个',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF07C160),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _detectedModels.map((model) {
-              return Chip(
-                label: Text(
-                  model,
-                  style: const TextStyle(fontSize: 12),
-                ),
-                backgroundColor: const Color(0xFF07C160).withOpacity(0.1),
-                deleteIcon: const Icon(Icons.close, size: 16),
-                onDeleted: () {
-                  setState(() {
-                    _detectedModels.remove(model);
-                  });
-                },
-              );
-            }).toList(),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildErrorCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF0F0),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFFFE0E0)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.error_outline, color: Colors.red, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.red,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF0F0),
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+          border: Border.all(color: const Color(0xFFFFE0E0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _error!,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.red,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _InputTile extends StatefulWidget {
+  const _InputTile({
+    required this.label,
+    required this.placeholder,
+    required this.controller,
+    this.obscureText = false,
+  });
+
+  final String label;
+  final String placeholder;
+  final TextEditingController controller;
+  final bool obscureText;
+
+  @override
+  State<_InputTile> createState() => _InputTileState();
+}
+
+class _InputTileState extends State<_InputTile> {
+  bool _obscure = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscure = widget.obscureText;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 6),
+          child: Text(widget.label, style: AppStyles.bodyMedium),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: TextField(
+            controller: widget.controller,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              hintText: widget.placeholder,
+              hintStyle: AppStyles.hint,
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              suffixIcon: widget.obscureText
+                  ? IconButton(
+                      icon: Icon(
+                        _obscure ? Icons.visibility_off : Icons.visibility,
+                        size: 20,
+                        color: AppColors.textHint,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscure = !_obscure;
+                        });
+                      },
+                    )
+                  : null,
+            ),
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(14, 0, 14, 0),
+          child: Divider(height: 1, color: AppColors.divider),
+        ),
+      ],
     );
   }
 }

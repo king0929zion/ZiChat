@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/api_edit_page.dart';
 import 'package:zichat/storage/api_config_storage.dart';
@@ -79,7 +81,7 @@ class _ApiListPageState extends State<ApiListPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('删除 API'),
-        content: Text('确定要删除 "${config.name}" 吗？'),
+        content: Text('确定要删除"${config.name}"吗？'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -107,82 +109,150 @@ class _ApiListPageState extends State<ApiListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDEDED),
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: SvgPicture.asset(
-            'assets/icon/common/go-back.svg',
+            AppAssets.iconGoBack,
             width: 12,
             height: 20,
-          ),
-        ),
-        title: const Text(
-          'API 管理',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D2129),
-          ),
-        ),
-      ),
-      body: _configs.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.only(top: 8),
-              itemCount: _configs.length,
-              itemBuilder: (context, index) {
-                final config = _configs[index];
-                return _ApiConfigTile(
-                  config: config,
-                  onEdit: () => _editConfig(config),
-                  onSetActive: () => _setActive(config),
-                  onDelete: () => _deleteConfig(config),
-                );
-              },
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addConfig,
-        backgroundColor: const Color(0xFF07C160),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          '添加 API',
-          style: TextStyle(color: Colors.white),
+          ),
+        ),
+        title: const Text('API 管理', style: AppStyles.titleLarge),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            onPressed: _addConfig,
+            icon: const Icon(Icons.add, size: 28),
+            color: AppColors.textPrimary,
+          ),
+        ],
+      ),
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: _configs.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding: const EdgeInsets.only(top: 12, bottom: 20),
+                    itemCount: _configs.length,
+                    itemBuilder: (context, index) {
+                      final config = _configs[index];
+                      return _ApiConfigTile(
+                        config: config,
+                        onTap: () => _editConfig(config),
+                        onMore: () => _showMoreOptions(config),
+                      );
+                    },
+                  ),
+          ),
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.api_outlined,
-            size: 64,
-            color: AppColors.textHint,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '暂无 API 配置',
-            style: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF86909C),
+    return ListView(
+      padding: const EdgeInsets.only(top: 12, bottom: 20),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.api_outlined,
+                  size: 40,
+                  color: AppColors.textHint,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '暂无 API 配置',
+                  style: AppStyles.titleSmall,
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '点击下方按钮添加你的第一个 API',
+                  style: AppStyles.caption,
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            '点击下方按钮添加你的第一个 API',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFFB8C0CC),
+        ),
+      ],
+    );
+  }
+
+  void _showMoreOptions(ApiConfig config) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!config.isActive)
+                  ListTile(
+                    title: const Center(
+                      child: Text(
+                        '设为默认',
+                        style: TextStyle(fontSize: 16, color: AppColors.primary),
+                      ),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _setActive(config);
+                    },
+                  ),
+                ListTile(
+                  title: const Center(
+                    child: Text('编辑', style: TextStyle(fontSize: 16)),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _editConfig(config);
+                  },
+                ),
+                ListTile(
+                  title: const Center(
+                    child: Text(
+                      '删除',
+                      style: TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _deleteConfig(config);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -190,112 +260,90 @@ class _ApiListPageState extends State<ApiListPage> {
 class _ApiConfigTile extends StatelessWidget {
   const _ApiConfigTile({
     required this.config,
-    required this.onEdit,
-    required this.onSetActive,
-    required this.onDelete,
+    required this.onTap,
+    required this.onMore,
   });
 
   final ApiConfig config;
-  final VoidCallback onEdit;
-  final VoidCallback onSetActive;
-  final VoidCallback onDelete;
+  final VoidCallback onTap;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
-    final isActive = config.isActive;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: isActive
-            ? Border.all(color: const Color(0xFF07C160), width: 1)
-            : null,
-      ),
-      child: ListTile(
-        title: Row(
-          children: [
-            Text(
-              config.name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                color: isActive ? const Color(0xFF07C160) : const Color(0xFF1D2129),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              height: 64,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              config.name,
+                              style: AppStyles.titleSmall,
+                            ),
+                            if (config.isActive) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '默认',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          config.baseUrl,
+                          style: AppStyles.caption,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SvgPicture.asset(
+                    AppAssets.iconArrowRight,
+                    width: 12,
+                    height: 12,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.textHint,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ],
               ),
             ),
-            if (isActive) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF07C160).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '默认',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Color(0xFF07C160),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        subtitle: Text(
-          config.baseUrl,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Color(0xFF86909C),
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isActive)
-              IconButton(
-                icon: const Icon(Icons.check_circle_outline),
-                onPressed: onSetActive,
-                tooltip: '设为默认',
-              ),
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'edit':
-                    onEdit();
-                    break;
-                  case 'delete':
-                    onDelete();
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(Icons.edit_outlined, size: 18),
-                      SizedBox(width: 12),
-                      Text('编辑'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                      SizedBox(width: 12),
-                      Text('删除', style: TextStyle(color: Colors.red)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          const SizedBox(height: 12),
+        ],
       ),
     );
   }

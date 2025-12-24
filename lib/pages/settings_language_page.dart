@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 
 /// 语言设置页面
 class SettingsLanguagePage extends StatefulWidget {
@@ -56,70 +58,110 @@ class _SettingsLanguagePageState extends State<SettingsLanguagePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDEDED),
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: SvgPicture.asset(
-            'assets/icon/common/go-back.svg',
+            AppAssets.iconGoBack,
             width: 12,
             height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
           ),
         ),
-        title: const Text(
-          '语言',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D2129),
-          ),
-        ),
+        title: const Text('语言', style: AppStyles.titleLarge),
+        centerTitle: true,
       ),
-      body: ListView(
-        children: [
-          const SizedBox(height: 8),
-          ..._languages.entries.map((entry) {
-            final isSelected = _currentLanguage == entry.key;
-            return _buildLanguageTile(
-              label: entry.value,
-              selected: isSelected,
-              onTap: () => _selectLanguage(entry.key),
-            );
-          }).toList(),
-        ],
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ListView(
+              padding: const EdgeInsets.only(top: 12, bottom: 20),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                    ),
+                    child: Column(
+                      children: List.generate(_languages.entries.length, (index) {
+                        final entry = _languages.entries.elementAt(index);
+                        final isSelected = _currentLanguage == entry.key;
+                        final showDivider = index < _languages.entries.length - 1;
+                        return _LanguageTile(
+                          label: entry.value,
+                          selected: isSelected,
+                          showDivider: showDivider,
+                          onTap: () => _selectLanguage(entry.key),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
+}
 
-  Widget _buildLanguageTile({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(
-              label,
-              style: TextStyle(
-                fontSize: 17,
-                color: selected ? AppColors.primary : const Color(0xFF1D2129),
+class _LanguageTile extends StatelessWidget {
+  const _LanguageTile({
+    required this.label,
+    required this.selected,
+    required this.showDivider,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final bool showDivider;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: showDivider
+            ? const BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: AppColors.divider, width: 0.5),
+                ),
+              )
+            : null,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: AppStyles.titleSmall.copyWith(
+                  color: selected ? AppColors.primary : AppColors.textPrimary,
+                ),
               ),
             ),
-            trailing: selected
-                ? const Icon(
-                    Icons.check,
-                    color: Color(0xFF07C160),
-                  )
-                : null,
-            onTap: onTap,
-          ),
-          const Divider(height: 0, indent: 16, color: Color(0xFFE5E6EB)),
-        ],
+            if (selected)
+              const Icon(
+                Icons.check,
+                color: AppColors.primary,
+                size: 20,
+              ),
+          ],
+        ),
       ),
     );
   }
