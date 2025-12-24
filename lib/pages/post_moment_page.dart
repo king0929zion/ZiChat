@@ -141,10 +141,10 @@ class _PostMomentPageState extends State<PostMomentPage> {
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 5,
+                              horizontal: 10,
+                              vertical: 4,
                             ),
-                            minimumSize: const Size(56, 30),
+                            minimumSize: const Size(48, 28),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(4),
                             ),
@@ -167,9 +167,9 @@ class _PostMomentPageState extends State<PostMomentPage> {
                         parent: AlwaysScrollableScrollPhysics(),
                       ),
                       padding: const EdgeInsets.fromLTRB(
-                        22,
+                        32,
                         16,
-                        22,
+                        32,
                         24,
                       ),
                       children: [
@@ -252,14 +252,14 @@ class _AddMediaButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF2F2F2),
+          color: const Color(0xFFEDEDED),
           borderRadius: BorderRadius.circular(6),
         ),
         child: const Center(
           child: Icon(
             Icons.add,
-            size: 44,
-            color: Color(0xFF333333),
+            size: 40,
+            color: Colors.black45,
           ),
         ),
       ),
