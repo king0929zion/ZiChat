@@ -48,17 +48,7 @@ class _PostMomentPageState extends State<PostMomentPage> {
   }
 
   Widget _buildImageGrid() {
-    // 如果没有图片，只显示添加按钮
-    if (_selectedImages.isEmpty) {
-      return SizedBox(
-        height: 100,
-        child: Row(
-          children: [
-            _AddMediaButton(onTap: _pickImage),
-          ],
-        ),
-      );
-    }
+
 
     // 有图片时显示网格
     final List<Widget> children = [];
