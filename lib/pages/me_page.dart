@@ -109,7 +109,7 @@ class _MePageState extends State<MePage> {
           _loadProfile();
         },
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 60, 16, 32), // More spacing for status bar
+          padding: const EdgeInsets.fromLTRB(24, 24, 16, 32), // Reasonable top spacing
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

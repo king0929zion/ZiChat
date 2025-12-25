@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:zichat/pages/ai_config_page.dart';
-import 'package:zichat/pages/api_list_page.dart';
+import 'package:zichat/pages/model_config_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
 
 class SettingsGeneralPage extends StatefulWidget {
@@ -54,21 +53,9 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
     _showSnack('功能开发中');
   }
 
-  void _openAiConfig() {
+  void _openAiSettings() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AiConfigPage()),
-    );
-  }
-
-  void _openModelSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ApiListPage()),
-    );
-  }
-
-  void _openApiList() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ApiListPage()),
+      MaterialPageRoute(builder: (_) => const ModelConfigPage()),
     );
   }
 
@@ -128,26 +115,18 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
                         onTap: _showFeatureDevToast,
                       ),
                       const _SettingsDivider(),
-                      const _SectionTitle(label: '关于微信'),
+                      const _SectionTitle(label: '智能功能'),
+                      _SettingsRow(
+                        label: 'AI 设置',
+                        right: const _ArrowOnly(),
+                        onTap: _openAiSettings,
+                      ),
+                      const _SettingsDivider(),
+                      const _SectionTitle(label: '其他'),
                       _SettingsRow(
                         label: '存储空间',
                         right: const _ArrowOnly(),
                         onTap: _showFeatureDevToast,
-                      ),
-                      _SettingsRow(
-                        label: 'AI 模型选择',
-                        right: const _ArrowOnly(),
-                        onTap: _openModelSettings,
-                      ),
-                      _SettingsRow(
-                        label: '全局提示词',
-                        right: const _ArrowOnly(),
-                        onTap: _openAiConfig,
-                      ),
-                      _SettingsRow(
-                        label: 'API 管理',
-                        right: const _ArrowOnly(),
-                        onTap: _openApiList,
                       ),
                       _SettingsRow(
                         label: '发现页管理',
