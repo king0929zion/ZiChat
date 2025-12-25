@@ -155,6 +155,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFEDEDED),
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
           onPressed: () => Navigator.pop(context, true), // Return true to refresh parent
