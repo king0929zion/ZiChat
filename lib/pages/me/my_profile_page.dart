@@ -8,6 +8,7 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/my_qrcode_page.dart';
 import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/storage/user_profile_storage.dart';
 import 'package:zichat/pages/me/edit_text_page.dart';
 import 'package:zichat/pages/me/edit_gender_page.dart';
 
