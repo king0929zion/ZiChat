@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/friend.dart';
+import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
 
 /// 添加好友页面
@@ -237,23 +238,10 @@ class _AddFriendPageState extends State<AddFriendPage> {
           // 头像
           GestureDetector(
             onTap: _pickAvatar,
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(7),
-                child: _avatarPath != null
-                    ? Image.file(
-                        File(_avatarPath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _buildDefaultAvatar(),
-                      )
-                    : _buildDefaultAvatar(),
-              ),
+            child: AvatarUtils.buildAvatarWidget(
+              _avatarPath ?? AvatarUtils.defaultFriendAvatar,
+              size: 72,
+              borderRadius: 8,
             ),
           ),
           const SizedBox(width: 16),
@@ -290,14 +278,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
       ),
     );
   }
-  
-  Widget _buildDefaultAvatar() {
-    return Image.asset(
-      'assets/avatar-default.jpeg',
-      fit: BoxFit.cover,
-    );
-  }
-  
+
   Widget _buildInputSection({
     required String title,
     String? subtitle,
