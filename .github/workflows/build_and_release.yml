@@ -1,0 +1,140 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # 允许手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.5'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Decode Keystore
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/my-release-key.keystore
+            echo "Keystore decoded successfully"
+            ls -la android/app/my-release-key.keystore
+          else
+            echo "WARNING: KEYSTORE_BASE64 secret is not set!"
+          fi
+
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=my-release-key.keystore
+          EOF
+          echo "key.properties created:"
+          # 屏蔽密码输出
+          cat android/key.properties | sed 's/Password=.*/Password=***/'
+
+      - name: Verify signing configuration
+        run: |
+          echo "Checking key.properties..."
+          if [ -f android/key.properties ]; then
+            echo "key.properties exists"
+          else
+            echo "ERROR: key.properties not found!"
+          fi
+          
+          echo "Checking keystore file..."
+          if [ -f android/app/my-release-key.keystore ]; then
+            echo "Keystore file exists"
+          else
+            echo "ERROR: Keystore file not found!"
+          fi
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | tr -d ' \r\n' | sed 's/+/_/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Rename APK
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/ZiChat-v${{ steps.version.outputs.version }}.apk"
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZiChat-APK-${{ steps.version.outputs.date }}
+          path: build/app/outputs/flutter-apk/ZiChat-*.apk
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from pubspec
+        id: version
+        run: |
+          VERSION=$(grep 'version:' pubspec.yaml | sed 's/version: //' | tr -d ' \r\n' | sed 's/+/_/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Download APK Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ZiChat-APK-*
+          merge-multiple: true
+          path: ./artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}-${{ github.run_number }}
+          name: ZiChat v${{ steps.version.outputs.version }}
+          body: |
+            ## ZiChat v${{ steps.version.outputs.version }}
+            
+            自动构建版本，提交: ${{ github.sha }}
+            
+            ### 下载
+            - **APK**: Android 安装包
+            
+            ### 更新内容
+            查看提交历史了解详细变更。
+          files: |
+            ./artifacts/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
