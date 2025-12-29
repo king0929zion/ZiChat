@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/chat_message.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/services/user_data_manager.dart';
 import 'message_bubbles/message_bubbles.dart';
 import 'message_action_menu.dart';
 
@@ -141,8 +143,10 @@ class _MessageItemState extends State<MessageItem>
 
   Widget _buildNormalMessage() {
     final bool isOutgoing = widget.message.isOutgoing;
-    final String avatar = widget.message.avatar ??
-        (isOutgoing ? 'assets/avatar.png' : 'assets/me.png');
+    // 使用真实用户头像（从 UserDataManager 获取）
+    final String avatar = isOutgoing
+        ? UserDataManager.instance.profile.avatar
+        : (widget.message.avatar ?? AvatarUtils.defaultFriendAvatar);
 
     final rowChildren = <Widget>[
       _MessageAvatar(avatar: avatar),
@@ -212,42 +216,9 @@ class _MessageAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Hero(
       tag: 'avatar_$avatar',
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
-        child: _buildImage(),
-      ),
-    );
-  }
-  
-  Widget _buildImage() {
-    // 判断是 Asset 还是本地文件
-    if (avatar.startsWith('assets/')) {
-      return Image.asset(
-        avatar,
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-      );
-    } else {
-      return Image.file(
-        File(avatar),
-        width: 40,
-        height: 40,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildFallback(),
-      );
-    }
-  }
-  
-  Widget _buildFallback() {
-    return Container(
-      width: 40,
-      height: 40,
-      color: AppColors.background,
-      child: const Icon(
-        Icons.person,
-        color: AppColors.textSecondary,
+      child: AvatarUtils.buildCircleAvatarWidget(
+        avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
+        size: 40,
       ),
     );
   }

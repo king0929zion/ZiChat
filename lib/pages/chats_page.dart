@@ -4,7 +4,9 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/chat_detail/chat_detail_page.dart';
+import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/services/chat_event_manager.dart';
+import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
 
 class ChatsPage extends StatefulWidget {
@@ -16,24 +18,34 @@ class ChatsPage extends StatefulWidget {
 
 class _ChatsPageState extends State<ChatsPage> {
   List<_ChatItemData> _chatList = [];
-  
+
   @override
   void initState() {
     super.initState();
     _loadChats();
     // 监听聊天事件
     ChatEventManager.instance.addListener(_onChatEvent);
+    // 监听用户数据变化（头像/昵称更新）
+    UserDataManager.instance.addListener(_onUserDataChanged);
   }
 
   @override
   void dispose() {
     ChatEventManager.instance.removeListener(_onChatEvent);
+    UserDataManager.instance.removeListener(_onUserDataChanged);
     super.dispose();
   }
 
   void _onChatEvent() {
     if (mounted) {
       _loadChats();
+    }
+  }
+
+  void _onUserDataChanged() {
+    // 用户头像或昵称更新时刷新聊天列表
+    if (mounted) {
+      setState(() {});
     }
   }
   
@@ -387,21 +399,10 @@ class _ChatAvatar extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-            child: avatar.startsWith('assets/')
-                ? Image.asset(
-                    avatar,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                  )
-                : Container(
-                    width: 48,
-                    height: 48,
-                    color: AppColors.background,
-                    child: const Icon(Icons.person, size: 28),
-                  ),
+          AvatarUtils.buildAvatarWidget(
+            avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
+            size: 48,
+            borderRadius: AppStyles.radiusMedium,
           ),
           if (unread > 0)
             Positioned(

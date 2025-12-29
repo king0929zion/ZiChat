@@ -8,6 +8,7 @@ import 'package:zichat/services/chat_event_manager.dart';
 import 'package:zichat/services/notification_service.dart';
 import 'package:zichat/services/proactive_message_service.dart';
 import 'package:zichat/services/svg_precache_service.dart';
+import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
@@ -45,13 +46,13 @@ void _setupSystemUI() {
 Future<void> _initializeCoreServices() async {
   // Hive 必须首先完成
   await Hive.initFlutter();
-  
+
   // 并行打开必要的 Hive Box
   await Future.wait([
     Hive.openBox('chat_messages'),
     Hive.openBox('ai_config'),
   ]);
-  
+
   // 并行初始化核心存储服务
   await Future.wait([
     FriendStorage.initialize(),
@@ -59,6 +60,9 @@ Future<void> _initializeCoreServices() async {
     ApiConfigStorage.initialize(),
     UserProfileStorage.initialize(),
   ]);
+
+  // 初始化用户数据管理器（支持头像/昵称实时更新）
+  await UserDataManager.instance.initialize();
 }
 
 /// 后台初始化非关键服务

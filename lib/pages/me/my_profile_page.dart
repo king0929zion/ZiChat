@@ -6,9 +6,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/my_qrcode_page.dart';
-import 'package:zichat/storage/user_profile_storage.dart';
-import 'package:zichat/pages/me/edit_text_page.dart'; // Will create this next
-import 'package:zichat/pages/me/edit_gender_page.dart'; // Will create this next
+import 'package:zichat/services/user_data_manager.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/pages/me/edit_text_page.dart';
+import 'package:zichat/pages/me/edit_gender_page.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -17,18 +18,41 @@ class MyProfilePage extends StatefulWidget {
   State<MyProfilePage> createState() => _MyProfilePageState();
 }
 
-class _MyProfilePageState extends State<MyProfilePage> {
+class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserver {
   late UserProfile _profile;
+  bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    WidgetsBinding.instance.addObserver(this);
+    UserDataManager.instance.addListener(_onUserDataChanged);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    UserDataManager.instance.removeListener(_onUserDataChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadProfile();
+    }
+  }
+
+  void _onUserDataChanged() {
+    if (mounted) {
+      _loadProfile();
+    }
   }
 
   void _loadProfile() {
     setState(() {
-      _profile = UserProfileStorage.getProfile();
+      _profile = UserDataManager.instance.profile;
     });
   }
 
@@ -54,12 +78,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
               Navigator.pop(context);
               _pickImage();
             }),
-             const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+            const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
             _buildActionItem('查看上一张头像', onTap: () {
               Navigator.pop(context);
               // TODO: implement view previous avatar
             }),
-             const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
+            const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
             _buildActionItem('保存到手机', onTap: () {
               Navigator.pop(context);
               // TODO: implement save to gallery
@@ -91,11 +115,32 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      await UserProfileStorage.updateAvatar(image.path);
-      _loadProfile();
+    if (_isUpdating) return;
+    setState(() => _isUpdating = true);
+
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        // 保存图片到应用目录
+        final savedPath = await AvatarUtils.saveImageToAppDir(
+          File(image.path),
+          AvatarUtils.generateAvatarFileName(),
+        );
+        // 更新头像（会自动触发 UI 刷新）
+        await UserDataManager.instance.updateAvatar(savedPath);
+      }
+    } catch (e) {
+      debugPrint('选择头像失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('选择头像失败')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUpdating = false);
+      }
     }
   }
 
@@ -112,21 +157,19 @@ class _MyProfilePageState extends State<MyProfilePage> {
       ),
     );
     if (result != null && result is String) {
-      await UserProfileStorage.updateName(result);
-      _loadProfile();
+      await UserDataManager.instance.updateName(result);
     }
   }
 
   void _editGender() async {
-     final result = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => EditGenderPage(initialGender: _profile.gender),
       ),
     );
-     if (result != null && result is String) {
-      await UserProfileStorage.updateGender(result);
-      _loadProfile();
+    if (result != null && result is String) {
+      await UserDataManager.instance.updateGender(result);
     }
   }
 
@@ -143,8 +186,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       ),
     );
     if (result != null && result is String) {
-      await UserProfileStorage.updateSignature(result);
-      _loadProfile();
+      await UserDataManager.instance.updateSignature(result);
     }
   }
 
@@ -260,17 +302,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
   }
 
   Widget _buildAvatar() {
-    final avatar = _profile.avatar;
-    ImageProvider imageProvider;
-    if (avatar.startsWith('assets/')) {
-      imageProvider = AssetImage(avatar);
-    } else {
-      imageProvider = FileImage(File(avatar));
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: Image(image: imageProvider, width: 48, height: 48, fit: BoxFit.cover),
+    return AvatarUtils.buildAvatarWidget(
+      _profile.avatar,
+      size: 48,
+      borderRadius: 6,
     );
   }
 

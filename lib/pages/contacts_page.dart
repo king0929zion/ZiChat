@@ -5,6 +5,8 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/friend.dart';
 import 'package:zichat/pages/add_friend_page.dart';
 import 'package:zichat/pages/new_friends_page.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
 
 class ContactsPage extends StatefulWidget {
@@ -16,13 +18,26 @@ class ContactsPage extends StatefulWidget {
 
 class _ContactsPageState extends State<ContactsPage> {
   List<Friend> _customFriends = [];
-  
+
   @override
   void initState() {
     super.initState();
     _loadCustomFriends();
+    UserDataManager.instance.addListener(_onUserDataChanged);
   }
-  
+
+  @override
+  void dispose() {
+    UserDataManager.instance.removeListener(_onUserDataChanged);
+    super.dispose();
+  }
+
+  void _onUserDataChanged() {
+    if (mounted) {
+      _loadCustomFriends();
+    }
+  }
+
   void _loadCustomFriends() {
     setState(() {
       _customFriends = FriendStorage.getAllFriends();
@@ -200,21 +215,10 @@ class _CustomFriendItem extends StatelessWidget {
         child: Row(
           children: [
             const SizedBox(width: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: friend.avatar.startsWith('assets/')
-                  ? Image.asset(
-                      friend.avatar,
-                      width: 42,
-                      height: 42,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(
-                      width: 42,
-                      height: 42,
-                      color: AppColors.background,
-                      child: const Icon(Icons.person, size: 24),
-                    ),
+            AvatarUtils.buildAvatarWidget(
+              friend.avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : friend.avatar,
+              size: 42,
+              borderRadius: 4,
             ),
             const SizedBox(width: 12),
             Expanded(

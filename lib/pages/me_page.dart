@@ -5,6 +5,9 @@ import 'package:zichat/pages/settings_page.dart';
 import 'package:zichat/pages/services_page.dart';
 import 'package:zichat/pages/my_qrcode_page.dart';
 import 'package:zichat/pages/me/my_profile_page.dart';
+import 'package:zichat/services/user_data_manager.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/user_profile_storage.dart';
 
 class MePage extends StatefulWidget {
@@ -14,18 +17,42 @@ class MePage extends StatefulWidget {
   State<MePage> createState() => _MePageState();
 }
 
-class _MePageState extends State<MePage> {
+class _MePageState extends State<MePage> with WidgetsBindingObserver {
   late UserProfile _profile;
 
   @override
   void initState() {
     super.initState();
-    _profile = UserProfileStorage.getProfile();
+    _loadProfile();
+    WidgetsBinding.instance.addObserver(this);
+    // 监听用户数据变化
+    UserDataManager.instance.addListener(_onUserDataChanged);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    UserDataManager.instance.removeListener(_onUserDataChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 应用恢复时刷新数据
+    if (state == AppLifecycleState.resumed) {
+      _loadProfile();
+    }
+  }
+
+  void _onUserDataChanged() {
+    if (mounted) {
+      _loadProfile();
+    }
   }
 
   void _loadProfile() {
     setState(() {
-      _profile = UserProfileStorage.getProfile();
+      _profile = UserDataManager.instance.profile;
     });
   }
 
@@ -92,13 +119,6 @@ class _MePageState extends State<MePage> {
   }
 
   Widget _buildProfileCard(BuildContext context) {
-    ImageProvider avatarProvider;
-    if (_profile.avatar.startsWith('assets/')) {
-      avatarProvider = AssetImage(_profile.avatar);
-    } else {
-      avatarProvider = FileImage(File(_profile.avatar));
-    }
-
     return Material(
       color: Colors.white,
       child: InkWell(
@@ -109,19 +129,14 @@ class _MePageState extends State<MePage> {
           _loadProfile();
         },
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 24, 16, 32), // Reasonable top spacing
+          padding: const EdgeInsets.fromLTRB(24, 24, 16, 32),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Image(
-                  image: avatarProvider,
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Image.asset('assets/me.png', width: 64, height: 64),
-                ),
+              AvatarUtils.buildAvatarWidget(
+                _profile.avatar,
+                size: 64,
+                borderRadius: 6,
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -254,17 +269,30 @@ class _MePageState extends State<MePage> {
   }
 
   Widget _avatarStack() {
-    return SizedBox(
-      height: 16,
-      width: 32,
-      child: Stack(
-        children: const [
-          Positioned(left: 0, child: _MiniAvatar('assets/bella.jpeg')),
-          Positioned(left: 10, child: _MiniAvatar('assets/me.png')),
-          Positioned(left: 20, child: _MiniAvatar('assets/avatar.png')),
-        ],
-      ),
+    return FutureBuilder<List<String>>(
+      future: _getFriendAvatars(),
+      builder: (context, snapshot) {
+        final avatars = snapshot.data ?? [];
+        return SizedBox(
+          height: 16,
+          width: 32,
+          child: Stack(
+            children: [
+              for (int i = 0; i < 3; i++)
+                Positioned(
+                  left: i * 10.0,
+                  child: _MiniAvatar(avatars.length > i ? avatars[i] : ''),
+                ),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  Future<List<String>> _getFriendAvatars() async {
+    final friends = FriendStorage.getAllFriends();
+    return friends.take(3).map((f) => f.avatar).toList();
   }
 
   Widget _buildSection(List<_MeItem> items) {
@@ -288,12 +316,21 @@ class _MiniAvatar extends StatelessWidget {
   final String asset;
   @override
   Widget build(BuildContext context) {
+    if (asset.isEmpty) {
+      return ClipOval(
+        child: Container(
+          width: 16,
+          height: 16,
+          color: const Color(0xFFE5E5E5),
+          child: const Icon(Icons.person, size: 10, color: Colors.grey),
+        ),
+      );
+    }
     return ClipOval(
-      child: Image.asset(
-        asset,
-        width: 16,
-        height: 16,
-        fit: BoxFit.cover,
+      child: AvatarUtils.buildAvatarWidget(
+        asset.isEmpty ? AvatarUtils.defaultFriendAvatar : asset,
+        size: 16,
+        borderRadius: 8,
       ),
     );
   }
