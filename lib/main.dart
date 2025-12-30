@@ -107,29 +107,8 @@ class AppRouter extends StatefulWidget {
 }
 
 class _AppRouterState extends State<AppRouter> {
-  bool _showSplash = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // 预加载 SVG 资源
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      SvgPrecacheService.precacheAll(context);
-    });
-  }
-
-  void _onSplashComplete() {
-    if (mounted) {
-      setState(() => _showSplash = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_showSplash) {
-      return SplashScreen(onComplete: _onSplashComplete);
-    }
-    
     return const HomePage(title: 'ZiChat');
   }
 }
