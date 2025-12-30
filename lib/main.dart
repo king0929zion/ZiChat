@@ -53,6 +53,9 @@ Future<void> _initializeCoreServices() async {
     Hive.openBox('chat_messages'),
     Hive.openBox('ai_config'),
     Hive.openBox('real_friends'),
+    Hive.openBox('friends'), // FriendStorage 需要
+    Hive.openBox('chat_backgrounds'), // ChatBackgroundStorage 需要
+    Hive.openBox('api_configs'), // ApiConfigStorage 需要
   ]);
 
   // 并行初始化核心存储服务
