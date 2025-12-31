@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       vsync: this,
       duration: AppStyles.animationFast,
     );
-    _tabFadeAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+    _tabFadeAnimation = Tween<double>(begin: 1.0, end: 1.0).animate(
       CurvedAnimation(parent: _tabAnimationController, curve: Curves.easeOut),
     );
     _tabAnimationController.forward();
@@ -91,33 +91,29 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       body: SafeArea(
         top: true,
         bottom: true,
-        child: ResponsiveContainer(
-          maxWidth: info.maxContentWidth,
-          backgroundColor: AppColors.surface,
-          child: Column(
-            children: [
-              HomeHeader(currentIndex: _currentIndex),
-              Expanded(
-                child: AnimatedBuilder(
-                  animation: _tabFadeAnimation,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _tabFadeAnimation.value,
-                      child: child,
-                    );
-                  },
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: _pages,
-                  ),
+        child: Column(
+          children: [
+            HomeHeader(currentIndex: _currentIndex),
+            Expanded(
+              child: AnimatedBuilder(
+                animation: _tabFadeAnimation,
+                builder: (context, child) {
+                  return Opacity(
+                    opacity: _tabFadeAnimation.value,
+                    child: child,
+                  );
+                },
+                child: IndexedStack(
+                  index: _currentIndex,
+                  children: _pages,
                 ),
               ),
-              HomeTabBar(
-                currentIndex: _currentIndex,
-                onTap: _onTabChanged,
-              ),
-            ],
-          ),
+            ),
+            HomeTabBar(
+              currentIndex: _currentIndex,
+              onTap: _onTabChanged,
+            ),
+          ],
         ),
       ),
     );
