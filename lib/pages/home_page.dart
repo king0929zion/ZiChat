@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       vsync: this,
       duration: AppStyles.animationFast,
     );
-    _tabFadeAnimation = Tween<double>(begin: 1.0, end: 1.0).animate(
+    _tabFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _tabAnimationController, curve: Curves.easeOut),
     );
     _tabAnimationController.forward();

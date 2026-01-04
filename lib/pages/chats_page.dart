@@ -18,7 +18,7 @@ class ChatsPage extends StatefulWidget {
 }
 
 class _ChatsPageState extends State<ChatsPage> {
-  List<_ChatItemData> _chatList = [];
+  List<_ChatItemData> _chatList = [_defaultChat];
 
   @override
   void initState() {
