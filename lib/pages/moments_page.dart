@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/post_moment_page.dart';
+import 'package:zichat/services/user_data_manager.dart';
 
 class MomentsPage extends StatefulWidget {
   const MomentsPage({super.key});
@@ -45,104 +47,113 @@ class _MomentsPageState extends State<MomentsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
-      body: SafeArea(
-        top: true,
-        bottom: true,
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFF7F7F7),
-            child: Stack(
-              children: [
-                _buildScrollContent(),
-                _buildHeader(context),
-                _buildCommentBar(context),
-              ],
-            ),
-          ),
+      body: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Stack(
+          children: [
+            _buildScrollContent(),
+            _buildHeader(context),
+            _buildCommentBar(context),
+          ],
         ),
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: _scrolled ? const Color(0xFFF7F7F7) : Colors.transparent,
-        border: _scrolled
-            ? const Border(
-                bottom: BorderSide(
-                  color: Color(0x1A000000),
-                  width: 0.5,
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: _scrolled ? const Color(0xFFF7F7F7) : Colors.transparent,
+          border: _scrolled
+              ? const Border(
+                  bottom: BorderSide(
+                    color: Color(0x1A000000),
+                    width: 0.5,
+                  ),
+                )
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              padding: const EdgeInsets.all(8),
+              icon: SvgPicture.asset(
+                'assets/icon/common/go-back.svg',
+                width: 12,
+                height: 20,
+                colorFilter: ColorFilter.mode(
+                  _scrolled ? const Color(0xFF1D2129) : Colors.white,
+                  BlendMode.srcIn,
                 ),
-              )
-            : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            padding: const EdgeInsets.all(8),
-            icon: SvgPicture.asset(
-              'assets/icon/common/go-back.svg',
-              width: 12,
-              height: 20,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF1D2129),
-                BlendMode.srcIn,
               ),
             ),
-          ),
-          AnimatedOpacity(
-            opacity: _scrolled ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: const Text(
-              '朋友圈',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111111),
+            AnimatedOpacity(
+              opacity: _scrolled ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Text(
+                '朋友圈',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF111111),
+                ),
               ),
             ),
-          ),
-          IconButton(
-            onPressed: () async {
-              final text = await Navigator.of(context).push<String>(
-                MaterialPageRoute(builder: (_) => const PostMomentPage()),
-              );
-              if (text != null && text.trim().isNotEmpty) {
-                _insertPost(text.trim());
-              }
-            },
-            padding: const EdgeInsets.all(8),
-            icon: SvgPicture.asset(
-              'assets/icon/common/camera-outline.svg',
-              width: 24,
-              height: 24,
+            IconButton(
+              onPressed: () async {
+                final text = await Navigator.of(context).push<String>(
+                  MaterialPageRoute(builder: (_) => const PostMomentPage()),
+                );
+                if (text != null && text.trim().isNotEmpty) {
+                  _insertPost(text.trim());
+                }
+              },
+              padding: const EdgeInsets.all(8),
+              icon: SvgPicture.asset(
+                'assets/icon/common/camera-outline.svg',
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  _scrolled ? null : const Color(0xFFFFFFFF),
+                  BlendMode.srcIn,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildScrollContent() {
-    return ListView(
-      controller: _scrollController,
-      padding: EdgeInsets.zero,
-      children: [
-        const _MomentsCover(),
-        _MomentsFeed(
-          posts: _posts,
-          onToggleLike: _handleLikeFromMenu,
-          onToggleMenu: _toggleMenu,
-          onComment: _startComment,
-          activeMenuPostId: _activeMenuPostId,
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 480),
+        color: const Color(0xFFF7F7F7),
+        child: SafeArea(
+          bottom: true,
+          child: ListView(
+            controller: _scrollController,
+            padding: EdgeInsets.zero,
+            children: [
+              const _MomentsCover(),
+              _MomentsFeed(
+                posts: _posts,
+                onToggleLike: _handleLikeFromMenu,
+                onToggleMenu: _toggleMenu,
+                onComment: _startComment,
+                activeMenuPostId: _activeMenuPostId,
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 
@@ -338,13 +349,15 @@ class _MomentsCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userProfile = UserDataManager.instance.profile;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 30),
       padding: const EdgeInsets.only(bottom: 30),
       child: Stack(
         children: [
           SizedBox(
-            height: 300,
+            height: 320,
             width: double.infinity,
             child: Image.network(
               'https://img1.baidu.com/it/u=713295211,1805964126&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=281',
@@ -353,13 +366,13 @@ class _MomentsCover extends StatelessWidget {
           ),
           Positioned(
             right: 96,
-            bottom: 34,
+            bottom: 50,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: const [
+              children: [
                 Text(
-                  'Bella',
-                  style: TextStyle(
+                  userProfile.name,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -377,18 +390,19 @@ class _MomentsCover extends StatelessWidget {
           ),
           Positioned(
             right: 12,
-            bottom: 5,
+            bottom: -20,
             child: Container(
-              width: 70,
-              height: 70,
+              width: 75,
+              height: 75,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white, width: 2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Colors.white, width: 3),
                 color: Colors.white,
               ),
               clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/me.png',
+              child: Image(
+                image: UserDataManager.instance.avatarImageProvider ??
+                    const AssetImage('assets/me.png'),
                 fit: BoxFit.cover,
               ),
             ),
