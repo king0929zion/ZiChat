@@ -58,9 +58,10 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFEFEFF4),
-      child: ListView(
+    return SizedBox.expand(
+      child: Container(
+        color: const Color(0xFFEFEFF4),
+        child: ListView(
         padding: const EdgeInsets.only(bottom: 12),
         children: [
           _buildProfileCard(context),
@@ -114,6 +115,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
             ),
           ]),
         ],
+      ),
       ),
     );
   }

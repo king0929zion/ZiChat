@@ -117,32 +117,34 @@ class _ChatsPageState extends State<ChatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surface,
-      child: _chatList.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: EdgeInsets.zero,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _chatList.length,
-              itemBuilder: (context, index) {
-                final chat = _chatList[index];
-                final bool isLast = index == _chatList.length - 1;
-                
-                // 获取动态未读数
-                final dynamicUnread = ChatEventManager.instance.getUnreadCount(chat.id);
-                final totalUnread = chat.unread + dynamicUnread;
+    return SizedBox.expand(
+      child: Container(
+        color: AppColors.surface,
+        child: _chatList.isEmpty
+            ? _buildEmptyState()
+            : ListView.builder(
+                padding: EdgeInsets.zero,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _chatList.length,
+                itemBuilder: (context, index) {
+                  final chat = _chatList[index];
+                  final bool isLast = index == _chatList.length - 1;
 
-                return _ChatListItem(
-                  chat: chat,
-                  isLast: isLast,
-                  index: index,
-                  dynamicUnread: totalUnread,
-                  hasPendingMessage: ChatEventManager.instance.hasPendingMessage(chat.id),
-                  onChatUpdated: _loadChats,
-                );
-              },
-            ),
+                  // 获取动态未读数
+                  final dynamicUnread = ChatEventManager.instance.getUnreadCount(chat.id);
+                  final totalUnread = chat.unread + dynamicUnread;
+
+                  return _ChatListItem(
+                    chat: chat,
+                    isLast: isLast,
+                    index: index,
+                    dynamicUnread: totalUnread,
+                    hasPendingMessage: ChatEventManager.instance.hasPendingMessage(chat.id),
+                    onChatUpdated: _loadChats,
+                  );
+                },
+              ),
+      ),
     );
   }
   

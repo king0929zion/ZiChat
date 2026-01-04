@@ -119,9 +119,10 @@ class DiscoverPage extends StatelessWidget {
       ),
     ];
 
-    return Container(
-      color: bg,
-      child: ListView.builder(
+    return SizedBox.expand(
+      child: Container(
+        color: bg,
+        child: ListView.builder(
         itemCount: items.length * 2 + 1,
         itemBuilder: (context, index) {
           if (index == 0) return buildDivider();
@@ -132,6 +133,7 @@ class DiscoverPage extends StatelessWidget {
           final prev = items[(index - 2) ~/ 2];
           return prev.dividerAfter ? buildDivider() : const SizedBox.shrink();
         },
+      ),
       ),
     );
   }

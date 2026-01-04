@@ -67,9 +67,10 @@ class _ContactsPageState extends State<ContactsPage> {
     final totalRealFriends = _realFriends.length;
     final totalFriends = totalAiFriends + totalRealFriends;
 
-    return Container(
-      color: bg,
-      child: ListView(
+    return SizedBox.expand(
+      child: Container(
+        color: bg,
+        child: ListView(
         children: [
           // 顶部卡片入口
           Container(
@@ -193,6 +194,7 @@ class _ContactsPageState extends State<ContactsPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
