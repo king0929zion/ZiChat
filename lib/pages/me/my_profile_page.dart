@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -60,61 +59,20 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
   }
 
   Future<void> _updateAvatar() async {
-    showCupertinoModalPopup<void>(
-      context: context,
-      builder: (context) => _buildAvatarActionSheet(),
-    );
-  }
-
-  Widget _buildAvatarActionSheet() {
-    return CupertinoActionSheet(
-      actions: [
-        _buildActionItem('从手机相册选择', onTap: () {
-          Navigator.pop(context);
-          _pickImage();
-        }),
-        _buildActionItem('查看上一张头像', onTap: () {
-          Navigator.pop(context);
-        }),
-        _buildActionItem('保存到手机', onTap: () {
-          Navigator.pop(context);
-        }),
-      ],
-      cancelButton: _buildActionItem('取消', onTap: () => Navigator.pop(context)),
-    );
-  }
-
-  Widget _buildActionItem(String title, {required VoidCallback onTap}) {
-    return CupertinoActionSheetAction(
-      onPressed: onTap,
-      child: Text(title),
-    );
-  }
-
-  Future<void> _pickImage() async {
-    if (_isUpdating) return;
-    setState(() => _isUpdating = true);
-
-    try {
-      final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery);
-      if (image != null) {
-        // 保存图片到应用目录
+    HapticFeedback.selectionClick();
+    final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _isUpdating = true);
+      try {
         final savedPath = await AvatarUtils.saveImageToAppDir(
           File(image.path),
           AvatarUtils.generateAvatarFileName(),
         );
-        // 更新头像（会自动触发 UI 刷新）
         await UserDataManager.instance.updateAvatar(savedPath);
-      }
-    } catch (e) {
-      debugPrint('选择头像失败: $e');
-      if (mounted) {
+      } catch (e) {
         CupertinoToast.show(context, '选择头像失败');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isUpdating = false);
+      } finally {
+        if (mounted) setState(() => _isUpdating = false);
       }
     }
   }
