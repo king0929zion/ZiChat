@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class TransferReceivePage extends StatefulWidget {
   const TransferReceivePage({
@@ -264,9 +265,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
       _received = true;
       _receiveTime = DateTime.now();
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已确认收款')),
-    );
+    CupertinoToast.show(context, '已确认收款');
     // 返回收款成功状态和消息ID
     Navigator.of(context).pop({
       'received': true,

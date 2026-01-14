@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class PostMomentPage extends StatefulWidget {
   const PostMomentPage({super.key});
@@ -23,7 +24,7 @@ class _PostMomentPageState extends State<PostMomentPage> {
 
   Future<void> _pickImage() async {
     if (_selectedImages.length >= _maxImages) {
-      _showSimpleSnackBar(context, '最多只能选择 $_maxImages 张图片');
+      CupertinoToast.show(context, '最多只能选择 $_maxImages 张图片');
       return;
     }
 
@@ -337,7 +338,7 @@ class _OptionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        _showSimpleSnackBar(context, '功能暂未开放');
+        CupertinoToast.show(context, '功能暂未开放');
       },
       child: Container(
         height: 48, // HTML: height: 48px
@@ -392,15 +393,4 @@ class _OptionRow extends StatelessWidget {
       ),
     );
   }
-}
-
-void _showSimpleSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-      ),
-    );
 }

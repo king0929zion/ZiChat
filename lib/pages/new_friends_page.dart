@@ -8,6 +8,7 @@ import 'package:zichat/pages/add_contacts_page.dart';
 import 'package:zichat/pages/friend_info_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/real_friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class NewFriendsPage extends StatefulWidget {
   const NewFriendsPage({super.key});
@@ -137,9 +138,7 @@ class _NewFriendsPageState extends State<NewFriendsPage> {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('搜索朋友功能暂未开放')),
-          );
+          CupertinoToast.show(context, '搜索朋友功能暂未开放');
         },
         child: Container(
           decoration: BoxDecoration(

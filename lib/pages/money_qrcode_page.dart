@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class MoneyQrcodePage extends StatefulWidget {
   const MoneyQrcodePage({super.key});
@@ -246,9 +247,7 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
 
   Widget _buildActions(BuildContext context) {
     void show(String text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text)),
-      );
+      CupertinoToast.show(context, text);
     }
 
     return Column(

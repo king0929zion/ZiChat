@@ -7,6 +7,7 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/add_contacts_search_page.dart';
 import 'package:zichat/pages/add_friend_page.dart';
 import 'package:zichat/pages/code_scanner_page.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class AddContactsPage extends StatelessWidget {
   const AddContactsPage({super.key});
@@ -55,15 +56,11 @@ class AddContactsPage extends StatelessWidget {
                   onCopy: () async {
                     await Clipboard.setData(const ClipboardData(text: 'zion_guoguoguo'));
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('已复制微信号')),
-                      );
+                      CupertinoToast.show(context, '已复制微信号');
                     }
                   },
                   onQrCode: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('我的二维码页面暂未实现')),
-                    );
+                    CupertinoToast.show(context, '我的二维码页面暂未实现');
                   },
                 ),
                 const SizedBox(height: 12),
@@ -87,9 +84,7 @@ class AddContactsPage extends StatelessWidget {
                       title: '手机联系人',
                       subtitle: '添加或邀请通讯录中的朋友',
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('手机联系人功能暂未实现')),
-                        );
+                        CupertinoToast.show(context, '手机联系人功能暂未实现');
                       },
                       showDivider: false,
                     ),
@@ -109,9 +104,7 @@ class AddContactsPage extends StatelessWidget {
                           MaterialPageRoute(builder: (_) => const AddFriendPage()),
                         );
                         if (result != null && context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('已创建 AI 好友')),
-                          );
+                          CupertinoToast.show(context, '已创建 AI 好友');
                         }
                       },
                       showDivider: false,

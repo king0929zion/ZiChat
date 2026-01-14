@@ -6,9 +6,10 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// 模型选择页面
-/// 
+///
 /// 显示所有已配置供应商的可用模型，允许用户选择当前使用的对话模型
 class ModelSelectionPage extends StatefulWidget {
   const ModelSelectionPage({super.key});
@@ -31,7 +32,7 @@ class _ModelSelectionPageState extends State<ModelSelectionPage> {
   void _loadData() {
     final configs = ApiConfigStorage.getAllConfigs();
     final active = configs.where((c) => c.isActive).firstOrNull;
-    
+
     setState(() {
       _configs = configs;
       _selectedConfigId = active?.id;
@@ -41,20 +42,18 @@ class _ModelSelectionPageState extends State<ModelSelectionPage> {
 
   Future<void> _selectModel(ApiConfig config, String model) async {
     HapticFeedback.selectionClick();
-    
+
     // 更新配置的选中模型
     final updatedConfig = config.copyWith(selectedModel: model);
     await ApiConfigStorage.saveConfig(updatedConfig);
-    
+
     // 设置为活动配置
     await ApiConfigStorage.setActiveConfig(config.id);
-    
+
     _loadData();
-    
+
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已选择模型：$model')),
-      );
+      CupertinoToast.show(context, '已选择模型：$model');
     }
   }
 

@@ -9,14 +9,15 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/friend.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// 添加好友页面
 class AddFriendPage extends StatefulWidget {
   const AddFriendPage({super.key, this.editFriend});
-  
+
   /// 如果传入则为编辑模式
   final Friend? editFriend;
-  
+
   @override
   State<AddFriendPage> createState() => _AddFriendPageState();
 }
@@ -26,9 +27,9 @@ class _AddFriendPageState extends State<AddFriendPage> {
   final _promptController = TextEditingController();
   String? _avatarPath;
   bool _isLoading = false;
-  
+
   bool get _isEdit => widget.editFriend != null;
-  
+
   @override
   void initState() {
     super.initState();
@@ -40,14 +41,14 @@ class _AddFriendPageState extends State<AddFriendPage> {
       }
     }
   }
-  
+
   @override
   void dispose() {
     _nameController.dispose();
     _promptController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _pickAvatar() async {
     HapticFeedback.selectionClick();
     final picker = ImagePicker();
@@ -63,24 +64,22 @@ class _AddFriendPageState extends State<AddFriendPage> {
       final fileName = 'avatar_${DateTime.now().millisecondsSinceEpoch}${p.extension(file.path)}';
       final savedPath = '${dir.path}/$fileName';
       await File(file.path).copy(savedPath);
-      
+
       setState(() {
         _avatarPath = savedPath;
       });
     }
   }
-  
+
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入好友名称')),
-      );
+      CupertinoToast.show(context, '请输入好友名称');
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final friend = Friend(
         id: _isEdit ? widget.editFriend!.id : 'friend_${DateTime.now().millisecondsSinceEpoch}',
@@ -92,17 +91,15 @@ class _AddFriendPageState extends State<AddFriendPage> {
         lastMessage: _isEdit ? widget.editFriend!.lastMessage : null,
         lastMessageTime: _isEdit ? widget.editFriend!.lastMessageTime : null,
       );
-      
+
       await FriendStorage.saveFriend(friend);
-      
+
       if (mounted) {
         Navigator.of(context).pop(friend);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        CupertinoToast.show(context, '保存失败: $e');
       }
     } finally {
       if (mounted) {

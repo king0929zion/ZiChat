@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/chat_message.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 import 'base_bubble.dart';
 
 /// 文本消息气泡
@@ -21,7 +22,7 @@ class TextBubble extends StatelessWidget {
   void _showContextMenu(BuildContext context, Offset position) {
     final RenderBox overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox;
-    
+
     showMenu(
       context: context,
       position: RelativeRect.fromRect(
@@ -40,12 +41,7 @@ class TextBubble extends StatelessWidget {
           ),
           onTap: () {
             Clipboard.setData(ClipboardData(text: message.text ?? ''));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('已复制'),
-                duration: Duration(seconds: 1),
-              ),
-            );
+            CupertinoToast.show(context, '已复制', duration: const Duration(seconds: 1));
           },
         ),
       ],

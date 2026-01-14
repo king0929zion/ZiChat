@@ -7,6 +7,7 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/api_edit_page.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// API 管理列表页面
 class ApiListPage extends StatefulWidget {
@@ -31,6 +32,10 @@ class _ApiListPageState extends State<ApiListPage> {
     });
   }
 
+  void _showToast(String message) {
+    CupertinoToast.show(context, message);
+  }
+
   Future<void> _addConfig() async {
     HapticFeedback.lightImpact();
     final result = await Navigator.of(context).push<ApiConfig>(
@@ -40,9 +45,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.saveConfig(result);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已添加')),
-        );
+        _showToast('API 已添加');
       }
     }
   }
@@ -58,9 +61,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.saveConfig(result);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已更新')),
-        );
+        _showToast('API 已更新');
       }
     }
   }
@@ -70,9 +71,7 @@ class _ApiListPageState extends State<ApiListPage> {
     await ApiConfigStorage.setActiveConfig(config.id);
     _loadConfigs();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${config.name} 已设为默认')),
-      );
+      _showToast('${config.name} 已设为默认');
     }
   }
 
@@ -99,9 +98,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.deleteConfig(config.id);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已删除')),
-        );
+        _showToast('API 已删除');
       }
     }
   }

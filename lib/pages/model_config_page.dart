@@ -8,6 +8,7 @@ import 'package:zichat/pages/api_list_page.dart';
 import 'package:zichat/pages/model_selection_page.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/models/api_config.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// 模型配置页面 - 统一的 AI 配置入口
 /// 
@@ -225,9 +226,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
 
   void _openModelSelection() async {
     if (_activeConfig == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先添加 API 供应商')),
-      );
+      CupertinoToast.show(context, '请先添加 API 供应商');
       return;
     }
     HapticFeedback.lightImpact();

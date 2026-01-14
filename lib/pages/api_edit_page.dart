@@ -8,6 +8,7 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/model_detector_service.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// API 添加/编辑页面
 class ApiEditPage extends StatefulWidget {
@@ -41,7 +42,7 @@ class _ApiEditPageState extends State<ApiEditPage> {
       _apiKeyController.text = widget.editConfig!.apiKey;
       _detectedModels = List.from(widget.editConfig!.models);
       _selectedModel = widget.editConfig!.selectedModel;
-      
+
       // If selected model is not in list (legacy or removed), default to first
       if (_detectedModels.isNotEmpty && (_selectedModel == null || !_detectedModels.contains(_selectedModel))) {
           _selectedModel = _detectedModels.first;
@@ -56,6 +57,10 @@ class _ApiEditPageState extends State<ApiEditPage> {
     _apiKeyController.dispose();
     _customModelController.dispose();
     super.dispose();
+  }
+
+  void _showToast(String message) {
+    CupertinoToast.show(context, message);
   }
 
   Future<void> _detectModels() async {
@@ -89,9 +94,7 @@ class _ApiEditPageState extends State<ApiEditPage> {
             _selectedModel = _detectedModels.first;
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('检测到 ${models.length} 个可用模型')),
-        );
+        _showToast('检测到 ${models.length} 个可用模型');
       }
     } catch (e) {
       if (mounted) {
@@ -109,16 +112,12 @@ class _ApiEditPageState extends State<ApiEditPage> {
     final apiKey = _apiKeyController.text.trim();
 
     if (name.isEmpty || baseUrl.isEmpty || apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请填写完整信息')),
-      );
+      _showToast('请填写完整信息');
       return;
     }
 
     if (_detectedModels.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请至少添加一个模型')),
-      );
+       _showToast('请至少添加一个模型');
       return;
     }
 

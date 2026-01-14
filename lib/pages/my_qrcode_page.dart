@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class MyQrcodePage extends StatelessWidget {
   const MyQrcodePage({super.key});
@@ -63,9 +64,7 @@ class MyQrcodePage extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('更多功能暂未开放')),
-              );
+              CupertinoToast.show(context, '更多功能暂未开放');
             },
             icon: SvgPicture.asset(
               'assets/icon/three-dot.svg',
@@ -210,9 +209,7 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void show(String text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text)),
-      );
+      CupertinoToast.show(context, text);
     }
 
     return Container(

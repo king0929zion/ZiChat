@@ -4,12 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// AI 提示词配置页面 - 微信风格
 class AiContactPromptPage extends StatefulWidget {
   const AiContactPromptPage({
-    super.key, 
-    required this.chatId, 
+    super.key,
+    required this.chatId,
     required this.title,
   });
 
@@ -57,14 +58,9 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
     try {
       await AiConfigStorage.saveContactPrompt(widget.chatId, _promptController.text);
       if (!mounted) return;
-      
+
       HapticFeedback.lightImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('已保存'),
-          duration: Duration(seconds: 1),
-        ),
-      );
+      CupertinoToast.show(context, '已保存', duration: const Duration(seconds: 1));
       Navigator.of(context).pop(true);
     } finally {
       if (mounted) {

@@ -4,23 +4,24 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/add_contacts_page.dart';
 import 'package:zichat/pages/code_scanner_page.dart';
 import 'package:zichat/pages/money_qrcode_page.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// 显示快速操作弹窗 (仿微信右上角弹出菜单)
 void showQuickActionsSheet(BuildContext context) {
   final double statusBarHeight = MediaQuery.of(context).padding.top;
   final double screenWidth = MediaQuery.of(context).size.width;
-  
+
   // 估算右上角加号按钮的位置
   // Header高度 52, 右边距 12, 按钮宽高 36
   // 按钮中心垂直位置: statusBarHeight + (52 - 36) / 2
   const double buttonSize = 36.0;
   const double rightMargin = 12.0;
   const double headerHeight = 52.0;
-  
+
   final double buttonTop = statusBarHeight + (headerHeight - buttonSize) / 2;
   final double buttonRight = rightMargin;
   final double buttonLeft = screenWidth - buttonRight - buttonSize;
-  
+
   // 菜单显示在按钮正下方微偏左
   final RelativeRect position = RelativeRect.fromLTRB(
     buttonLeft,
@@ -45,9 +46,7 @@ void showQuickActionsSheet(BuildContext context) {
     if (value == null) return;
     switch (value) {
       case 'group_chat':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('发起群聊功能暂未开放')),
-        );
+        CupertinoToast.show(context, '发起群聊功能暂未开放');
         break;
       case 'add_friend':
         Navigator.of(context).push(

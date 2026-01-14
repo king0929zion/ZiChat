@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/services/ai_soul_engine.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 /// AI 灵魂控制面板
-/// 
+///
 /// 显示 AI 当前的各种状态，包括：
 /// - 精力/心情/压力数值
 /// - 当前活动和事件
@@ -14,7 +15,7 @@ import 'package:zichat/services/ai_soul_engine.dart';
 /// - 亲密度等级
 class AiSoulPanelPage extends StatefulWidget {
   const AiSoulPanelPage({super.key, required this.chatId});
-  
+
   final String chatId;
 
   @override
@@ -24,7 +25,7 @@ class AiSoulPanelPage extends StatefulWidget {
 class _AiSoulPanelPageState extends State<AiSoulPanelPage> {
   AiSoulState? _state;
   Timer? _refreshTimer;
-  
+
   @override
   void initState() {
     super.initState();
@@ -34,32 +35,27 @@ class _AiSoulPanelPageState extends State<AiSoulPanelPage> {
       _loadState();
     });
   }
-  
+
   @override
   void dispose() {
     _refreshTimer?.cancel();
     super.dispose();
   }
-  
+
   void _loadState() {
     setState(() {
       _state = AiSoulEngine.instance.getCurrentState();
     });
   }
-  
+
   Future<void> _triggerEvent() async {
     HapticFeedback.mediumImpact();
-    
+
     // 尝试AI生成事件
     final aiEvent = await AiSoulEngine.instance.generateAiEvent();
     if (aiEvent != null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('发生了：${aiEvent.description}'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      CupertinoToast.show(context, '发生了：${aiEvent.description}');
     } else {
       // 使用预设事件
       AiSoulEngine.instance.triggerRandomEvent();

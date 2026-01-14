@@ -11,6 +11,7 @@ import 'package:zichat/models/real_friend.dart';
 import 'package:zichat/pages/friend_info_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/real_friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class AddContactsSearchPage extends StatefulWidget {
   const AddContactsSearchPage({super.key});
@@ -114,9 +115,7 @@ class _AddContactsSearchPageState extends State<AddContactsSearchPage> {
     await RealFriendStorage.saveFriend(request);
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已发送好友验证申请')),
-      );
+      CupertinoToast.show(context, '已发送好友验证申请');
     }
   }
 

@@ -11,6 +11,7 @@ import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/user_profile_storage.dart';
 import 'package:zichat/pages/me/edit_text_page.dart';
 import 'package:zichat/pages/me/edit_gender_page.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -58,60 +59,34 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
   }
 
   Future<void> _updateAvatar() async {
-    showModalBottomSheet(
+    showCupertinoModalPopup<void>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (context) => _buildAvatarActionSheet(),
     );
   }
 
   Widget _buildAvatarActionSheet() {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFFEFEFF4),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildActionItem('从手机相册选择', onTap: () {
-              Navigator.pop(context);
-              _pickImage();
-            }),
-            const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
-            _buildActionItem('查看上一张头像', onTap: () {
-              Navigator.pop(context);
-              // TODO: implement view previous avatar
-            }),
-            const Divider(height: 0.5, color: Color(0xFFE0E0E0)),
-            _buildActionItem('保存到手机', onTap: () {
-              Navigator.pop(context);
-              // TODO: implement save to gallery
-            }),
-            const SizedBox(height: 8),
-            _buildActionItem('取消', onTap: () => Navigator.pop(context)),
-          ],
-        ),
-      ),
+    return CupertinoActionSheet(
+      actions: [
+        _buildActionItem('从手机相册选择', onTap: () {
+          Navigator.pop(context);
+          _pickImage();
+        }),
+        _buildActionItem('查看上一张头像', onTap: () {
+          Navigator.pop(context),
+        }),
+        _buildActionItem('保存到手机', onTap: () {
+          Navigator.pop(context);
+        }),
+      ],
+      cancelButton: _buildActionItem('取消', onTap: () => Navigator.pop(context)),
     );
   }
 
   Widget _buildActionItem(String title, {required VoidCallback onTap}) {
-    return Material(
-      color: Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          height: 56,
-          alignment: Alignment.center,
-          width: double.infinity,
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 17, color: Colors.black),
-          ),
-        ),
-      ),
+    return CupertinoActionSheetAction(
+      onPressed: onTap,
+      child: Text(title),
     );
   }
 
@@ -134,9 +109,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
     } catch (e) {
       debugPrint('选择头像失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('选择头像失败')),
-        );
+        CupertinoToast.show(context, '选择头像失败');
       }
     } finally {
       if (mounted) {

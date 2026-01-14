@@ -202,26 +202,13 @@ class _FullScreenImage extends StatelessWidget {
       final fileName = 'saved_${DateTime.now().millisecondsSinceEpoch}.png';
       final savedFile = File('${dir.path}/$fileName');
       await savedFile.writeAsBytes(bytes);
-      
+
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('图片已保存'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        CupertinoToast.show(context, '图片已保存', duration: const Duration(seconds: 2));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('保存失败: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        CupertinoToast.show(context, '保存失败: $e');
       }
     }
   }

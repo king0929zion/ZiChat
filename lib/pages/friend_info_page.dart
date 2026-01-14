@@ -9,6 +9,7 @@ import 'package:zichat/models/real_friend.dart';
 import 'package:zichat/pages/chat_detail/chat_detail_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/real_friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class FriendInfoPage extends StatefulWidget {
   const FriendInfoPage({
@@ -52,9 +53,7 @@ class _FriendInfoPageState extends State<FriendInfoPage> {
     _loadFriend();
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已通过验证')),
-      );
+      CupertinoToast.show(context, '已通过验证');
     }
   }
 
@@ -320,9 +319,7 @@ class _FriendInfoPageState extends State<FriendInfoPage> {
               width: double.infinity,
               child: OutlinedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('备注功能暂未开放')),
-                  );
+                  CupertinoToast.show(context, '备注功能暂未开放');
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFFDCDCDC)),

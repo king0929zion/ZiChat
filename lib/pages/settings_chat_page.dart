@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class SettingsChatPage extends StatefulWidget {
   const SettingsChatPage({super.key});
@@ -16,8 +17,8 @@ class _SettingsChatPageState extends State<SettingsChatPage> {
   bool _autoDownload = true;
   bool _keepOriginal = false;
 
-  void _showSnack(String message) {
-     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 1)));
+  void _showToast(String message) {
+    CupertinoToast.show(context, message, duration: const Duration(seconds: 1));
   }
 
   @override
@@ -57,7 +58,7 @@ class _SettingsChatPageState extends State<SettingsChatPage> {
             const SizedBox(height: 12),
             _SettingsItem(
               label: '聊天背景',
-              onTap: () => _showSnack('功能开发中'),
+              onTap: () => _showToast('功能开发中'),
             ),
              const SizedBox(height: 12),
             _SwitchItem(

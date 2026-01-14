@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/model_config_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class SettingsGeneralPage extends StatefulWidget {
   const SettingsGeneralPage({super.key});
@@ -17,24 +18,22 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
 
   String get _languageLabel => _language == 'zh-CN' ? '简体中文' : '英语';
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _showToast(String message) {
+    CupertinoToast.show(context, message);
   }
 
   void _toggleLandscape() {
     setState(() {
       _landscapeOn = !_landscapeOn;
     });
-    _showSnack(_landscapeOn ? '已开启横屏模式' : '已关闭横屏模式');
+    _showToast(_landscapeOn ? '已开启横屏模式' : '已关闭横屏模式');
   }
 
   void _toggleNfc() {
     setState(() {
       _nfcOn = !_nfcOn;
     });
-    _showSnack(_nfcOn ? '已开启 NFC 功能' : '已关闭 NFC 功能');
+    _showToast(_nfcOn ? '已开启 NFC 功能' : '已关闭 NFC 功能');
   }
 
   Future<void> _openLanguageDialog() async {
@@ -50,7 +49,7 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
   }
 
   void _showFeatureDevToast() {
-    _showSnack('功能开发中');
+    _showToast('功能开发中');
   }
 
   void _openAiSettings() {

@@ -11,6 +11,7 @@ import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/real_friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
@@ -95,10 +96,7 @@ class _ContactsPageState extends State<ContactsPage> {
                             );
                           }
                         : () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text('打开 ${_cards[i].text}')),
-                            );
+                            CupertinoToast.show(context, '打开 ${_cards[i].text}');
                           },
                   ),
                   if (i != _cards.length - 1)

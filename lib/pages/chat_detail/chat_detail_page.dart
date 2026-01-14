@@ -16,6 +16,7 @@ import 'package:zichat/services/image_gen_service.dart';
 import 'package:zichat/storage/chat_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/utils/cupertino_toast.dart';
 import 'widgets/widgets.dart';
 
 /// 聊天详情页 - 重构版本
@@ -852,15 +853,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         break;
       default:
         HapticFeedback.lightImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.label} 功能暂未开放'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+        CupertinoToast.show(context, '${item.label} 功能暂未开放');
         break;
     }
   }
