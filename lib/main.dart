@@ -7,14 +7,12 @@ import 'package:zichat/pages/home_page.dart';
 import 'package:zichat/services/chat_event_manager.dart';
 import 'package:zichat/services/notification_service.dart';
 import 'package:zichat/services/proactive_message_service.dart';
-import 'package:zichat/services/svg_precache_service.dart';
 import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/real_friend_storage.dart';
 import 'package:zichat/storage/user_profile_storage.dart';
-import 'package:zichat/widgets/splash_screen.dart';
 
 /// 应用入口
 Future<void> main() async {
@@ -93,43 +91,7 @@ class ZiChatApp extends StatelessWidget {
       title: 'ZiChat',
       debugShowCheckedModeBanner: false,
       theme: AppConfig.createTheme(),
-      home: const AppRouter(),
+      home: const HomePage(title: 'ZiChat'),
     );
-  }
-}
-
-/// 应用路由器 - 处理启动画面和主页面切换
-class AppRouter extends StatefulWidget {
-  const AppRouter({super.key});
-
-  @override
-  State<AppRouter> createState() => _AppRouterState();
-}
-
-class _AppRouterState extends State<AppRouter> {
-  bool _showSplash = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // 预加载 SVG 资源
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      SvgPrecacheService.precacheAll(context);
-    });
-  }
-
-  void _onSplashComplete() {
-    if (mounted) {
-      setState(() => _showSplash = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_showSplash) {
-      return SplashScreen(onComplete: _onSplashComplete);
-    }
-    
-    return const HomePage(title: 'ZiChat');
   }
 }
