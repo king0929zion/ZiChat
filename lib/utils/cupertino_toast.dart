@@ -15,7 +15,6 @@ class CupertinoToast {
       builder: (_) => _ToastWidget(
         message: message,
         duration: duration,
-        onDismiss: () => entry.remove(),
       ),
     );
     overlayState.insert(entry);
