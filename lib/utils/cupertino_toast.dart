@@ -44,12 +44,10 @@ class CupertinoToast {
 class _ToastWidget extends StatefulWidget {
   final String message;
   final Duration duration;
-  final VoidCallback onDismiss;
 
   const _ToastWidget({
     required this.message,
     required this.duration,
-    required this.onDismiss,
   });
 
   @override
@@ -62,7 +60,7 @@ class _ToastWidgetState extends State<_ToastWidget> {
     super.initState();
     Future.delayed(widget.duration, () {
       if (mounted) {
-        widget.onDismiss();
+        Navigator.of(context).pop();
       }
     });
   }

@@ -74,7 +74,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
           _pickImage();
         }),
         _buildActionItem('查看上一张头像', onTap: () {
-          Navigator.pop(context),
+          Navigator.pop(context);
         }),
         _buildActionItem('保存到手机', onTap: () {
           Navigator.pop(context);
