@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/post_moment_page.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/services/user_data_manager.dart';
 
 class MomentsPage extends StatefulWidget {
   const MomentsPage({super.key});
@@ -46,7 +48,7 @@ class _MomentsPageState extends State<MomentsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       body: SafeArea(
-        top: true,
+        top: false,
         bottom: true,
         child: Center(
           child: Container(
@@ -66,9 +68,12 @@ class _MomentsPageState extends State<MomentsPage> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final iconColor = _scrolled ? const Color(0xFF1D2129) : Colors.white;
+
     return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 44 + topPadding,
+      padding: EdgeInsets.fromLTRB(12, topPadding, 12, 0),
       decoration: BoxDecoration(
         color: _scrolled ? const Color(0xFFF7F7F7) : Colors.transparent,
         border: _scrolled
@@ -90,10 +95,7 @@ class _MomentsPageState extends State<MomentsPage> {
               'assets/icon/common/go-back.svg',
               width: 12,
               height: 20,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF1D2129),
-                BlendMode.srcIn,
-              ),
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
           ),
           AnimatedOpacity(
@@ -122,6 +124,7 @@ class _MomentsPageState extends State<MomentsPage> {
               'assets/icon/common/camera-outline.svg',
               width: 24,
               height: 24,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
           ),
         ],
@@ -150,13 +153,14 @@ class _MomentsPageState extends State<MomentsPage> {
     final content = text.trim();
     if (content.isEmpty) return;
     setState(() {
+      final profile = UserDataManager.instance.profile;
       final now = DateTime.now().millisecondsSinceEpoch;
       _posts.insert(
         0,
         _MomentPost(
           id: now,
-          userName: '我',
-          userAvatar: 'assets/me.png',
+          userName: profile.name,
+          userAvatar: profile.avatar,
           content: content,
           images: const [],
           time: '刚刚',
@@ -336,65 +340,82 @@ class _MomentsPageState extends State<MomentsPage> {
 class _MomentsCover extends StatelessWidget {
   const _MomentsCover();
 
+  static const double _coverHeight = 320;
+  static const double _avatarSize = 90;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 30),
-      padding: const EdgeInsets.only(bottom: 30),
-      child: Stack(
-        children: [
-          SizedBox(
-            height: 300,
-            width: double.infinity,
-            child: Image.network(
-              'https://img1.baidu.com/it/u=713295211,1805964126&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=281',
-              fit: BoxFit.cover,
-            ),
-          ),
-          Positioned(
-            right: 96,
-            bottom: 34,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: const [
-                Text(
-                  'Bella',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    shadows: [
-                      Shadow(
-                        color: Color(0x80000000),
-                        offset: Offset(0, 1),
-                        blurRadius: 2,
-                      ),
-                    ],
+    final double avatarOverlap = _avatarSize / 3;
+
+    return AnimatedBuilder(
+      animation: UserDataManager.instance,
+      builder: (context, _) {
+        final profile = UserDataManager.instance.profile;
+        final name = profile.name;
+        final avatarPath = profile.avatar.isEmpty
+            ? AvatarUtils.defaultUserAvatar
+            : profile.avatar;
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: avatarOverlap),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                height: _coverHeight,
+                width: double.infinity,
+                child: Image.network(
+                  'https://img1.baidu.com/it/u=713295211,1805964126&fm=253&fmt=auto&app=138&f=JPEG?w=500&h=281',
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                right: 16 + _avatarSize + 12,
+                bottom: avatarOverlap + 8,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 260),
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      shadows: [
+                        Shadow(
+                          color: Color(0x80000000),
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 5,
-            child: Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white, width: 2),
-                color: Colors.white,
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/me.png',
-                fit: BoxFit.cover,
+              Positioned(
+                right: 16,
+                bottom: -avatarOverlap,
+                child: Container(
+                  width: _avatarSize,
+                  height: _avatarSize,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white, width: 2),
+                    color: Colors.white,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: AvatarUtils.buildAvatarWidget(
+                    avatarPath,
+                    size: _avatarSize,
+                    borderRadius: 6,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -543,12 +564,12 @@ class _MomentItem extends StatelessWidget {
             width: 42,
             height: 42,
             margin: const EdgeInsets.only(right: 10),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.asset(
-                post.userAvatar,
-                fit: BoxFit.cover,
-              ),
+            child: AvatarUtils.buildAvatarWidget(
+              post.userAvatar.isEmpty
+                  ? AvatarUtils.defaultFriendAvatar
+                  : post.userAvatar,
+              size: 42,
+              borderRadius: 4,
             ),
           ),
           Expanded(

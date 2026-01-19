@@ -43,7 +43,7 @@ class ChatHeader extends StatelessWidget {
             alignment: Alignment.center,
             child: Text(
               isTyping ? '对方正在输入...' : title,
-              style: AppStyles.titleLarge,
+              style: AppStyles.titleMedium.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           // 更多按钮
