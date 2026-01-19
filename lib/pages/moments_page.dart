@@ -341,7 +341,7 @@ class _MomentsCover extends StatelessWidget {
   const _MomentsCover();
 
   static const double _coverHeight = 320;
-  static const double _avatarSize = 90;
+  static const double _avatarSize = 78;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +371,7 @@ class _MomentsCover extends StatelessWidget {
               ),
               Positioned(
                 right: 16 + _avatarSize + 12,
-                bottom: avatarOverlap + 8,
+                bottom: 6,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 260),
                   child: Text(
@@ -382,13 +382,6 @@ class _MomentsCover extends StatelessWidget {
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      shadows: [
-                        Shadow(
-                          color: Color(0x80000000),
-                          offset: Offset(0, 1),
-                          blurRadius: 2,
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -396,20 +389,10 @@ class _MomentsCover extends StatelessWidget {
               Positioned(
                 right: 16,
                 bottom: -avatarOverlap,
-                child: Container(
-                  width: _avatarSize,
-                  height: _avatarSize,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white, width: 2),
-                    color: Colors.white,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: AvatarUtils.buildAvatarWidget(
-                    avatarPath,
-                    size: _avatarSize,
-                    borderRadius: 6,
-                  ),
+                child: AvatarUtils.buildAvatarWidget(
+                  avatarPath,
+                  size: _avatarSize,
+                  borderRadius: 8,
                 ),
               ),
             ],
