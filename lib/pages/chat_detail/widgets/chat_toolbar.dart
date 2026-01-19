@@ -66,6 +66,7 @@ class ChatToolbar extends StatelessWidget {
                 : _InputField(
                     controller: controller,
                     onFocus: onFocus,
+                    onSend: onSend,
                   ),
           ),
           const SizedBox(width: 10),
@@ -75,27 +76,16 @@ class ChatToolbar extends StatelessWidget {
             asset: showEmoji ? AppAssets.iconKeyboard : AppAssets.iconEmoji,
           ),
           const SizedBox(width: 10),
-          // 发送/更多按钮
-          AnimatedSwitcher(
-            duration: AppStyles.animationFast,
-            transitionBuilder: (child, animation) {
-              return ScaleTransition(
-                scale: animation,
-                child: FadeTransition(opacity: animation, child: child),
-              );
-            },
-            child: hasText
-                ? _SendButton(
-                    key: const ValueKey('send'),
-                    onSend: onSend,
-                    onLongPress: onSendByAi,
-                  )
-                : _ToolbarIconButton(
-                    key: const ValueKey('fn'),
-                    onPressed: onFnToggle,
-                    asset: AppAssets.iconCirclePlus,
-                  ),
-          ),
+          // 发送/更多按钮（不做切换动画，收敛整体动效）
+          hasText
+              ? _SendButton(
+                  onSend: onSend,
+                  onLongPress: onSendByAi,
+                )
+              : _ToolbarIconButton(
+                  onPressed: onFnToggle,
+                  asset: AppAssets.iconCirclePlus,
+                ),
         ],
       ),
     );
@@ -103,7 +93,7 @@ class ChatToolbar extends StatelessWidget {
 }
 
 /// 工具栏图标按钮
-class _ToolbarIconButton extends StatefulWidget {
+class _ToolbarIconButton extends StatelessWidget {
   const _ToolbarIconButton({
     super.key,
     required this.onPressed,
@@ -113,72 +103,29 @@ class _ToolbarIconButton extends StatefulWidget {
   final VoidCallback onPressed;
   final String asset;
 
-  @override
-  State<_ToolbarIconButton> createState() => _ToolbarIconButtonState();
-}
-
-class _ToolbarIconButtonState extends State<_ToolbarIconButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 80),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTapDown(TapDownDetails details) {
-    _controller.forward();
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    _controller.reverse();
-  }
-
-  void _handleTapCancel() {
-    _controller.reverse();
-  }
-
   void _handleTap() {
     HapticFeedback.selectionClick();
-    widget.onPressed();
+    onPressed();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onTap: _handleTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: SvgPicture.asset(
-            widget.asset,
-            width: 28,
-            height: 28,
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _handleTap,
+          borderRadius: BorderRadius.circular(16),
+          highlightColor: AppColors.border.withValues(alpha: 0.3),
+          splashColor: Colors.transparent,
+          child: Center(
+            child: SvgPicture.asset(
+              asset,
+              width: 28,
+              height: 28,
+            ),
           ),
         ),
       ),
@@ -191,10 +138,12 @@ class _InputField extends StatelessWidget {
   const _InputField({
     required this.controller,
     required this.onFocus,
+    required this.onSend,
   });
 
   final TextEditingController controller;
   final VoidCallback onFocus;
+  final VoidCallback onSend;
 
   @override
   Widget build(BuildContext context) {
@@ -209,12 +158,8 @@ class _InputField extends StatelessWidget {
       child: TextField(
         controller: controller,
         onTap: onFocus,
+        onSubmitted: (_) => onSend(),
         decoration: const InputDecoration(
-          hintText: '发送消息',
-          hintStyle: TextStyle(
-            fontSize: 18,
-            color: AppColors.textHint,
-          ),
           border: InputBorder.none,
           isDense: true,
           contentPadding: EdgeInsets.zero,
@@ -265,11 +210,11 @@ class _VoiceButtonState extends State<_VoiceButton> {
         duration: AppStyles.animationFast,
         height: 38,
         decoration: BoxDecoration(
-          color: _isPressed ? AppColors.primary.withValues(alpha: 0.1) : AppColors.surface,
+          color: _isPressed
+              ? AppColors.primary.withValues(alpha: 0.1)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
-          border: _isPressed
-              ? Border.all(color: AppColors.primary, width: 1.5)
-              : null,
+          border: _isPressed ? Border.all(color: AppColors.primary, width: 1.5) : null,
         ),
         alignment: Alignment.center,
         child: Text(
@@ -285,10 +230,9 @@ class _VoiceButtonState extends State<_VoiceButton> {
   }
 }
 
-/// 发送按钮组件
-class _SendButton extends StatefulWidget {
+/// 发送按钮组件（纯色平面材质，不做悬浮阴影）
+class _SendButton extends StatelessWidget {
   const _SendButton({
-    super.key,
     required this.onSend,
     required this.onLongPress,
   });
@@ -296,85 +240,30 @@ class _SendButton extends StatefulWidget {
   final VoidCallback onSend;
   final VoidCallback onLongPress;
 
-  @override
-  State<_SendButton> createState() => _SendButtonState();
-}
-
-class _SendButtonState extends State<_SendButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 80),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTapDown(TapDownDetails details) {
-    _controller.forward();
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    _controller.reverse();
-  }
-
-  void _handleTapCancel() {
-    _controller.reverse();
-  }
-
   void _handleTap() {
     HapticFeedback.lightImpact();
-    widget.onSend();
+    onSend();
   }
 
   void _handleLongPress() {
     HapticFeedback.mediumImpact();
-    widget.onLongPress();
+    onLongPress();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onTap: _handleTap,
-      onLongPress: _handleLongPress,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Text(
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
+      child: InkWell(
+        onTap: _handleTap,
+        onLongPress: _handleLongPress,
+        borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
+        highlightColor: Colors.white.withValues(alpha: 0.12),
+        splashColor: Colors.transparent,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Text(
             '发送',
             style: TextStyle(
               fontSize: 15,

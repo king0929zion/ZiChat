@@ -78,8 +78,10 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                       icon: Icons.key_rounded,
                       iconColor: const Color(0xFFFF9800),
                       title: 'API 供应商',
-                      subtitle: _totalProviders > 0 
-                          ? '已添加 $_totalProviders 个供应商'
+                      subtitle: _totalProviders > 0
+                          ? (_activeConfig != null
+                              ? '默认：${_activeConfig!.name} · 共 $_totalProviders 个'
+                              : '已添加 $_totalProviders 个供应商')
                           : '点击添加 API 供应商',
                       onTap: () => _openApiList(),
                     ),
@@ -93,7 +95,9 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                       icon: Icons.smart_toy_rounded,
                       iconColor: const Color(0xFF2196F3),
                       title: '对话模型',
-                      subtitle: _activeConfig?.selectedModel ?? '请先配置 API 供应商',
+                      subtitle: _activeConfig != null
+                          ? '${_activeConfig!.selectedModel ?? _activeConfig!.models.first} · ${_activeConfig!.name}'
+                          : '请先配置 API 供应商',
                       onTap: () => _openModelSelection(),
                       enabled: _activeConfig != null,
                     ),
@@ -108,70 +112,102 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
   }
 
   Widget _buildStatusCard() {
-    final isConfigured = _activeConfig != null;
-    
+    final bool isConfigured = _activeConfig != null;
+    final String title = isConfigured ? '已配置' : '未配置';
+    final String subtitle = isConfigured
+        ? '默认供应商：${_activeConfig!.name}'
+        : '添加 API 供应商后即可使用 AI';
+    final String? model = _activeConfig?.selectedModel;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isConfigured
-                ? [const Color(0xFF34C759), const Color(0xFF30D158)]
-                : [const Color(0xFFFF9500), const Color(0xFFFF6B00)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: (isConfigured ? const Color(0xFF34C759) : const Color(0xFFFF9500))
-                  .withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                isConfigured ? Icons.check_circle_rounded : Icons.warning_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isConfigured ? '配置就绪' : '未配置 API',
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: (isConfigured ? AppColors.primary : AppColors.textHint)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
+                  child: Icon(
                     isConfigured
-                        ? '当前使用：${_activeConfig!.name}'
-                        : '请添加 API 供应商以使用 AI 功能',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.8),
-                    ),
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.info_outline_rounded,
+                    color: isConfigured ? AppColors.primary : AppColors.textSecondary,
+                    size: 22,
                   ),
-                ],
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: AppStyles.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: AppStyles.caption),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (isConfigured) ...[
+              const SizedBox(height: 12),
+              Text(
+                '当前模型：${model ?? '未选择'}',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
+            ],
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _openApiList,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: Text(isConfigured ? '管理 API' : '添加 API'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: isConfigured ? _openModelSelection : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: const Text('选择模型'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
