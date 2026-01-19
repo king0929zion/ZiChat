@@ -154,6 +154,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _saveMessages();
       }
     }
+
+    // 同步上下文历史（支持返回/重启后继续保持对话连贯）
+    AiChatService.syncHistoryFromChatMessages(widget.chatId, _allMessages);
     
     _scrollToBottom(animated: false);
   }
@@ -212,6 +215,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         await FriendStorage.updateLastMessage(widget.chatId, lastMsg);
       }
     }
+
+    AiChatService.syncHistoryFromChatMessages(widget.chatId, _allMessages);
   }
 
   /// 同步当前消息到 _allMessages
@@ -884,8 +889,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     );
     if (!mounted) return;
     if (cleared == true) {
+      AiChatService.clearHistory(widget.chatId);
       setState(() {
         _messages = [];
+        _allMessages = [];
+        _currentOffset = 0;
+        _hasMoreMessages = false;
       });
     }
   }

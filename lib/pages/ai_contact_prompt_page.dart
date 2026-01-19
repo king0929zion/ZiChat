@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
-import 'package:zichat/storage/ai_config_storage.dart';
+import 'package:zichat/storage/friend_storage.dart';
 
 /// AI 提示词配置页面 - 微信风格
 class AiContactPromptPage extends StatefulWidget {
@@ -25,6 +25,7 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
   bool _loading = true;
   bool _saving = false;
   bool _hasChanges = false;
+  bool _friendMissing = false;
 
   @override
   void initState() {
@@ -40,11 +41,21 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
   }
 
   Future<void> _load() async {
-    final prompt = await AiConfigStorage.loadContactPrompt(widget.chatId);
     if (!mounted) return;
-    _promptController.text = prompt ?? '';
+    final friend = FriendStorage.getFriend(widget.chatId);
+    if (friend == null) {
+      setState(() {
+        _loading = false;
+        _friendMissing = true;
+        _hasChanges = false;
+      });
+      return;
+    }
+
+    _promptController.text = friend.prompt;
     setState(() {
       _loading = false;
+      _friendMissing = false;
       _hasChanges = false;
     });
   }
@@ -55,7 +66,19 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
     setState(() => _saving = true);
     
     try {
-      await AiConfigStorage.saveContactPrompt(widget.chatId, _promptController.text);
+      final friend = FriendStorage.getFriend(widget.chatId);
+      if (friend == null) {
+        if (!mounted) return;
+        setState(() => _friendMissing = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('好友不存在')),
+        );
+        return;
+      }
+
+      await FriendStorage.saveFriend(
+        friend.copyWith(prompt: _promptController.text.trim()),
+      );
       if (!mounted) return;
       
       HapticFeedback.lightImpact();
@@ -154,6 +177,18 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
   }
 
   Widget _buildBody() {
+    if (_friendMissing) {
+      return const Center(
+        child: Text(
+          '好友不存在',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

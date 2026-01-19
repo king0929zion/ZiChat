@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/friend.dart';
 import 'package:zichat/pages/add_friend_page.dart';
+import 'package:zichat/pages/friend_detail_page.dart';
 import 'package:zichat/pages/new_friends_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
@@ -158,7 +159,14 @@ class _CustomFriendItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onEdit,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => FriendDetailPage(friendId: friend.id),
+          ),
+        );
+      },
       onLongPress: () {
         HapticFeedback.mediumImpact();
         showModalBottomSheet(

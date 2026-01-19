@@ -6,6 +6,7 @@ import 'package:zichat/pages/ai_contact_prompt_page.dart';
 import 'package:zichat/pages/ai_soul_panel_page.dart';
 import 'package:zichat/pages/chat_background_page.dart';
 import 'package:zichat/pages/chat_search_page.dart';
+import 'package:zichat/services/ai_chat_service.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/chat_storage.dart';
@@ -223,6 +224,7 @@ class _ClearChatItem extends StatelessWidget {
     if (confirmed != true) return;
 
     await ChatStorage.saveMessages(chatId, <Map<String, dynamic>>[]);
+    AiChatService.clearHistory(chatId);
     // 通知上层页面已清空，并返回聊天详情页
     // ignore: use_build_context_synchronously
     Navigator.of(context).pop(true);

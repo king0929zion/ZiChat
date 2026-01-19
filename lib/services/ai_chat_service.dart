@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
+import 'package:zichat/models/chat_message.dart';
 import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
@@ -54,6 +55,9 @@ class AiChatService {
     required String userInput,
     String? friendPrompt,
   }) async* {
+    final normalizedInput = userInput.trim();
+    if (normalizedInput.isEmpty) return;
+
     // 获取活动配置
     final config = await _getActiveConfig();
 
@@ -68,10 +72,20 @@ class AiChatService {
     final systemPrompt = await _buildSystemPrompt(chatId, friendPrompt);
 
     // 获取智能上下文历史
-    final history = _getSmartHistory(chatId, userInput);
+    final history = _getSmartHistory(chatId, normalizedInput);
+
+    // 避免历史中已包含当前输入，导致重复
+    if (history.isNotEmpty) {
+      final last = history.last;
+      final lastRole = last['role'] ?? '';
+      final lastContent = (last['content'] ?? '').trim();
+      if (lastRole == 'user' && lastContent == normalizedInput) {
+        history.removeLast();
+      }
+    }
 
     // 记录用户消息到历史
-    _addToHistory(chatId, 'user', userInput);
+    _addToHistory(chatId, 'user', normalizedInput);
 
     final buffer = StringBuffer();
     final rawBuffer = StringBuffer();
@@ -81,7 +95,7 @@ class AiChatService {
       apiKey: config.apiKey,
       model: model,
       systemPrompt: systemPrompt,
-      userInput: userInput,
+      userInput: normalizedInput,
       history: history,
     )) {
       rawBuffer.write(chunk);
@@ -92,9 +106,20 @@ class AiChatService {
     // 流结束后，过滤 thinking 标签内容
     String finalContent = rawBuffer.toString();
     finalContent = _removeThinkingContent(finalContent);
+    finalContent = finalContent.trim();
 
-    // 记录 AI 回复到历史（过滤后的内容）
-    _addToHistory(chatId, 'assistant', finalContent);
+    // 记录 AI 回复到历史（过滤 thinking + 移除 tool marker）
+    final historyText = AiToolsService.removeToolMarkers(finalContent).trim();
+    if (historyText.contains('||')) {
+      for (final part in historyText
+          .split('||')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)) {
+        _addToHistory(chatId, 'assistant', part);
+      }
+    } else {
+      _addToHistory(chatId, 'assistant', historyText);
+    }
   }
 
   /// 移除 thinking 标签及其内容
@@ -199,18 +224,78 @@ class AiChatService {
 
   /// 添加消息到历史
   static void _addToHistory(String chatId, String role, String content) {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) return;
+
     _historyCache.putIfAbsent(chatId, () => []);
-    _historyCache[chatId]!.add(_HistoryItem(role: role, content: content));
+    final items = _historyCache[chatId]!;
+    if (items.isNotEmpty &&
+        items.last.role == role &&
+        items.last.content == trimmed) {
+      return;
+    }
+
+    items.add(_HistoryItem(role: role, content: trimmed));
 
     // 限制历史长度
-    if (_historyCache[chatId]!.length > _maxHistoryItems) {
-      _historyCache[chatId]!.removeAt(0);
+    if (items.length > _maxHistoryItems) {
+      items.removeAt(0);
     }
   }
 
   /// 清除某个聊天的历史
   static void clearHistory(String chatId) {
     _historyCache.remove(chatId);
+  }
+
+  /// 从本地消息同步历史（用于上下文）
+  static void syncHistoryFromChatMessages(
+    String chatId,
+    List<ChatMessage> messages,
+  ) {
+    if (messages.isEmpty) {
+      _historyCache.remove(chatId);
+      return;
+    }
+
+    final items = <_HistoryItem>[];
+    for (final message in messages) {
+      final direction = message.direction;
+      if (direction != 'out' && direction != 'in') continue;
+
+      final role = direction == 'out' ? 'user' : 'assistant';
+      final content = _formatMessageForHistory(message);
+      if (content.isEmpty) continue;
+
+      items.add(_HistoryItem(role: role, content: content));
+    }
+
+    if (items.length > _maxHistoryItems) {
+      items.removeRange(0, items.length - _maxHistoryItems);
+    }
+
+    _historyCache[chatId] = items;
+  }
+
+  static String _formatMessageForHistory(ChatMessage message) {
+    switch (message.type) {
+      case 'text':
+        final text = (message.text ?? '').trim();
+        if (text.isEmpty) return '';
+        return AiToolsService.removeToolMarkers(_removeThinkingContent(text))
+            .trim();
+      case 'image':
+        return '[图片]';
+      case 'voice':
+        return '[语音]';
+      case 'transfer':
+        final amount = (message.amount ?? '').trim();
+        return amount.isEmpty ? '[转账]' : '[转账 ¥$amount]';
+      case 'red-packet':
+        return '[红包]';
+      default:
+        return '';
+    }
   }
 
   /// 估算 token 数量 (粗略)
