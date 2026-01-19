@@ -13,6 +13,7 @@ import 'package:zichat/pages/transfer_page.dart';
 import 'package:zichat/services/ai_chat_service.dart';
 import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/services/image_gen_service.dart';
+import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/chat_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
@@ -74,6 +75,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _scrollController.addListener(_onScroll);
     _loadMessages();
     _loadBackground();
+  }
+
+  String? _getFriendPrompt() {
+    return FriendStorage.getFriend(widget.chatId)?.prompt ?? widget.friendPrompt;
   }
 
   void _loadBackground() {
@@ -361,7 +366,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       await for (final chunk in AiChatService.sendChatStream(
         chatId: widget.chatId,
         userInput: text,
-        friendPrompt: widget.friendPrompt,
+        friendPrompt: _getFriendPrompt(),
       )) {
         if (!mounted) return;
         if (chunk.isEmpty) continue;
@@ -653,7 +658,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       await for (final chunk in AiChatService.sendChatStream(
         chatId: widget.chatId,
         userInput: transferContext,
-        friendPrompt: widget.friendPrompt,
+        friendPrompt: _getFriendPrompt(),
       )) {
         if (!mounted) return;
         if (chunk.isEmpty) continue;
@@ -887,87 +892,104 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundChat,
-      body: SafeArea(
-        top: true,
-        bottom: true,
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 480),
-            color: AppColors.backgroundChat,
-            child: Column(
-              children: [
-                // Header
-                ChatHeader(
-                  title: widget.title,
-                  unread: widget.unread,
-                  onBack: _handleBack,
-                  onMore: _handleMore,
-                  isTyping: _aiRequesting,
-                ),
-                // Message List
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _closePanels,
-                    child: _MessageList(
-                      scrollController: _scrollController,
-                      messages: _messages,
-                      isAiRequesting: _aiRequesting,
-                      backgroundPath: _backgroundPath,
-                      hasMoreMessages: _hasMoreMessages,
-                      isLoadingMore: _isLoadingMore,
-                      onTransferStatusChanged: _handleTransferStatusChanged,
+    return AnimatedBuilder(
+      animation: UserDataManager.instance,
+      builder: (context, _) {
+        return ValueListenableBuilder(
+          valueListenable: FriendStorage.listenable(),
+          builder: (context, __, ___) {
+            final friend = FriendStorage.getFriend(widget.chatId);
+            final title = friend?.name ?? widget.title;
+            final friendAvatar = friend?.avatar ?? widget.avatar;
+            final myAvatar = UserDataManager.instance.profile.avatar;
+
+            return Scaffold(
+              backgroundColor: AppColors.backgroundChat,
+              body: SafeArea(
+                top: true,
+                bottom: true,
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    color: AppColors.backgroundChat,
+                    child: Column(
+                      children: [
+                        // Header
+                        ChatHeader(
+                          title: title,
+                          unread: widget.unread,
+                          onBack: _handleBack,
+                          onMore: _handleMore,
+                          isTyping: _aiRequesting,
+                        ),
+                        // Message List
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _closePanels,
+                            child: _MessageList(
+                              scrollController: _scrollController,
+                              messages: _messages,
+                              isAiRequesting: _aiRequesting,
+                              friendAvatar: friendAvatar,
+                              myAvatar: myAvatar,
+                              backgroundPath: _backgroundPath,
+                              hasMoreMessages: _hasMoreMessages,
+                              isLoadingMore: _isLoadingMore,
+                              onTransferStatusChanged: _handleTransferStatusChanged,
+                            ),
+                          ),
+                        ),
+                        // Toolbar
+                        ChatToolbar(
+                          controller: _inputController,
+                          voiceMode: _voiceMode,
+                          showEmoji: _showEmoji,
+                          showFn: _showFn,
+                          hasText: _hasText,
+                          onVoiceToggle: _toggleVoice,
+                          onEmojiToggle: _toggleEmoji,
+                          onFnToggle: _toggleFn,
+                          onSend: _send,
+                          onSendByAi: _sendByAi,
+                          onFocus: _closePanels,
+                        ),
+                        // Emoji Panel
+                        AnimatedSize(
+                          duration: AppStyles.animationNormal,
+                          curve: Curves.easeOutCubic,
+                          child: _showEmoji
+                              ? SizedBox(
+                                  height: 280,
+                                  child: EmojiPanel(
+                                    recentEmojis: _recentEmojis,
+                                    onEmojiTap: _handleEmojiTap,
+                                    onEmojiDelete: _handleEmojiDelete,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        // Function Panel
+                        AnimatedSize(
+                          duration: AppStyles.animationNormal,
+                          curve: Curves.easeOutCubic,
+                          child: _showFn
+                              ? SizedBox(
+                                  height: 220,
+                                  child: FnPanel(
+                                    onItemTap: _handleFnTap,
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                // Toolbar
-                ChatToolbar(
-                  controller: _inputController,
-                  voiceMode: _voiceMode,
-                  showEmoji: _showEmoji,
-                  showFn: _showFn,
-                  hasText: _hasText,
-                  onVoiceToggle: _toggleVoice,
-                  onEmojiToggle: _toggleEmoji,
-                  onFnToggle: _toggleFn,
-                  onSend: _send,
-                  onSendByAi: _sendByAi,
-                  onFocus: _closePanels,
-                ),
-                // Emoji Panel
-                AnimatedSize(
-                  duration: AppStyles.animationNormal,
-                  curve: Curves.easeOutCubic,
-                  child: _showEmoji
-                      ? SizedBox(
-                          height: 280,
-                          child: EmojiPanel(
-                            recentEmojis: _recentEmojis,
-                            onEmojiTap: _handleEmojiTap,
-                            onEmojiDelete: _handleEmojiDelete,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-                // Function Panel
-                AnimatedSize(
-                  duration: AppStyles.animationNormal,
-                  curve: Curves.easeOutCubic,
-                  child: _showFn
-                      ? SizedBox(
-                          height: 220,
-                          child: FnPanel(
-                            onItemTap: _handleFnTap,
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -978,6 +1000,8 @@ class _MessageList extends StatelessWidget {
     required this.scrollController,
     required this.messages,
     required this.isAiRequesting,
+    this.friendAvatar,
+    this.myAvatar,
     this.backgroundPath,
     this.hasMoreMessages = false,
     this.isLoadingMore = false,
@@ -987,6 +1011,8 @@ class _MessageList extends StatelessWidget {
   final ScrollController scrollController;
   final List<ChatMessage> messages;
   final bool isAiRequesting;
+  final String? friendAvatar;
+  final String? myAvatar;
   final String? backgroundPath;
   final bool hasMoreMessages;
   final bool isLoadingMore;
@@ -1060,6 +1086,8 @@ class _MessageList extends StatelessWidget {
               key: ValueKey(message.id),
               message: message,
               showAnimation: showAnimation,
+              friendAvatar: friendAvatar,
+              myAvatar: myAvatar,
               onTransferStatusChanged: onTransferStatusChanged,
             );
           }
@@ -1071,6 +1099,8 @@ class _MessageList extends StatelessWidget {
             key: ValueKey(message.id),
             message: message,
             showAnimation: showAnimation,
+            friendAvatar: friendAvatar,
+            myAvatar: myAvatar,
             onTransferStatusChanged: onTransferStatusChanged,
           );
         },

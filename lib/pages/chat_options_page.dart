@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/ai_contact_prompt_page.dart';
 import 'package:zichat/pages/ai_soul_panel_page.dart';
 import 'package:zichat/pages/chat_background_page.dart';
 import 'package:zichat/pages/chat_search_page.dart';
+import 'package:zichat/services/avatar_utils.dart';
+import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/chat_storage.dart';
 
 class ChatOptionsPage extends StatelessWidget {
@@ -344,71 +347,78 @@ class _MembersSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // AI 头像 - 点击打开控制面板
-          GestureDetector(
-            onTap: () {
-              HapticFeedback.lightImpact();
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AiSoulPanelPage(chatId: chatId),
-                ),
-              );
-            },
-            child: Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/me.png',
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '小紫',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF999999),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 64,
-            height: 64,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.zero,
-                side: const BorderSide(color: Color(0xFFD1D1D6), width: 2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                backgroundColor: Colors.transparent,
-              ),
-              onPressed: () {},
-              child: SvgPicture.asset(
-                'assets/icon/common/plus.svg',
-                width: 32,
-                height: 32,
-                colorFilter: const ColorFilter.mode(
-                  Color(0x66000000),
-                  BlendMode.srcIn,
+    return ValueListenableBuilder(
+      valueListenable: FriendStorage.listenable(),
+      builder: (context, _, __) {
+        final friend = FriendStorage.getFriend(chatId);
+        final avatar = friend?.avatar ?? AvatarUtils.defaultFriendAvatar;
+        final name = friend?.name ?? '聊天对象';
+
+        return Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // AI 头像 - 点击打开控制面板
+              GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => AiSoulPanelPage(chatId: chatId),
+                    ),
+                  );
+                },
+                child: Column(
+                  children: [
+                    AvatarUtils.buildAvatarWidget(
+                      avatar,
+                      size: 64,
+                      borderRadius: AppStyles.radiusMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF999999),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 64,
+                height: 64,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    side: const BorderSide(color: Color(0xFFD1D1D6), width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                    ),
+                    backgroundColor: Colors.transparent,
+                  ),
+                  onPressed: () {},
+                  child: SvgPicture.asset(
+                    'assets/icon/common/plus.svg',
+                    width: 32,
+                    height: 32,
+                    colorFilter: const ColorFilter.mode(
+                      Color(0x66000000),
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

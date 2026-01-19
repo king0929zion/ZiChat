@@ -41,13 +41,9 @@ class ChatHeader extends StatelessWidget {
           // 标题（正在输入时显示状态）
           Align(
             alignment: Alignment.center,
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 150),
-              child: Text(
-                isTyping ? '对方正在输入...' : title,
-                key: ValueKey(isTyping),
-                style: AppStyles.titleLarge,
-              ),
+            child: Text(
+              isTyping ? '对方正在输入...' : title,
+              style: AppStyles.titleLarge,
             ),
           ),
           // 更多按钮
@@ -75,35 +71,10 @@ class _BackButton extends StatefulWidget {
   State<_BackButton> createState() => _BackButtonState();
 }
 
-class _BackButtonState extends State<_BackButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _BackButtonState extends State<_BackButton> {
   void _handleTap() {
     HapticFeedback.lightImpact();
-    _controller.forward().then((_) {
-      _controller.reverse();
-      widget.onTap();
-    });
+    widget.onTap();
   }
 
   @override
@@ -111,41 +82,32 @@ class _BackButtonState extends State<_BackButton>
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: _handleTap,
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SvgPicture.asset(
-              AppAssets.iconGoBack,
-              width: 12,
-              height: 24,
-              colorFilter: const ColorFilter.mode(
-                AppColors.textPrimary,
-                BlendMode.srcIn,
-              ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SvgPicture.asset(
+            AppAssets.iconGoBack,
+            width: 12,
+            height: 24,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
             ),
-            const SizedBox(width: 4),
-            if (widget.unread > 0)
-              Container(
-                constraints: const BoxConstraints(minWidth: 20),
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  '${widget.unread}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: AppColors.textPrimary,
-                  ),
+          ),
+          const SizedBox(width: 4),
+          if (widget.unread > 0)
+            Container(
+              constraints: const BoxConstraints(minWidth: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                '${widget.unread}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -161,34 +123,9 @@ class _MoreButton extends StatefulWidget {
   State<_MoreButton> createState() => _MoreButtonState();
 }
 
-class _MoreButtonState extends State<_MoreButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _rotationAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _rotationAnimation = Tween<double>(begin: 0.0, end: 0.25).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
+class _MoreButtonState extends State<_MoreButton> {
   void _handleTap() {
     HapticFeedback.lightImpact();
-    _controller.forward().then((_) {
-      _controller.reverse();
-    });
     widget.onTap();
   }
 
@@ -199,22 +136,13 @@ class _MoreButtonState extends State<_MoreButton>
       onTap: _handleTap,
       child: Padding(
         padding: const EdgeInsets.all(8),
-        child: AnimatedBuilder(
-          animation: _rotationAnimation,
-          builder: (context, child) {
-            return Transform.rotate(
-              angle: _rotationAnimation.value * 3.14159,
-              child: child,
-            );
-          },
-          child: SvgPicture.asset(
-            AppAssets.iconThreeDot,
-            width: 24,
-            height: 24,
-            colorFilter: const ColorFilter.mode(
-              AppColors.textPrimary,
-              BlendMode.srcIn,
-            ),
+        child: SvgPicture.asset(
+          AppAssets.iconThreeDot,
+          width: 24,
+          height: 24,
+          colorFilter: const ColorFilter.mode(
+            AppColors.textPrimary,
+            BlendMode.srcIn,
           ),
         ),
       ),

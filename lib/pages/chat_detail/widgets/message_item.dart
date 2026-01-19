@@ -1,11 +1,9 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/chat_message.dart';
 import 'package:zichat/services/avatar_utils.dart';
-import 'package:zichat/services/user_data_manager.dart';
 import 'message_bubbles/message_bubbles.dart';
 import 'message_action_menu.dart';
 
@@ -14,6 +12,8 @@ class MessageItem extends StatefulWidget {
   const MessageItem({
     super.key,
     required this.message,
+    this.friendAvatar,
+    this.myAvatar,
     this.showAnimation = true,
     this.onDelete,
     this.onQuote,
@@ -21,6 +21,8 @@ class MessageItem extends StatefulWidget {
   });
 
   final ChatMessage message;
+  final String? friendAvatar;
+  final String? myAvatar;
   final bool showAnimation;
   final VoidCallback? onDelete;
   final Function(String)? onQuote;
@@ -33,7 +35,6 @@ class MessageItem extends StatefulWidget {
 class _MessageItemState extends State<MessageItem>
     with SingleTickerProviderStateMixin {
   AnimationController? _controller;
-  late Animation<double> _slideAnimation;
   late Animation<double> _fadeAnimation;
 
   @override
@@ -44,17 +45,10 @@ class _MessageItemState extends State<MessageItem>
         vsync: this,
         duration: AppStyles.animationNormal,
       );
-      
-      _slideAnimation = Tween<double>(
-        begin: widget.message.isOutgoing ? 20.0 : -20.0,
-        end: 0.0,
-      ).animate(CurvedAnimation(
+
+      _fadeAnimation = CurvedAnimation(
         parent: _controller!,
-        curve: Curves.easeOutCubic,
-      ));
-      
-      _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-        CurvedAnimation(parent: _controller!, curve: Curves.easeOut),
+        curve: Curves.easeOut,
       );
 
       _controller!.forward();
@@ -88,12 +82,9 @@ class _MessageItemState extends State<MessageItem>
     return AnimatedBuilder(
       animation: _controller!,
       builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(_slideAnimation.value, 0),
-          child: Opacity(
-            opacity: _fadeAnimation.value,
-            child: child,
-          ),
+        return Opacity(
+          opacity: _fadeAnimation.value,
+          child: child,
         );
       },
       child: _buildNormalMessage(),
@@ -143,10 +134,17 @@ class _MessageItemState extends State<MessageItem>
 
   Widget _buildNormalMessage() {
     final bool isOutgoing = widget.message.isOutgoing;
-    // 使用真实用户头像（从 UserDataManager 获取）
-    final String avatar = isOutgoing
-        ? UserDataManager.instance.profile.avatar
-        : (widget.message.avatar ?? AvatarUtils.defaultFriendAvatar);
+
+    final String avatar;
+    if (isOutgoing) {
+      avatar = (widget.myAvatar?.isNotEmpty ?? false)
+          ? widget.myAvatar!
+          : AvatarUtils.defaultUserAvatar;
+    } else {
+      avatar = (widget.friendAvatar?.isNotEmpty ?? false)
+          ? widget.friendAvatar!
+          : AvatarUtils.defaultFriendAvatar;
+    }
 
     final rowChildren = <Widget>[
       _MessageAvatar(avatar: avatar),
@@ -214,12 +212,10 @@ class _MessageAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Hero(
-      tag: 'avatar_$avatar',
-      child: AvatarUtils.buildCircleAvatarWidget(
-        avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
-        size: 40,
-      ),
+    return AvatarUtils.buildAvatarWidget(
+      avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
+      size: 40,
+      borderRadius: AppStyles.radiusSmall,
     );
   }
 }

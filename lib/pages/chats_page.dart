@@ -78,12 +78,10 @@ class _ChatsPageState extends State<ChatsPage> {
                         final totalUnread = chat.unread + dynamicUnread;
 
                         return _ChatListItem(
+                          key: ValueKey(chat.id),
                           chat: chat,
                           isLast: isLast,
-                          index: index,
                           dynamicUnread: totalUnread,
-                          hasPendingMessage: ChatEventManager.instance
-                              .hasPendingMessage(chat.id),
                         );
                       },
                     ),
@@ -127,217 +125,127 @@ class _ChatsPageState extends State<ChatsPage> {
 }
 
 /// 聊天列表项组件
-class _ChatListItem extends StatefulWidget {
+class _ChatListItem extends StatelessWidget {
   const _ChatListItem({
+    super.key,
     required this.chat,
     required this.isLast,
-    required this.index,
     this.dynamicUnread = 0,
-    this.hasPendingMessage = false,
   });
 
   final _ChatItemData chat;
   final bool isLast;
-  final int index;
   final int dynamicUnread;
-  final bool hasPendingMessage;
 
-  @override
-  State<_ChatListItem> createState() => _ChatListItemState();
-}
-
-class _ChatListItemState extends State<_ChatListItem>
-    with SingleTickerProviderStateMixin {
-  bool _isPressed = false;
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: 300 + widget.index * 50),
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0.1, 0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTap() async {
+  Future<void> _handleTap(BuildContext context) async {
     HapticFeedback.lightImpact();
     
     // 清除未读数
-    ChatEventManager.instance.clearUnread(widget.chat.id);
+    ChatEventManager.instance.clearUnread(chat.id);
     
     // 如果是 AI 好友，清除存储的未读数
-    if (widget.chat.isAiFriend) {
-      await FriendStorage.clearUnread(widget.chat.id);
+    if (chat.isAiFriend) {
+      await FriendStorage.clearUnread(chat.id);
     }
     
     // 获取主动消息
-    final pendingMessage = ChatEventManager.instance.getPendingMessage(widget.chat.id);
+    final pendingMessage = ChatEventManager.instance.getPendingMessage(chat.id);
 
-    if (!mounted) return;
     await Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) {
-          return ChatDetailPage(
-            chatId: widget.chat.id,
-            title: widget.chat.title,
-            avatar: widget.chat.avatar,
-            unread: widget.dynamicUnread,
-            pendingMessage: pendingMessage,
-            friendPrompt: widget.chat.prompt,
-          );
-        },
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          final slideAnimation = Tween<Offset>(
-            begin: const Offset(0.3, 0),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOutCubic,
-          ));
-          
-          final fadeAnimation = Tween<double>(
-            begin: 0.0,
-            end: 1.0,
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: const Interval(0.0, 0.5, curve: Curves.easeOut),
-          ));
-          
-          final secondarySlide = Tween<Offset>(
-            begin: Offset.zero,
-            end: const Offset(-0.1, 0),
-          ).animate(CurvedAnimation(
-            parent: secondaryAnimation,
-            curve: Curves.easeOutCubic,
-          ));
-          
-          return SlideTransition(
-            position: secondarySlide,
-            child: SlideTransition(
-              position: slideAnimation,
-              child: FadeTransition(
-                opacity: fadeAnimation,
-                child: child,
-              ),
-            ),
-          );
-        },
-        transitionDuration: const Duration(milliseconds: 300),
+      MaterialPageRoute(
+        builder: (_) => ChatDetailPage(
+          chatId: chat.id,
+          title: chat.title,
+          avatar: chat.avatar,
+          unread: dynamicUnread,
+          pendingMessage: pendingMessage,
+          friendPrompt: chat.prompt,
+        ),
       ),
     );
-
-    // 返回时刷新列表
-    if (mounted) {
-      // ChatDetailPage 内会更新 FriendStorage/ChatEventManager，这里无需额外刷新
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: GestureDetector(
-          onTapDown: (_) => setState(() => _isPressed = true),
-          onTapUp: (_) => setState(() => _isPressed = false),
-          onTapCancel: () => setState(() => _isPressed = false),
-          onTap: _handleTap,
-          child: AnimatedContainer(
-            duration: AppStyles.animationFast,
-            color: _isPressed ? AppColors.background : AppColors.surface,
-            child: SizedBox(
-              height: 72,
-              child: Row(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16, right: 12),
-                    child: _ChatAvatar(
-                      avatar: widget.chat.avatar,
-                      unread: widget.dynamicUnread,
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: double.infinity,
-                      padding: const EdgeInsets.only(right: 16),
-                      decoration: BoxDecoration(
-                        border: widget.isLast
-                            ? null
-                            : const Border(
-                                bottom: BorderSide(
-                                  color: AppColors.border,
-                                  width: 0.5,
-                                ),
-                              ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.chat.title,
-                                  style: AppStyles.titleMedium,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                widget.chat.latestTime,
-                                style: AppStyles.caption,
-                              ),
-                            ],
+    return Material(
+      color: AppColors.surface,
+      child: InkWell(
+        onTap: () => _handleTap(context),
+        highlightColor: AppColors.background,
+        splashColor: Colors.transparent,
+        child: SizedBox(
+          height: 72,
+          child: Row(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 12),
+                child: _ChatAvatar(
+                  avatar: chat.avatar,
+                  unread: dynamicUnread,
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  height: double.infinity,
+                  padding: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    border: isLast
+                        ? null
+                        : const Border(
+                            bottom: BorderSide(
+                              color: AppColors.border,
+                              width: 0.5,
+                            ),
                           ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  widget.chat.latestMessage,
-                                  style: AppStyles.bodySmall,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              if (widget.chat.muted)
-                                SvgPicture.asset(
-                                  'assets/icon/mute-ring.svg',
-                                  width: 16,
-                                  height: 16,
-                                  colorFilter: const ColorFilter.mode(
-                                    AppColors.textSecondary,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
-                            ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              chat.title,
+                              style: AppStyles.titleMedium,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            chat.latestTime,
+                            style: AppStyles.caption,
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              chat.latestMessage,
+                              style: AppStyles.bodySmall,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (chat.muted)
+                            SvgPicture.asset(
+                              'assets/icon/mute-ring.svg',
+                              width: 16,
+                              height: 16,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.textSecondary,
+                                BlendMode.srcIn,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -372,35 +280,24 @@ class _ChatAvatar extends StatelessWidget {
             Positioned(
               top: -6,
               right: -6,
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: AppStyles.animationNormal,
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Transform.scale(
-                    scale: value,
-                    child: child,
-                  );
-                },
-                child: Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 18,
-                    minHeight: 18,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.unreadBadge,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppColors.surface, width: 1.5),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    unread > 99 ? '99+' : '$unread',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textWhite,
-                    ),
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: 18,
+                  minHeight: 18,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.unreadBadge,
+                  borderRadius: BorderRadius.circular(9),
+                  border: Border.all(color: AppColors.surface, width: 1.5),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  unread > 99 ? '99+' : '$unread',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textWhite,
                   ),
                 ),
               ),
@@ -439,4 +336,3 @@ class _ChatItemData {
   final bool isAiFriend;
   final String? prompt;
 }
-
