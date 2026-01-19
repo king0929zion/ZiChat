@@ -6,7 +6,6 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/chat_detail/chat_detail_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/services/chat_event_manager.dart';
-import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
 
 class ChatsPage extends StatefulWidget {
@@ -17,71 +16,6 @@ class ChatsPage extends StatefulWidget {
 }
 
 class _ChatsPageState extends State<ChatsPage> {
-  List<_ChatItemData> _chatList = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadChats();
-    // 监听聊天事件
-    ChatEventManager.instance.addListener(_onChatEvent);
-    // 监听用户数据变化（头像/昵称更新）
-    UserDataManager.instance.addListener(_onUserDataChanged);
-  }
-
-  @override
-  void dispose() {
-    ChatEventManager.instance.removeListener(_onChatEvent);
-    UserDataManager.instance.removeListener(_onUserDataChanged);
-    super.dispose();
-  }
-
-  void _onChatEvent() {
-    if (mounted) {
-      _loadChats();
-    }
-  }
-
-  void _onUserDataChanged() {
-    // 用户头像或昵称更新时刷新聊天列表
-    if (mounted) {
-      setState(() {});
-    }
-  }
-  
-  void _loadChats() {
-    // 加载自定义好友
-    final friends = FriendStorage.getAllFriends();
-
-    // 转换为聊天列表项
-    final friendChats = friends.map((f) => _ChatItemData(
-      id: f.id,
-      title: f.name,
-      avatar: f.avatar,
-      latestMessage: f.lastMessage ?? '开始聊天吧',
-      latestTime: _formatTime(f.lastMessageTime),
-      unread: f.unread,
-      muted: false,
-      isAiFriend: true,
-      prompt: f.prompt,
-    )).toList();
-
-    // 添加默认好友（如果没有自定义好友）
-    final allChats = friendChats.isEmpty ? [_defaultChat] : friendChats;
-
-    // 按最后消息时间排序（有消息的排前面）
-    allChats.sort((a, b) {
-      if (a.latestTime == b.latestTime) return 0;
-      if (a.latestTime == '开始聊天吧') return 1;
-      if (b.latestTime == '开始聊天吧') return -1;
-      return 0; // 保持原顺序
-    });
-
-    setState(() {
-      _chatList = allChats;
-    });
-  }
-  
   String _formatTime(DateTime? time) {
     if (time == null) return '';
     final now = DateTime.now();
@@ -99,32 +33,64 @@ class _ChatsPageState extends State<ChatsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: AppColors.surface,
-      child: _chatList.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: EdgeInsets.zero,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _chatList.length,
-              itemBuilder: (context, index) {
-                final chat = _chatList[index];
-                final bool isLast = index == _chatList.length - 1;
-                
-                // 获取动态未读数
-                final dynamicUnread = ChatEventManager.instance.getUnreadCount(chat.id);
-                final totalUnread = chat.unread + dynamicUnread;
+    return ValueListenableBuilder(
+      valueListenable: FriendStorage.listenable(),
+      builder: (context, _, __) {
+        final chats = FriendStorage.getAllFriends()
+            .map((f) => _ChatItemData(
+                  id: f.id,
+                  title: f.name,
+                  avatar: f.avatar,
+                  latestMessage: f.lastMessage ?? '开始聊天吧',
+                  latestTime: _formatTime(f.lastMessageTime),
+                  latestMessageTime: f.lastMessageTime,
+                  createdAt: f.createdAt,
+                  unread: f.unread,
+                  muted: false,
+                  isAiFriend: true,
+                  prompt: f.prompt,
+                ))
+            .toList()
+          ..sort((a, b) {
+            final aTime = a.latestMessageTime ?? a.createdAt;
+            final bTime = b.latestMessageTime ?? b.createdAt;
+            return bTime.compareTo(aTime);
+          });
 
-                return _ChatListItem(
-                  chat: chat,
-                  isLast: isLast,
-                  index: index,
-                  dynamicUnread: totalUnread,
-                  hasPendingMessage: ChatEventManager.instance.hasPendingMessage(chat.id),
-                  onChatUpdated: _loadChats,
-                );
-              },
-            ),
+        return AnimatedBuilder(
+          animation: ChatEventManager.instance,
+          builder: (context, __) {
+            return Container(
+              color: AppColors.surface,
+              child: chats.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: EdgeInsets.zero,
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: chats.length,
+                      itemBuilder: (context, index) {
+                        final chat = chats[index];
+                        final bool isLast = index == chats.length - 1;
+
+                        // 获取动态未读数
+                        final dynamicUnread =
+                            ChatEventManager.instance.getUnreadCount(chat.id);
+                        final totalUnread = chat.unread + dynamicUnread;
+
+                        return _ChatListItem(
+                          chat: chat,
+                          isLast: isLast,
+                          index: index,
+                          dynamicUnread: totalUnread,
+                          hasPendingMessage: ChatEventManager.instance
+                              .hasPendingMessage(chat.id),
+                        );
+                      },
+                    ),
+            );
+          },
+        );
+      },
     );
   }
   
@@ -168,7 +134,6 @@ class _ChatListItem extends StatefulWidget {
     required this.index,
     this.dynamicUnread = 0,
     this.hasPendingMessage = false,
-    this.onChatUpdated,
   });
 
   final _ChatItemData chat;
@@ -176,7 +141,6 @@ class _ChatListItem extends StatefulWidget {
   final int index;
   final int dynamicUnread;
   final bool hasPendingMessage;
-  final VoidCallback? onChatUpdated;
 
   @override
   State<_ChatListItem> createState() => _ChatListItemState();
@@ -281,7 +245,7 @@ class _ChatListItemState extends State<_ChatListItem>
 
     // 返回时刷新列表
     if (mounted) {
-      widget.onChatUpdated?.call();
+      // ChatDetailPage 内会更新 FriendStorage/ChatEventManager，这里无需额外刷新
     }
   }
 
@@ -455,6 +419,8 @@ class _ChatItemData {
     required this.avatar,
     required this.latestMessage,
     required this.latestTime,
+    required this.latestMessageTime,
+    required this.createdAt,
     required this.unread,
     required this.muted,
     this.isAiFriend = false,
@@ -466,21 +432,11 @@ class _ChatItemData {
   final String avatar;
   final String latestMessage;
   final String latestTime;
+  final DateTime? latestMessageTime;
+  final DateTime createdAt;
   final int unread;
   final bool muted;
   final bool isAiFriend;
   final String? prompt;
 }
 
-/// 默认好友
-const _ChatItemData _defaultChat = _ChatItemData(
-  id: 'default_ai',
-  title: 'AI 助手',
-  avatar: 'assets/avatar-default.jpeg',
-  latestMessage: '开始聊天吧',
-  latestTime: '',
-  unread: 0,
-  muted: false,
-  isAiFriend: true,
-  prompt: '',
-);

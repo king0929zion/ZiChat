@@ -6,7 +6,6 @@ import 'package:zichat/models/friend.dart';
 import 'package:zichat/pages/add_friend_page.dart';
 import 'package:zichat/pages/new_friends_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
-import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
 
 class ContactsPage extends StatefulWidget {
@@ -17,148 +16,127 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
-  List<Friend> _customFriends = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadCustomFriends();
-    UserDataManager.instance.addListener(_onUserDataChanged);
-  }
-
-  @override
-  void dispose() {
-    UserDataManager.instance.removeListener(_onUserDataChanged);
-    super.dispose();
-  }
-
-  void _onUserDataChanged() {
-    if (mounted) {
-      _loadCustomFriends();
-    }
-  }
-
-  void _loadCustomFriends() {
-    setState(() {
-      _customFriends = FriendStorage.getAllFriends();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     const Color bg = Color(0xFFEDEDED);
     const Color line = Color(0xFFE5E6EB);
     const Color textSub = Color(0xFF86909C);
 
-    final totalFriends = _customFriends.length;
+    return ValueListenableBuilder(
+      valueListenable: FriendStorage.listenable(),
+      builder: (context, _, __) {
+        final customFriends = FriendStorage.getAllFriends();
+        final totalFriends = customFriends.length;
 
-    return Container(
-      color: bg,
-      child: ListView(
-        children: [
-          // 顶部卡片入口
-          Container(
-            margin: EdgeInsets.zero,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                top: BorderSide(color: line, width: 0.5),
-                bottom: BorderSide(color: line, width: 0.5),
-              ),
-            ),
-            child: Column(
-              children: [
-                for (int i = 0; i < _cards.length; i++) ...[
-                  _ContactEntry(
-                    imageAsset: _cards[i].image,
-                    label: _cards[i].text,
-                    onTap: i == 0
-                        ? () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => const NewFriendsPage()),
-                            );
-                          }
-                        : () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text('打开 ${_cards[i].text}')),
-                            );
-                          },
+        return Container(
+          color: bg,
+          child: ListView(
+            children: [
+              // 顶部卡片入口
+              Container(
+                margin: EdgeInsets.zero,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    top: BorderSide(color: line, width: 0.5),
+                    bottom: BorderSide(color: line, width: 0.5),
                   ),
-                  if (i != _cards.length - 1)
-                    const Divider(height: 0, indent: 68, color: line),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          
-          // 我创建的 AI 好友
-          if (_customFriends.isNotEmpty) ...[
-            Container(
-              color: Colors.white,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const _ContactsSectionHeader(label: 'AI 好友'),
-                  for (int i = 0; i < _customFriends.length; i++)
-                    _CustomFriendItem(
-                      friend: _customFriends[i],
-                      showDivider: i != _customFriends.length - 1,
-                      onEdit: () async {
-                        final result = await Navigator.of(context).push<Friend>(
-                          MaterialPageRoute(
-                            builder: (_) => AddFriendPage(editFriend: _customFriends[i]),
-                          ),
-                        );
-                        if (result != null) {
-                          _loadCustomFriends();
-                        }
-                      },
-                      onDelete: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('删除好友'),
-                            content: Text('确定要删除"${_customFriends[i].name}"吗？'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(false),
-                                child: const Text('取消'),
-                              ),
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(true),
-                                child: const Text('删除', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) {
-                          await FriendStorage.deleteFriend(_customFriends[i].id);
-                          _loadCustomFriends();
-                        }
-                      },
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Center(
-              child: Text(
-                '$totalFriends 位联系人',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: textSub,
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < _cards.length; i++) ...[
+                      _ContactEntry(
+                        imageAsset: _cards[i].image,
+                        label: _cards[i].text,
+                        onTap: i == 0
+                            ? () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                      builder: (_) => const NewFriendsPage()),
+                                );
+                              }
+                            : () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('打开 ${_cards[i].text}')),
+                                );
+                              },
+                      ),
+                      if (i != _cards.length - 1)
+                        const Divider(height: 0, indent: 68, color: line),
+                    ],
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+
+              // 我创建的 AI 好友
+              if (customFriends.isNotEmpty) ...[
+                Container(
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _ContactsSectionHeader(label: 'AI 好友'),
+                      for (int i = 0; i < customFriends.length; i++)
+                        _CustomFriendItem(
+                          friend: customFriends[i],
+                          showDivider: i != customFriends.length - 1,
+                          onEdit: () async {
+                            await Navigator.of(context).push<Friend>(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    AddFriendPage(editFriend: customFriends[i]),
+                              ),
+                            );
+                          },
+                          onDelete: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('删除好友'),
+                                content:
+                                    Text('确定要删除"${customFriends[i].name}"吗？'),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.of(ctx).pop(false),
+                                    child: const Text('取消'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(true),
+                                    child: const Text('删除',
+                                        style: TextStyle(color: Colors.red)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await FriendStorage.deleteFriend(customFriends[i].id);
+                            }
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    '$totalFriends 位联系人',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: textSub,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

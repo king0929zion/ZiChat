@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zichat/models/friend.dart';
 
@@ -16,6 +17,10 @@ class FriendStorage {
       throw Exception('FriendStorage not initialized');
     }
     return _box!;
+  }
+
+  static ValueListenable<Box<String>> listenable() {
+    return _safeBox.listenable();
   }
   
   /// 获取所有好友
