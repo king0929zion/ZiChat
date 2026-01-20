@@ -178,7 +178,7 @@ class _FnCellState extends State<_FnCell> {
             onHighlightChanged: (value) => setState(() => _isPressed = value),
             borderRadius: BorderRadius.circular(AppStyles.radiusLarge),
             splashColor: Colors.transparent,
-            highlightColor: AppColors.border.withValues(alpha: 0.25),
+            highlightColor: AppColors.disabledBg,
             child: Container(
               width: 52,
               height: 52,
@@ -186,7 +186,7 @@ class _FnCellState extends State<_FnCell> {
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(AppStyles.radiusLarge),
                 border: Border.all(
-                  color: AppColors.border.withValues(alpha: _isPressed ? 0.8 : 0.6),
+                  color: _isPressed ? AppColors.textDisabled : AppColors.border,
                 ),
                 boxShadow: _isPressed
                     ? null

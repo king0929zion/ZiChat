@@ -85,7 +85,7 @@ class WeuiCell extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -115,7 +115,7 @@ class WeuiCell extends StatelessWidget {
                     width: 12,
                     height: 12,
                     colorFilter: const ColorFilter.mode(
-                      Colors.black26,
+                      AppColors.textHint,
                       BlendMode.srcIn,
                     ),
                   ),
@@ -128,4 +128,3 @@ class WeuiCell extends StatelessWidget {
     );
   }
 }
-

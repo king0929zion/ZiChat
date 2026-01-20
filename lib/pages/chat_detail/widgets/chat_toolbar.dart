@@ -118,7 +118,7 @@ class _ToolbarIconButton extends StatelessWidget {
         child: InkWell(
           onTap: _handleTap,
           borderRadius: BorderRadius.circular(16),
-          highlightColor: AppColors.border.withValues(alpha: 0.3),
+          highlightColor: AppColors.disabledBg,
           splashColor: Colors.transparent,
           child: Center(
             child: SvgPicture.asset(

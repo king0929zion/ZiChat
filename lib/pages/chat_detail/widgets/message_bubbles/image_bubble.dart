@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/chat_message.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 import 'base_bubble.dart';
 
 /// 图片消息气泡
@@ -35,8 +36,8 @@ class _ImageBubbleState extends State<ImageBubble>
       vsync: this,
       duration: AppStyles.animationNormal,
     );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    _scaleAnimation = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: AppStyles.curveDefault),
     );
   }
 
@@ -204,59 +205,25 @@ class _FullScreenImage extends StatelessWidget {
       await savedFile.writeAsBytes(bytes);
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('图片已保存'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        WeuiToast.show(context, message: '图片已保存');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('保存失败: $e'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        );
+        WeuiToast.show(context, message: '保存失败');
       }
     }
   }
 
   void _showActionMenu(BuildContext context) {
     HapticFeedback.mediumImpact();
-    showModalBottomSheet(
+    showWeuiActionSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        margin: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+      actions: [
+        WeuiActionSheetAction(
+          label: '保存图片',
+          onTap: () => _saveImage(context),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.save_alt, color: AppColors.textPrimary),
-              title: const Text('保存图片'),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _saveImage(context);
-              },
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.close, color: AppColors.textSecondary),
-              title: const Text('取消', style: TextStyle(color: AppColors.textSecondary)),
-              onTap: () => Navigator.of(ctx).pop(),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 

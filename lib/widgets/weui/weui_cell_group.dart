@@ -7,7 +7,7 @@ class WeuiCellGroup extends StatelessWidget {
     super.key,
     this.title,
     required this.children,
-    this.margin = const EdgeInsets.only(top: 12),
+    this.margin = const EdgeInsets.only(top: 8),
     this.dividerIndent = 16,
     this.inset = false,
     this.borderRadius,

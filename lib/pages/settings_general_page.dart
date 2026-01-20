@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
-import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/model_config_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class SettingsGeneralPage extends StatefulWidget {
   const SettingsGeneralPage({super.key});
@@ -19,40 +20,22 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
 
   String get _languageLabel => _language == 'zh-CN' ? '简体中文' : '英语';
 
-  void _showSnack(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+  void _toast(String message) => WeuiToast.show(context, message: message);
+
+  void _toggleLandscape(bool value) {
+    setState(() => _landscapeOn = value);
+    _toast(value ? '已开启横屏模式' : '已关闭横屏模式');
   }
 
-  void _toggleLandscape() {
-    setState(() {
-      _landscapeOn = !_landscapeOn;
-    });
-    _showSnack(_landscapeOn ? '已开启横屏模式' : '已关闭横屏模式');
+  void _toggleNfc(bool value) {
+    setState(() => _nfcOn = value);
+    _toast(value ? '已开启 NFC 功能' : '已关闭 NFC 功能');
   }
 
-  void _toggleNfc() {
-    setState(() {
-      _nfcOn = !_nfcOn;
-    });
-    _showSnack(_nfcOn ? '已开启 NFC 功能' : '已关闭 NFC 功能');
-  }
-
-  Future<void> _openLanguageDialog() async {
+  Future<void> _openLanguagePage() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsLanguagePage()),
     );
-    // 重新加载语言设置
-    // final prefs = await SharedPreferences.getInstance();
-    // final lang = prefs.getString('app_language') ?? 'zh-CN';
-    // setState(() {
-    //   _language = lang;
-    // });
-  }
-
-  void _showFeatureDevToast() {
-    _showSnack('功能开发中');
   }
 
   void _openAiSettings() {
@@ -61,312 +44,89 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
     );
   }
 
+  void _showFeatureDevToast() => _toast('功能开发中');
+
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFEFEFF4);
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('通用'),
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: SvgPicture.asset(
+            AppAssets.iconGoBack,
+            width: 12,
+            height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
-        top: true,
-        bottom: true,
         child: Center(
-          child: Container(
+          child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: bg,
-            child: Column(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                _buildHeader(context),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      const _SectionTitle(label: '界面与显示'),
-                      _SettingsRow(
-                        label: '深色模式',
-                        right: _RightValueArrow(text: '已关闭'),
-                        onTap: _showFeatureDevToast,
+                WeuiCellGroup(
+                  title: '界面与显示',
+                  children: [
+                    WeuiCell(
+                      title: '深色模式',
+                      value: '已关闭',
+                      onTap: _showFeatureDevToast,
+                    ),
+                    WeuiCell(
+                      title: '横屏模式',
+                      showArrow: false,
+                      trailing: WeuiSwitch(
+                        value: _landscapeOn,
+                        onChanged: _toggleLandscape,
                       ),
-                      _SettingsRow(
-                        label: '横屏模式',
-                        right: _ToggleSwitch(
-                          active: _landscapeOn,
-                          onChanged: (_) => _toggleLandscape(),
-                        ),
+                    ),
+                    WeuiCell(
+                      title: 'NFC 功能',
+                      showArrow: false,
+                      trailing: WeuiSwitch(
+                        value: _nfcOn,
+                        onChanged: _toggleNfc,
                       ),
-                      _SettingsRow(
-                        label: 'NFC 功能',
-                        right: _ToggleSwitch(
-                          active: _nfcOn,
-                          onChanged: (_) => _toggleNfc(),
-                        ),
-                      ),
-                      _SettingsRow(
-                        label: '自动下载微信安装包',
-                        right: const _RightValueArrow(
-                          text: '仅在 Wi-Fi 下下载',
-                        ),
-                        onTap: _showFeatureDevToast,
-                      ),
-                      _SettingsRow(
-                        label: '语言',
-                        right: _RightValueArrow(text: _languageLabel),
-                        onTap: _openLanguageDialog,
-                      ),
-                      _SettingsRow(
-                        label: '字体大小',
-                        right: const _ArrowOnly(),
-                        onTap: _showFeatureDevToast,
-                      ),
-                      const _SettingsDivider(),
-                      const _SectionTitle(label: '智能功能'),
-                      _SettingsRow(
-                        label: 'AI 设置',
-                        right: const _ArrowOnly(),
-                        onTap: _openAiSettings,
-                      ),
-                      const _SettingsDivider(),
-                      const _SectionTitle(label: '其他'),
-                      _SettingsRow(
-                        label: '存储空间',
-                        right: const _ArrowOnly(),
-                        onTap: _showFeatureDevToast,
-                      ),
-                      _SettingsRow(
-                        label: '发现页管理',
-                        right: const _ArrowOnly(),
-                        onTap: _showFeatureDevToast,
-                      ),
-                      _SettingsRow(
-                        label: '辅助功能',
-                        right: const _ArrowOnly(),
-                        onTap: _showFeatureDevToast,
-                      ),
-                    ],
-                  ),
+                    ),
+                    WeuiCell(
+                      title: '自动下载微信安装包',
+                      value: '仅在 Wi-Fi 下下载',
+                      onTap: _showFeatureDevToast,
+                    ),
+                    WeuiCell(
+                      title: '语言',
+                      value: _languageLabel,
+                      onTap: _openLanguagePage,
+                    ),
+                    WeuiCell(
+                      title: '字体大小',
+                      onTap: _showFeatureDevToast,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      height: 52,
-      color: const Color(0xFFEFEFF4),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            padding: const EdgeInsets.all(8),
-            icon: SvgPicture.asset(
-              'assets/icon/common/go-back.svg',
-              width: 12,
-              height: 20,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF1D2129),
-                BlendMode.srcIn,
-              ),
-            ),
-          ),
-          const Expanded(
-            child: Center(
-              child: Text(
-                '通用',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D2129),
+                WeuiCellGroup(
+                  title: '智能功能',
+                  children: [
+                    WeuiCell(title: 'AI 设置', onTap: _openAiSettings),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          const SizedBox(
-            width: 36,
-            height: 36,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.label,
-  });
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 40,
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      color: const Color(0xFFEDEDED),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF86909C),
-        ),
-      ),
-    );
-  }
-}
-
-class _SettingsDivider extends StatelessWidget {
-  const _SettingsDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 8,
-      color: const Color(0xFFEDEDED),
-    );
-  }
-}
-
-class _SettingsRow extends StatelessWidget {
-  const _SettingsRow({
-    required this.label,
-    required this.right,
-    this.onTap,
-  });
-
-  final String label;
-  final Widget right;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell
-(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
-            bottom: BorderSide(
-              color: Color(0xFFE5E6EB),
-              width: 0.5,
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 17,
-                color: Color(0xFF1D2129),
-              ),
-            ),
-            right,
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RightValueArrow extends StatelessWidget {
-  const _RightValueArrow({
-    required this.text,
-  });
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 17,
-            color: Color(0xFF86909C),
-          ),
-        ),
-        const SizedBox(width: 8),
-        const _ArrowIcon(),
-      ],
-    );
-  }
-}
-
-class _ArrowOnly extends StatelessWidget {
-  const _ArrowOnly();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _ArrowIcon();
-  }
-}
-
-class _ArrowIcon extends StatelessWidget {
-  const _ArrowIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/icon/common/arrow-right.svg',
-      width: 12,
-      height: 12,
-      colorFilter: const ColorFilter.mode(
-        Colors.black26,
-        BlendMode.srcIn,
-      ),
-    );
-  }
-}
-
-class _ToggleSwitch extends StatelessWidget {
-  const _ToggleSwitch({
-    required this.active,
-    required this.onChanged,
-  });
-
-  final bool active;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!active),
-      child: AnimatedContainer(
-        duration: AppStyles.animationNormal,
-        curve: AppStyles.curveDefault,
-        width: 51,
-        height: 31,
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : AppColors.border,
-          borderRadius: BorderRadius.circular(15.5),
-        ),
-        padding: const EdgeInsets.all(2),
-        child: AnimatedAlign(
-          duration: AppStyles.animationNormal,
-          curve: AppStyles.curveDefault,
-          alignment: active ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            width: 27,
-            height: 27,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadow.withValues(alpha: 0.08),
-                  offset: const Offset(0, 1),
-                  blurRadius: 2,
+                WeuiCellGroup(
+                  title: '其他',
+                  children: [
+                    WeuiCell(title: '存储空间', onTap: _showFeatureDevToast),
+                    WeuiCell(title: '发现页管理', onTap: _showFeatureDevToast),
+                    WeuiCell(title: '辅助功能', onTap: _showFeatureDevToast),
+                  ],
                 ),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -375,3 +135,4 @@ class _ToggleSwitch extends StatelessWidget {
     );
   }
 }
+

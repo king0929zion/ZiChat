@@ -15,7 +15,7 @@ class AppConfig {
       scaffoldBackgroundColor: AppColors.background,
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
-      highlightColor: const Color(0x0A000000),
+      highlightColor: const Color(0x12000000),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.textPrimary,
@@ -42,10 +42,16 @@ class AppConfig {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
-        titleTextStyle:
-            AppStyles.titleMedium.copyWith(fontWeight: FontWeight.w600),
-        contentTextStyle: AppStyles.bodyMedium.copyWith(
+        titleTextStyle: const TextStyle(
+          fontSize: 17,
+          fontWeight: FontWeight.w500,
+          color: AppColors.textPrimary,
+          height: 1.4,
+        ),
+        contentTextStyle: const TextStyle(
+          fontSize: 17,
           color: AppColors.textSecondary,
+          height: 1.4,
         ),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
@@ -62,26 +68,28 @@ class AppConfig {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
-          disabledBackgroundColor: AppColors.textHint,
-          disabledForegroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(44),
+          disabledBackgroundColor: AppColors.disabledBg,
+          disabledForegroundColor: AppColors.textDisabled,
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
           ),
           textStyle: const TextStyle(
             fontSize: 17,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
-          disabledForegroundColor: AppColors.textHint,
-          minimumSize: const Size.fromHeight(44),
+          disabledForegroundColor: AppColors.textDisabled,
+          minimumSize: const Size.fromHeight(48),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           side: const BorderSide(color: AppColors.border, width: 1),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(8),
           ),
           textStyle: const TextStyle(
             fontSize: 17,
@@ -91,13 +99,18 @@ class AppConfig {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          disabledForegroundColor: AppColors.textHint,
+          foregroundColor: AppColors.link,
+          disabledForegroundColor: AppColors.textDisabled,
           textStyle: const TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w500,
           ),
         ),
+      ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: AppColors.primary,
+        selectionColor: Color(0x3307C160),
+        selectionHandleColor: AppColors.primary,
       ),
       sliderTheme: SliderThemeData(
         trackHeight: 2,

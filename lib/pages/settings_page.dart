@@ -12,9 +12,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void showTodo() {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('功能开发中')),
-      );
+      WeuiToast.show(context, message: '功能开发中');
     }
 
     return Scaffold(

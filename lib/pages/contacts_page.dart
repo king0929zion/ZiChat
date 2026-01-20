@@ -17,9 +17,7 @@ class ContactsPage extends StatefulWidget {
 
 class _ContactsPageState extends State<ContactsPage> {
   void _showTodo(String label) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('打开 $label')),
-    );
+    WeuiToast.show(context, message: '打开 $label');
   }
 
   Future<void> _editFriend(Friend friend) async {

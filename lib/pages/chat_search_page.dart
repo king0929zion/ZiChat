@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/storage/chat_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 聊天记录搜索页面
 class ChatSearchPage extends StatefulWidget {
@@ -28,7 +29,6 @@ class _ChatSearchPageState extends State<ChatSearchPage> {
   @override
   void initState() {
     super.initState();
-    _focusNode.requestFocus();
   }
 
   @override
@@ -68,40 +68,17 @@ class _ChatSearchPageState extends State<ChatSearchPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, size: 20, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Container(
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: TextField(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56),
+        child: SafeArea(
+          bottom: false,
+          child: WeuiSearchBar(
             controller: _searchController,
             focusNode: _focusNode,
+            hintText: '搜索聊天记录',
+            autofocus: true,
             onChanged: _search,
-            style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-            decoration: InputDecoration(
-              hintText: '搜索聊天记录',
-              hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 15),
-              prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textHint),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18, color: AppColors.textHint),
-                      onPressed: () {
-                        _searchController.clear();
-                        _search('');
-                      },
-                    )
-                  : null,
-            ),
+            onCancel: () => Navigator.of(context).pop(),
           ),
         ),
       ),

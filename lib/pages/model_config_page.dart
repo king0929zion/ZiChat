@@ -9,6 +9,7 @@ import 'package:zichat/pages/api_edit_page.dart';
 import 'package:zichat/pages/api_list_page.dart';
 import 'package:zichat/services/model_detector_service.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 模型配置页面 - AI 配置入口
 class ModelConfigPage extends StatefulWidget {
@@ -78,66 +79,83 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    '选择默认 API',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                for (final config in configs)
-                  ListTile(
-                    title: Text(config.name),
-                    subtitle: Text(_formatHost(config.baseUrl)),
-                    trailing: config.id == active?.id
-                        ? const Icon(
-                            Icons.check,
-                            size: 20,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      HapticFeedback.selectionClick();
-                      await ApiConfigStorage.setActiveConfig(config.id);
-                    },
-                  ),
-                const Divider(height: 0, color: AppColors.divider),
-                ListTile(
-                  title: const Center(
+        return SafeArea(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
+              color: AppColors.surface,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
-                      '管理 API',
-                      style: TextStyle(color: AppColors.primary),
+                      '选择默认 API',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _openApiList();
-                  },
-                ),
-                ListTile(
-                  title: const Center(child: Text('添加新的 API')),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _addApiQuick();
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: [
+                        WeuiCellGroup(
+                          margin: EdgeInsets.zero,
+                          children: [
+                            for (final config in configs)
+                              WeuiCell(
+                                title: config.name,
+                                description: _formatHost(config.baseUrl),
+                                showArrow: false,
+                                trailing: config.id == active?.id
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      )
+                                    : null,
+                                onTap: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  HapticFeedback.selectionClick();
+                                  await ApiConfigStorage.setActiveConfig(
+                                    config.id,
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                        WeuiCellGroup(
+                          margin: const EdgeInsets.only(top: 8),
+                          children: [
+                            WeuiCell(
+                              title: '管理 API',
+                              showArrow: false,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                _openApiList();
+                              },
+                            ),
+                            WeuiCell(
+                              title: '添加新的 API',
+                              showArrow: false,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                _addApiQuick();
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -171,9 +189,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       await ApiConfigStorage.saveConfig(updated);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已检测到 ${models.length} 个模型')),
-      );
+      WeuiToast.show(context, message: '已检测到 ${models.length} 个模型');
     } catch (e) {
       if (!mounted) return;
       setState(() => _detectError = e.toString());
@@ -193,63 +209,78 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-          ),
-          child: SafeArea(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
+        return SafeArea(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
+              color: AppColors.surface,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       '选择对话模型',
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
                         color: AppColors.textPrimary,
                       ),
                     ),
                   ),
-                ),
-                for (final model in models)
-                  ListTile(
-                    title: Text(model),
-                    trailing: model == (active.selectedModel ?? models.first)
-                        ? const Icon(
-                            Icons.check,
-                            size: 20,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                    onTap: () async {
-                      Navigator.of(sheetContext).pop();
-                      HapticFeedback.selectionClick();
-                      await ApiConfigStorage.saveConfig(
-                        active.copyWith(selectedModel: model),
-                      );
-                      await ApiConfigStorage.setActiveConfig(active.id);
-                    },
-                  ),
-                const Divider(height: 0, color: AppColors.divider),
-                ListTile(
-                  title: const Center(
-                    child: Text(
-                      '重新检测模型',
-                      style: TextStyle(color: AppColors.primary),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: [
+                        WeuiCellGroup(
+                          margin: EdgeInsets.zero,
+                          children: [
+                            for (final model in models)
+                              WeuiCell(
+                                title: model,
+                                showArrow: false,
+                                trailing: model ==
+                                        (active.selectedModel ?? models.first)
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      )
+                                    : null,
+                                onTap: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  HapticFeedback.selectionClick();
+                                  await ApiConfigStorage.saveConfig(
+                                    active.copyWith(selectedModel: model),
+                                  );
+                                  await ApiConfigStorage.setActiveConfig(
+                                    active.id,
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                        WeuiCellGroup(
+                          margin: const EdgeInsets.only(top: 8),
+                          children: [
+                            WeuiCell(
+                              title: '重新检测模型',
+                              showArrow: false,
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                _detectModels(active);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    _detectModels(active);
-                  },
-                ),
-                const SizedBox(height: 8),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -278,9 +309,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
     HapticFeedback.lightImpact();
     await _updateParams(active, temperature: 0.7, topP: 0.9, maxTokens: 4096);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已恢复默认参数')),
-      );
+      WeuiToast.show(context, message: '已恢复默认参数');
     }
   }
 
@@ -360,9 +389,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                                 ClipboardData(text: active.apiKey),
                               );
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('已复制密钥')),
-                              );
+                              WeuiToast.show(context, message: '已复制密钥');
                             },
                           ),
                           _ActionRow(

@@ -41,9 +41,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.saveConfig(result);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已添加')),
-        );
+        WeuiToast.show(context, message: 'API 已添加');
       }
     }
   }
@@ -59,9 +57,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.saveConfig(result);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已更新')),
-        );
+        WeuiToast.show(context, message: 'API 已更新');
       }
     }
   }
@@ -71,9 +67,7 @@ class _ApiListPageState extends State<ApiListPage> {
     await ApiConfigStorage.setActiveConfig(config.id);
     _loadConfigs();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${config.name} 已设为默认')),
-      );
+      WeuiToast.show(context, message: '${config.name} 已设为默认');
     }
   }
 
@@ -100,9 +94,7 @@ class _ApiListPageState extends State<ApiListPage> {
       await ApiConfigStorage.deleteConfig(config.id);
       _loadConfigs();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('API 已删除')),
-        );
+        WeuiToast.show(context, message: 'API 已删除');
       }
     }
   }

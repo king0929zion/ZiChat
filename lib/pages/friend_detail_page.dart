@@ -208,25 +208,21 @@ class FriendDetailPage extends StatelessWidget {
                             },
                           ),
                           const SizedBox(height: 12),
-                          _InfoTile(
-                            title: '朋友圈',
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('暂未实现')),
-                              );
-                            },
-                          ),
+                            _InfoTile(
+                              title: '朋友圈',
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                WeuiToast.show(context, message: '暂未实现');
+                              },
+                            ),
                           const SizedBox(height: 12),
-                          _ActionCard(
-                            onMessage: () => _openChat(context),
-                            onCall: () {
-                              HapticFeedback.lightImpact();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('暂未实现')),
-                              );
-                            },
-                          ),
+                            _ActionCard(
+                              onMessage: () => _openChat(context),
+                              onCall: () {
+                                HapticFeedback.lightImpact();
+                                WeuiToast.show(context, message: '暂未实现');
+                              },
+                            ),
                           const SizedBox(height: 12),
                         ],
                       ),
