@@ -174,7 +174,7 @@ class _ChatListItem extends StatelessWidget {
         highlightColor: AppColors.background,
         splashColor: Colors.transparent,
         child: SizedBox(
-          height: 72,
+          height: 68,
           child: Row(
             children: [
               Padding(
@@ -206,7 +206,7 @@ class _ChatListItem extends StatelessWidget {
                           Expanded(
                             child: Text(
                               chat.title,
-                              style: AppStyles.titleMedium,
+                              style: AppStyles.titleSmall,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -217,7 +217,7 @@ class _ChatListItem extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
                           Expanded(
@@ -266,36 +266,36 @@ class _ChatAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 48,
-      height: 48,
+      width: 44,
+      height: 44,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           AvatarUtils.buildAvatarWidget(
             avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
-            size: 48,
+            size: 44,
             borderRadius: AppStyles.radiusMedium,
           ),
           if (unread > 0)
             Positioned(
-              top: -6,
-              right: -6,
+              top: -5,
+              right: -5,
               child: Container(
                 constraints: const BoxConstraints(
-                  minWidth: 18,
-                  minHeight: 18,
+                  minWidth: 16,
+                  minHeight: 16,
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: AppColors.unreadBadge,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.surface, width: 1.5),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   unread > 99 ? '99+' : '$unread',
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w500,
                     color: AppColors.textWhite,
                   ),
