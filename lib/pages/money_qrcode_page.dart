@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
 class MoneyQrcodePage extends StatefulWidget {
@@ -42,35 +45,37 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFF2F2F2);
-
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('收付款'),
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: SvgPicture.asset(
+            AppAssets.iconGoBack,
+            width: 12,
+            height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
-        top: true,
+        top: false,
         bottom: true,
         child: Center(
-          child: Container(
+          child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: bg,
-            child: Column(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
               children: [
-                _buildHeader(context),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildToggle(),
-                        const SizedBox(height: 14),
-                        _buildCard(),
-                        const SizedBox(height: 14),
-                        _buildActions(context),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildToggle(),
+                const SizedBox(height: 12),
+                _buildCard(),
+                const SizedBox(height: 12),
+                _buildActions(context),
               ],
             ),
           ),
@@ -79,79 +84,50 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      height: 52,
-      color: const Color(0xFFF2F2F2),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            padding: const EdgeInsets.all(8),
-            icon: SvgPicture.asset(
-              'assets/icon/common/go-back.svg',
-              width: 12,
-              height: 20,
-              colorFilter: const ColorFilter.mode(
-                Color(0xFF1D2129),
-                BlendMode.srcIn,
+  Widget _buildToggle() {
+    Widget buildBtn(String text, bool active, VoidCallback onTap) {
+      return Expanded(
+        child: Material(
+          color: active ? AppColors.surface : AppColors.background,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+            highlightColor: AppColors.disabledBg,
+            splashColor: Colors.transparent,
+            child: Container(
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                border: Border.all(
+                  color: active ? AppColors.primary : AppColors.border,
+                  width: 1,
+                ),
               ),
-            ),
-          ),
-          const Expanded(
-            child: Center(
               child: Text(
-                '收付款',
+                text,
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D2129),
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: active ? AppColors.primary : AppColors.textPrimary,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 36, height: 36),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToggle() {
-    Widget buildBtn(String text, bool active, VoidCallback onTap) {
-      return TextButton(
-        onPressed: onTap,
-        style: TextButton.styleFrom(
-          backgroundColor: active ? Colors.white : const Color(0xFFF7F7F7),
-          foregroundColor: active ? const Color(0xFF07C160) : const Color(0xFF1D1F23),
-          minimumSize: const Size(0, 42),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-            side: BorderSide(
-              color: active ? const Color(0xFF07C160) : const Color(0xFFDCDCDC),
-            ),
-          ),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 15),
         ),
       );
     }
 
     return Row(
       children: [
-        Expanded(
-          child: buildBtn('收款', _isReceive, () {
-            setState(() => _isReceive = true);
-          }),
-        ),
+        buildBtn('收款', _isReceive, () {
+          setState(() => _isReceive = true);
+        }),
         const SizedBox(width: 10),
-        Expanded(
-          child: buildBtn('付款', !_isReceive, () {
-            setState(() => _isReceive = false);
-          }),
-        ),
+        buildBtn('付款', !_isReceive, () {
+          setState(() => _isReceive = false);
+        }),
       ],
     );
   }
@@ -159,15 +135,10 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
   Widget _buildCard() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            offset: Offset(0, 2),
-            blurRadius: 6,
-          ),
-        ],
+        border: Border.all(color: AppColors.border, width: 0.5),
+        boxShadow: AppStyles.shadowSmall,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
       child: Column(
@@ -178,8 +149,8 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
             height: 220,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE6E6E6)),
-              color: const Color(0xFFFAFAFA),
+              border: Border.all(color: AppColors.border, width: 0.5),
+              color: AppColors.background,
             ),
             alignment: Alignment.center,
             child: SvgPicture.asset(
@@ -196,7 +167,7 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
                 '金额',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Color(0xFF8A8F99),
+                  color: AppColors.textSecondary,
                 ),
               ),
               Row(
@@ -205,7 +176,7 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
                     '¥',
                     style: TextStyle(
                       fontSize: 22,
-                      color: Color(0xFF1D1F23),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(width: 4),
@@ -224,7 +195,7 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
                       ),
                       style: const TextStyle(
                         fontSize: 26,
-                        color: Color(0xFF1D1F23),
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ),
@@ -237,7 +208,7 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
             _hintText,
             style: const TextStyle(
               fontSize: 13,
-              color: Color(0xFF8A8F99),
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -250,43 +221,22 @@ class _MoneyQrcodePageState extends State<MoneyQrcodePage> {
       WeuiToast.show(context, message: text);
     }
 
+    final labelSave = _isReceive ? '保存收款码' : '保存付款码';
+    final labelShare = _isReceive ? '分享收款码' : '分享付款码';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: 46,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF07C160),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => show('已模拟保存收款码'),
-            child: const Text(
-              '保存收款码',
-              style: TextStyle(fontSize: 15),
-            ),
-          ),
+        WeuiButton(
+          label: labelSave,
+          onPressed: () => show('已模拟保存二维码'),
+          type: WeuiButtonType.primary,
         ),
         const SizedBox(height: 10),
-        SizedBox(
-          height: 46,
-          child: OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1D1F23),
-              side: const BorderSide(color: Color(0xFFDCDCDC)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () => show('分享收款码功能暂未开放'),
-            child: const Text(
-              '分享收款码',
-              style: TextStyle(fontSize: 15),
-            ),
-          ),
+        WeuiButton(
+          label: labelShare,
+          onPressed: () => show('分享功能暂未开放'),
+          type: WeuiButtonType.defaultType,
         ),
       ],
     );

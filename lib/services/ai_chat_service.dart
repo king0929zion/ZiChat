@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/models/chat_message.dart';
 import 'package:zichat/services/ai_tools_service.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
 /// 统一的 AI 对话服务
@@ -178,12 +179,21 @@ class AiChatService {
   /// 构建系统提示词（简化版）
   static Future<String> _buildSystemPrompt(String chatId, String? friendPrompt) async {
     final basePrompt = await _getBasePrompt();
+    final globalConfig = await AiConfigStorage.loadGlobalConfig();
+    final globalPersona = (globalConfig?.persona ?? '').trim();
 
     final buffer = StringBuffer();
 
     // 基础提示词
     if (basePrompt.trim().isNotEmpty) {
       buffer.writeln(basePrompt.trim());
+    }
+
+    // 全局人设（来自 AI 配置页）
+    if (globalPersona.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('【全局人设】');
+      buffer.writeln(globalPersona);
     }
 
     // 好友专属人设（来自添加好友时设置）

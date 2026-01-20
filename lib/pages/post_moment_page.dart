@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
 class PostMomentPage extends StatefulWidget {
@@ -82,14 +85,14 @@ class _PostMomentPageState extends State<PostMomentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: Colors.white,
+            color: AppColors.surface,
             child: Column(
               children: [
                 // Header
@@ -97,10 +100,10 @@ class _PostMomentPageState extends State<PostMomentPage> {
                   height: 44, // HTML: height: 44px
                   padding: const EdgeInsets.symmetric(horizontal: 10), // HTML: padding: 0 10px
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     border: Border(
                       bottom: BorderSide(
-                        color: Color(0xFFF0F0F0), // HTML: border-bottom: 0.5px solid #f0f0f0
+                        color: AppColors.divider,
                         width: 0.5,
                       ),
                     ),
@@ -112,42 +115,34 @@ class _PostMomentPageState extends State<PostMomentPage> {
                         padding: const EdgeInsets.all(6), // HTML: padding: 6px
                         onPressed: () => Navigator.of(context).pop(),
                         icon: SvgPicture.asset(
-                          'assets/icon/common/go-back.svg',
+                          AppAssets.iconGoBack,
                           width: 12,
                           height: 20,
                           colorFilter: const ColorFilter.mode(
-                            Color(0xFF1D2129),
+                            AppColors.textPrimary,
                             BlendMode.srcIn,
                           ),
                         ),
                       ),
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop(
-                              _textController.text.trim(),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF07C160),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            minimumSize: const Size(48, 28),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          child: const Text(
-                            '发表',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
+                      ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: _textController,
+                        builder: (context, value, _) {
+                          final canPost = value.text.trim().isNotEmpty;
+                          return WeuiButton(
+                            label: '发表',
+                            onPressed: canPost
+                                ? () {
+                                    Navigator.of(context).pop(
+                                      _textController.text.trim(),
+                                    );
+                                  }
+                                : null,
+                            type: WeuiButtonType.primary,
+                            block: false,
+                            size: WeuiButtonSize.small,
+                          );
+                        },
+                      ),
                       ],
                     ),
                   ),
@@ -171,17 +166,11 @@ class _PostMomentPageState extends State<PostMomentPage> {
                           maxLines: null,
                           decoration: const InputDecoration(
                             hintText: '这一刻的想法...',
-                            hintStyle: TextStyle(
-                              fontSize: 16,
-                              color: Color(0xFFBBBBBB),
-                            ),
+                            hintStyle: AppStyles.hint,
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.zero,
                           ),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Color(0xFF111111),
-                          ),
+                          style: AppStyles.bodyLarge,
                         ),
                         const SizedBox(height: 12),
                         // 图片网格
@@ -192,11 +181,11 @@ class _PostMomentPageState extends State<PostMomentPage> {
                           decoration: const BoxDecoration(
                             border: Border(
                               top: BorderSide(
-                                color: Color(0xFFF0F0F0),
+                                color: AppColors.divider,
                                 width: 0.5,
                               ),
                               bottom: BorderSide(
-                                color: Color(0xFFF0F0F0),
+                                color: AppColors.divider,
                                 width: 0.5,
                               ),
                             ),
@@ -243,14 +232,14 @@ class _AddMediaButton extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFEDEDED),
-          borderRadius: BorderRadius.circular(6),
+          color: AppColors.backgroundChat,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
         ),
         child: const Center(
           child: Icon(
             Icons.add,
             size: 40,
-            color: Colors.black45,
+            color: AppColors.textHint,
           ),
         ),
       ),
@@ -281,11 +270,11 @@ class _SelectedMediaItem extends StatelessWidget {
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: const Color(0xFFF0F0F0),
+                  color: AppColors.background,
                   child: const Center(
                     child: Icon(
                       Icons.broken_image_outlined,
-                      color: Color(0xFF8A8F99),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 );
@@ -348,7 +337,7 @@ class _OptionRow extends StatelessWidget {
               ? null
               : const Border(
                   bottom: BorderSide(
-                    color: Color(0xFFF0F0F0), // HTML: border-bottom: 0.5px solid #f0f0f0
+                    color: AppColors.divider,
                     width: 0.5,
                   ),
                 ),
@@ -365,7 +354,7 @@ class _OptionRow extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 15, // HTML: font-size: 15px
-                color: Color(0xFF222222), // HTML: color: #222
+                color: AppColors.textPrimary,
               ),
             ),
             const Spacer(),
@@ -374,17 +363,17 @@ class _OptionRow extends StatelessWidget {
                 value!,
                 style: const TextStyle(
                   fontSize: 14, // HTML: font-size: 14px
-                  color: Color(0xFF8A8A8A), // HTML: color: #8a8a8a
+                  color: AppColors.textSecondary,
                 ),
               ),
               const SizedBox(width: 8), // HTML: margin-right: 8px
             ],
             SvgPicture.asset(
-              'assets/icon/common/arrow-right.svg',
+              AppAssets.iconArrowRight,
               width: 8,
               height: 14,
               colorFilter: const ColorFilter.mode(
-                Color(0x66000000), // HTML: opacity: 0.4
+                AppColors.textHint,
                 BlendMode.srcIn,
               ),
             ),

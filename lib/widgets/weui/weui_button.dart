@@ -39,37 +39,58 @@ class WeuiButton extends StatelessWidget {
       WeuiButtonSize.small => 32,
     };
 
-    final Size minimumSize = Size(block ? double.infinity : 184, height);
-    final BorderRadius borderRadius = BorderRadius.circular(8);
+    final Size minimumSize = Size(block ? double.infinity : 0, height);
 
-    final ButtonStyle style = switch (type) {
-      WeuiButtonType.primary => ElevatedButton.styleFrom(
-          minimumSize: minimumSize,
-          shape: RoundedRectangleBorder(borderRadius: borderRadius),
-        ),
-      WeuiButtonType.warn => ElevatedButton.styleFrom(
-          minimumSize: minimumSize,
-          backgroundColor: const Color(0xFFFA5151),
-          shape: RoundedRectangleBorder(borderRadius: borderRadius),
-        ),
-      WeuiButtonType.defaultType => ElevatedButton.styleFrom(
-          minimumSize: minimumSize,
-          backgroundColor: AppColors.disabledBg,
-          foregroundColor: AppColors.textPrimary,
-          disabledBackgroundColor: AppColors.disabledBg,
-          disabledForegroundColor: AppColors.textDisabled,
-          shape: RoundedRectangleBorder(borderRadius: borderRadius),
-        ),
+    final BorderRadius borderRadius = BorderRadius.circular(
+      size == WeuiButtonSize.small ? 4 : 8,
+    );
+
+    final EdgeInsetsGeometry padding = switch (size) {
+      WeuiButtonSize.normal => const EdgeInsets.symmetric(horizontal: 24),
+      WeuiButtonSize.medium => const EdgeInsets.symmetric(horizontal: 20),
+      WeuiButtonSize.small => const EdgeInsets.symmetric(horizontal: 12),
     };
 
     return SizedBox(
       width: block ? double.infinity : null,
       height: height,
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: style,
-        child: child,
-      ),
+      child: switch (type) {
+        WeuiButtonType.defaultType => OutlinedButton(
+            onPressed: onPressed,
+            style: OutlinedButton.styleFrom(
+              minimumSize: minimumSize,
+              padding: padding,
+              backgroundColor: AppColors.surface,
+              foregroundColor: AppColors.textPrimary,
+              disabledForegroundColor: AppColors.textDisabled,
+              side: const BorderSide(color: AppColors.border, width: 1),
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+            ),
+            child: child,
+          ),
+        WeuiButtonType.warn => ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              minimumSize: minimumSize,
+              padding: padding,
+              backgroundColor: AppColors.error,
+              foregroundColor: AppColors.textWhite,
+              disabledBackgroundColor: AppColors.disabledBg,
+              disabledForegroundColor: AppColors.textDisabled,
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+            ),
+            child: child,
+          ),
+        WeuiButtonType.primary => ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              minimumSize: minimumSize,
+              padding: padding,
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+            ),
+            child: child,
+          ),
+      },
     );
   }
 }

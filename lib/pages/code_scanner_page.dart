@@ -182,6 +182,16 @@ class _BottomActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const labels = ['扫码', '扫物', '翻译', '小程序'];
+    const style = ButtonStyle(
+      backgroundColor: MaterialStatePropertyAll(Color(0x14FFFFFF)),
+      foregroundColor: MaterialStatePropertyAll(Colors.white),
+      shape: MaterialStatePropertyAll(
+        RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+          side: BorderSide(color: Color(0x1AFFFFFF)),
+        ),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: GridView.builder(
@@ -196,14 +206,7 @@ class _BottomActions extends StatelessWidget {
         itemCount: labels.length,
         itemBuilder: (context, index) {
           return TextButton(
-            style: TextButton.styleFrom(
-              backgroundColor: const Color(0x14FFFFFF),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-                side: const BorderSide(color: Color(0x1AFFFFFF)),
-              ),
-            ),
+            style: style,
             onPressed: () {
               WeuiToast.show(context, message: '${labels[index]} 功能暂未开放');
             },

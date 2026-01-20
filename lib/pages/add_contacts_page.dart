@@ -211,10 +211,12 @@ class _MyWechatIdCard extends StatelessWidget {
               ),
               TextButton(
                 onPressed: onCopy,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  minimumSize: const Size(0, 0),
+                style: const ButtonStyle(
+                  foregroundColor: MaterialStatePropertyAll(AppColors.primary),
+                  padding: MaterialStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  ),
+                  minimumSize: MaterialStatePropertyAll(Size(0, 0)),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Text('复制'),

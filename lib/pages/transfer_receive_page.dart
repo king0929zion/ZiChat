@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
 class TransferReceivePage extends StatefulWidget {
@@ -35,7 +37,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color bg = Colors.white;
+    final bg = AppColors.surface;
     final bool isReceived = _received;
     final String title =
         isReceived ? '你已收款，资金已存入零钱' : '待你收款';
@@ -54,7 +56,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
                 title,
                 style: const TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF1D2129),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -65,7 +67,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111111),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -76,7 +78,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
                   '零钱余额',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Color(0xFF07C160),
+                    color: AppColors.primary,
                   ),
                 ),
               ),
@@ -85,7 +87,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
             const Divider(
               height: 1,
               thickness: 0.5,
-              color: Color(0xFFE5E5E5),
+              color: AppColors.divider,
             ),
             Padding(
               padding: const EdgeInsets.symmetric(
@@ -143,11 +145,11 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
         padding: const EdgeInsets.all(8),
         onPressed: () => Navigator.of(context).pop(),
         icon: SvgPicture.asset(
-          'assets/icon/common/go-back.svg',
+          AppAssets.iconGoBack,
           width: 12,
           height: 20,
           colorFilter: const ColorFilter.mode(
-            Color(0xFF1D2129),
+            AppColors.textPrimary,
             BlendMode.srcIn,
           ),
         ),
@@ -162,7 +164,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
           width: 64,
           height: 64,
           decoration: const BoxDecoration(
-            color: Color(0xFF07C160),
+            color: AppColors.primary,
             shape: BoxShape.circle,
           ),
           child: const Icon(
@@ -180,14 +182,14 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: const Color(0xFF2BA3FF),
+              color: AppColors.link,
               width: 3,
             ),
           ),
           child: const Icon(
             Icons.access_time,
             size: 32,
-            color: Color(0xFF2BA3FF),
+            color: AppColors.link,
           ),
         ),
       );
@@ -204,14 +206,14 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
             label,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF8A8F99),
+              color: AppColors.textSecondary,
             ),
           ),
           Text(
             value,
             style: const TextStyle(
               fontSize: 14,
-              color: Color(0xFF1D1F23),
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -225,26 +227,10 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF07C160),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-              onPressed: _onReceivePressed,
-              child: const Text(
-                '收款',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+          WeuiButton(
+            label: '收款',
+            onPressed: _onReceivePressed,
+            type: WeuiButtonType.primary,
           ),
           const SizedBox(height: 12),
           const Text(
@@ -252,7 +238,7 @@ class _TransferReceivePageState extends State<TransferReceivePage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Color(0xFF999999),
+              color: AppColors.textSecondary,
             ),
           ),
         ],

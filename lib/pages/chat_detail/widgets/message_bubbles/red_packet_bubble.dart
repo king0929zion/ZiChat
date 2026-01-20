@@ -34,12 +34,12 @@ class _RedPacketBubbleState extends State<RedPacketBubble>
     super.initState();
     _bounceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
+      duration: AppStyles.animationNormal,
     );
-    _bounceAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+    _bounceAnimation = Tween<double>(begin: 1.0, end: 1.02).animate(
       CurvedAnimation(
         parent: _bounceController,
-        curve: Curves.easeOutCubic,
+        curve: AppStyles.curveDefault,
       ),
     );
   }
@@ -103,9 +103,9 @@ class _RedPacketBubbleState extends State<RedPacketBubble>
                     ? null
                     : [
                         BoxShadow(
-                          color: AppColors.redPacketEnd.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          color: AppColors.redPacketEnd.withValues(alpha: 0.22),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
                         ),
                       ],
               ),
@@ -174,11 +174,11 @@ class _RedPacketBubbleState extends State<RedPacketBubble>
   Widget _buildRedPacketIcon() {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: _isOpened ? 1.0 : 0.0),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutBack,
+      duration: const Duration(milliseconds: 240),
+      curve: AppStyles.curveDefault,
       builder: (context, value, child) {
         return Transform.rotate(
-          angle: value * 0.5,
+          angle: value * 0.35,
           child: Container(
             width: 32,
             height: 32,

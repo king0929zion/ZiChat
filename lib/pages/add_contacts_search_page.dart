@@ -238,17 +238,26 @@ class _AddContactsSearchPageState extends State<AddContactsSearchPage> {
                     ],
                   ),
                 ),
-                TextButton(
+                OutlinedButton(
                   onPressed: () {
                     WeuiToast.show(context, message: '已发送好友验证申请');
                   },
-                  style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    side: const BorderSide(color: AppColors.primary),
-                    foregroundColor: AppColors.primary,
-                    minimumSize: const Size(0, 0),
+                  style: ButtonStyle(
+                    padding: const MaterialStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    minimumSize: const MaterialStatePropertyAll(Size(0, 0)),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    foregroundColor:
+                        const MaterialStatePropertyAll(AppColors.primary),
+                    side: const MaterialStatePropertyAll(
+                      BorderSide(color: AppColors.primary, width: 1),
+                    ),
+                    shape: MaterialStatePropertyAll(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
                   ),
                   child: const Text(
                     '添加',

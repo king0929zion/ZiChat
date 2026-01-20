@@ -174,7 +174,7 @@ class _ChatListItem extends StatelessWidget {
         highlightColor: AppColors.background,
         splashColor: Colors.transparent,
         child: SizedBox(
-          height: 64,
+          height: 60,
           child: Row(
             children: [
               Padding(
@@ -206,7 +206,7 @@ class _ChatListItem extends StatelessWidget {
                           Expanded(
                             child: Text(
                               chat.title,
-                              style: AppStyles.titleSmall,
+                              style: AppStyles.titleSmall.copyWith(fontSize: 15),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -266,20 +266,20 @@ class _ChatAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 42,
-      height: 42,
+      width: 40,
+      height: 40,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           AvatarUtils.buildAvatarWidget(
             avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : avatar,
-            size: 42,
+            size: 40,
             borderRadius: AppStyles.radiusSmall,
           ),
           if (unread > 0)
             Positioned(
-              top: -4,
-              right: -4,
+              top: -3,
+              right: -3,
               child: Container(
                 constraints: const BoxConstraints(
                   minWidth: 16,
