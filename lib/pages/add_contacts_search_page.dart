@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class AddContactsSearchPage extends StatefulWidget {
   const AddContactsSearchPage({super.key});
@@ -239,9 +240,7 @@ class _AddContactsSearchPageState extends State<AddContactsSearchPage> {
                 ),
                 TextButton(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('已发送好友验证申请')),
-                    );
+                    WeuiToast.show(context, message: '已发送好友验证申请');
                   },
                   style: TextButton.styleFrom(
                     padding:

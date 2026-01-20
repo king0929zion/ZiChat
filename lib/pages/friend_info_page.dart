@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class FriendInfoPage extends StatelessWidget {
   const FriendInfoPage({super.key});
@@ -154,17 +155,15 @@ class FriendInfoPage extends StatelessWidget {
       child: Column(
         children: [
           SizedBox(
-            height: 46,
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已通过验证')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF07C160),
-                foregroundColor: Colors.white,
+              height: 46,
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                WeuiToast.show(context, message: '已通过验证');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF07C160),
+                  foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -181,17 +180,15 @@ class FriendInfoPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 46,
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('备注功能暂未开放')),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFDCDCDC)),
-                foregroundColor: const Color(0xFF1D1F23),
+              height: 46,
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                WeuiToast.show(context, message: '备注功能暂未开放');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFDCDCDC)),
+                  foregroundColor: const Color(0xFF1D1F23),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -206,17 +203,15 @@ class FriendInfoPage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 46,
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已拒绝该好友')),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFFF4D4F)),
-                foregroundColor: const Color(0xFFFF4D4F),
+              height: 46,
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () {
+                WeuiToast.show(context, message: '已拒绝该好友');
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFFFF4D4F)),
+                  foregroundColor: const Color(0xFFFF4D4F),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class PostMomentPage extends StatefulWidget {
   const PostMomentPage({super.key});
@@ -395,12 +396,9 @@ class _OptionRow extends StatelessWidget {
 }
 
 void _showSimpleSnackBar(BuildContext context, String message) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  WeuiToast.show(
+    context,
+    message: message,
+    duration: const Duration(seconds: 1),
+  );
 }

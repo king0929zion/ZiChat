@@ -9,6 +9,7 @@ import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/friend.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 添加好友页面
 class AddFriendPage extends StatefulWidget {
@@ -73,9 +74,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入好友名称')),
-      );
+      WeuiToast.show(context, message: '请输入好友名称');
       return;
     }
     
@@ -100,9 +99,7 @@ class _AddFriendPageState extends State<AddFriendPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('保存失败: $e')),
-        );
+        WeuiToast.show(context, message: '保存失败: $e');
       }
     } finally {
       if (mounted) {

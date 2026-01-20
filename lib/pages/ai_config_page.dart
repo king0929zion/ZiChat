@@ -5,6 +5,7 @@ import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 全局提示词设置页面
 /// 用于设置所有 AI 对话的默认人设
@@ -53,9 +54,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
       setState(() {
         _saving = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('全局提示词已保存')),
-      );
+      WeuiToast.show(context, message: '全局提示词已保存');
     }
   }
 

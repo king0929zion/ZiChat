@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class CodeScannerPage extends StatelessWidget {
   const CodeScannerPage({super.key});
@@ -56,9 +57,7 @@ class CodeScannerPage extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('从相册选择二维码功能暂未开放')),
-              );
+              WeuiToast.show(context, message: '从相册选择二维码功能暂未开放');
             },
             icon: ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -206,9 +205,7 @@ class _BottomActions extends StatelessWidget {
               ),
             ),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${labels[index]} 功能暂未开放')),
-              );
+              WeuiToast.show(context, message: '${labels[index]} 功能暂未开放');
             },
             child: Text(
               labels[index],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class TransferPage extends StatefulWidget {
   const TransferPage({super.key});
@@ -67,9 +68,7 @@ class _TransferPageState extends State<TransferPage> {
 
   Future<void> _submit() async {
     if (_amountValue <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请输入转账金额')),
-      );
+      WeuiToast.show(context, message: '请输入转账金额');
       return;
     }
 
@@ -224,9 +223,7 @@ class _TransferPageState extends State<TransferPage> {
           const SizedBox(height: 16),
           GestureDetector(
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('添加说明功能暂未开放')),
-              );
+              WeuiToast.show(context, message: '添加说明功能暂未开放');
             },
             child: const Text(
               '添加转账说明',
@@ -460,9 +457,7 @@ class _PayConfirmDialogState extends State<_PayConfirmDialog> {
       if (_password == '123456') {
         Navigator.of(context).pop(true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('支付密码错误')),
-        );
+        WeuiToast.show(context, message: '支付密码错误');
         setState(() {
           _password = '';
         });

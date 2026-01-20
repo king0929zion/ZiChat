@@ -11,6 +11,7 @@ import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/user_profile_storage.dart';
 import 'package:zichat/pages/me/edit_text_page.dart';
 import 'package:zichat/pages/me/edit_gender_page.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -134,9 +135,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
     } catch (e) {
       debugPrint('选择头像失败: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('选择头像失败')),
-        );
+        WeuiToast.show(context, message: '选择头像失败');
       }
     } finally {
       if (mounted) {

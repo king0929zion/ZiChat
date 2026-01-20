@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class EditGenderPage extends StatefulWidget {
   const EditGenderPage({super.key, required this.initialGender});
@@ -22,75 +23,49 @@ class _EditGenderPageState extends State<EditGenderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDEDED),
-        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('设置性别', style: TextStyle(color: Colors.black, fontSize: 17, fontWeight: FontWeight.w600)),
+        title: const Text('设置性别'),
         centerTitle: true,
         actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context, _selectedGender),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  minimumSize: const Size(0, 36),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  '完成',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, _selectedGender),
+            child: const Text(
+              '完成',
+              style: TextStyle(color: AppColors.primary),
             ),
           ),
         ],
       ),
-      body: Container(
-        margin: const EdgeInsets.only(top: 12),
-        color: Colors.white,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildItem('男'),
-            const Divider(height: 0.5, indent: 16, color: AppColors.divider),
-            _buildItem('女'),
-          ],
-        ),
+      body: ListView(
+        padding: const EdgeInsets.only(top: 8),
+        children: [
+          WeuiCellGroup(
+            children: [
+              _buildItem('男'),
+              _buildItem('女'),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildItem(String gender) {
     final isSelected = gender == _selectedGender;
-    return InkWell(
+    return WeuiCell(
+      title: gender,
+      showArrow: false,
+      trailing: isSelected
+          ? const Icon(Icons.check, size: 20, color: AppColors.primary)
+          : null,
       onTap: () {
-        setState(() {
-          _selectedGender = gender;
-        });
+        setState(() => _selectedGender = gender);
       },
-      child: Container(
-        height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          children: [
-            Text(gender, style: const TextStyle(fontSize: 16, color: Colors.black)),
-            const Spacer(),
-            if (isSelected)
-              const Icon(Icons.check, color: Color(0xFF07C160), size: 18),
-          ],
-        ),
-      ),
     );
   }
 }

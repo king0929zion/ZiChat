@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/post_moment_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/services/user_data_manager.dart';
@@ -45,21 +49,31 @@ class _MomentsPageState extends State<MomentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      body: SafeArea(
-        top: false,
-        bottom: true,
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFF7F7F7),
-            child: Stack(
-              children: [
-                _buildScrollContent(),
-                _buildHeader(context),
-                _buildCommentBar(context),
-              ],
+    final bool darkIcons = _scrolled;
+    final overlayStyle = SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: darkIcons ? Brightness.dark : Brightness.light,
+      statusBarBrightness: darkIcons ? Brightness.light : Brightness.dark,
+    );
+
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          top: false,
+          bottom: true,
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 480),
+              color: AppColors.background,
+              child: Stack(
+                children: [
+                  _buildScrollContent(),
+                  _buildHeader(context),
+                  _buildCommentBar(context),
+                ],
+              ),
             ),
           ),
         ),
@@ -69,17 +83,17 @@ class _MomentsPageState extends State<MomentsPage> {
 
   Widget _buildHeader(BuildContext context) {
     final topPadding = MediaQuery.paddingOf(context).top;
-    final iconColor = _scrolled ? const Color(0xFF1D2129) : Colors.white;
+    final iconColor = _scrolled ? AppColors.textPrimary : Colors.white;
 
     return Container(
       height: 44 + topPadding,
       padding: EdgeInsets.fromLTRB(12, topPadding, 12, 0),
       decoration: BoxDecoration(
-        color: _scrolled ? const Color(0xFFF7F7F7) : Colors.transparent,
+        color: _scrolled ? AppColors.background : Colors.transparent,
         border: _scrolled
             ? const Border(
                 bottom: BorderSide(
-                  color: Color(0x1A000000),
+                  color: AppColors.border,
                   width: 0.5,
                 ),
               )
@@ -92,7 +106,7 @@ class _MomentsPageState extends State<MomentsPage> {
             onPressed: () => Navigator.of(context).pop(),
             padding: const EdgeInsets.all(8),
             icon: SvgPicture.asset(
-              'assets/icon/common/go-back.svg',
+              AppAssets.iconGoBack,
               width: 12,
               height: 20,
               colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
@@ -100,14 +114,10 @@ class _MomentsPageState extends State<MomentsPage> {
           ),
           AnimatedOpacity(
             opacity: _scrolled ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            child: const Text(
+            duration: AppStyles.animationNormal,
+            child: Text(
               '朋友圈',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF111111),
-              ),
+              style: AppStyles.titleMedium.copyWith(fontWeight: FontWeight.w600),
             ),
           ),
           IconButton(
@@ -246,13 +256,8 @@ class _MomentsPageState extends State<MomentsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: const BoxDecoration(
-          color: Color(0xFFF7F7F7),
-          border: Border(
-            top: BorderSide(
-              color: Color(0xFFE5E6EB),
-              width: 0.5,
-            ),
-          ),
+          color: AppColors.background,
+          border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
         ),
         child: Row(
           children: [
@@ -260,16 +265,18 @@ class _MomentsPageState extends State<MomentsPage> {
               child: TextField(
                 controller: _commentController,
                 focusNode: _commentFocusNode,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: '评论',
                   isCollapsed: true,
                   contentPadding: EdgeInsets.symmetric(horizontal: 8),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(4)),
+                  border: const OutlineInputBorder(
                     borderSide: BorderSide.none,
+                    borderRadius: BorderRadius.all(
+                      Radius.circular(AppStyles.radiusSmall),
+                    ),
                   ),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppColors.surface,
                 ),
                 style: const TextStyle(fontSize: 16),
               ),
@@ -284,27 +291,7 @@ class _MomentsPageState extends State<MomentsPage> {
               ),
             ),
             const SizedBox(width: 4),
-            SizedBox(
-              height: 32,
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF07C160),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                onPressed: _submitComment,
-                child: const Text(
-                  '发送',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            _CommentSendButton(onPressed: _submitComment),
           ],
         ),
       ),
@@ -337,11 +324,52 @@ class _MomentsPageState extends State<MomentsPage> {
   }
 }
 
+class _CommentSendButton extends StatelessWidget {
+  const _CommentSendButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  void _handleTap() {
+    HapticFeedback.lightImpact();
+    onPressed();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary,
+      borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
+      child: InkWell(
+        onTap: _handleTap,
+        borderRadius: BorderRadius.circular(AppStyles.radiusSmall),
+        highlightColor: Colors.white.withValues(alpha: 0.12),
+        splashColor: Colors.transparent,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: SizedBox(
+            height: 32,
+            child: Center(
+              child: Text(
+                '发送',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textWhite,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MomentsCover extends StatelessWidget {
   const _MomentsCover();
 
   static const double _coverHeight = 320;
-  static const double _avatarSize = 78;
+  static const double _avatarSize = 72;
 
   @override
   Widget build(BuildContext context) {
@@ -371,7 +399,7 @@ class _MomentsCover extends StatelessWidget {
               ),
               Positioned(
                 right: 16 + _avatarSize + 12,
-                bottom: 6,
+                bottom: 4,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 260),
                   child: Text(

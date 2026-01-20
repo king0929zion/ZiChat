@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/ai_contact_prompt_page.dart';
@@ -11,6 +12,7 @@ import 'package:zichat/services/ai_chat_service.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/chat_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class ChatOptionsPage extends StatelessWidget {
   const ChatOptionsPage({super.key, required this.chatId});
@@ -20,14 +22,14 @@ class ChatOptionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.backgroundChat,
       body: SafeArea(
         top: true,
         bottom: true,
         child: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 480),
-            color: const Color(0xFFEDEDED),
+            color: AppColors.backgroundChat,
             child: Column(
               children: [
                 const _ChatOptionsHeader(),
@@ -48,48 +50,23 @@ class _SearchChatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ChatSearchPage(
-                chatId: chatId,
-                chatName: '聊天记录',
+    return WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        WeuiCell(
+          title: '查找聊天记录',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ChatSearchPage(
+                  chatId: chatId,
+                  chatName: '聊天记录',
+                ),
               ),
-            ),
-          );
-        },
-        child: SizedBox(
-          height: 56,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '查找聊天记录',
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Color(0xFF000000),
-                  ),
-                ),
-                SvgPicture.asset(
-                  'assets/icon/common/arrow-right.svg',
-                  width: 14,
-                  height: 14,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black26,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ],
-            ),
-          ),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }
@@ -101,47 +78,23 @@ class _AiPromptItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: InkWell(
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => AiContactPromptPage(
-                chatId: chatId,
-                title: '当前聊天',
+    return WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        WeuiCell(
+          title: 'AI 提示词',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AiContactPromptPage(
+                  chatId: chatId,
+                  title: '当前聊天',
+                ),
               ),
-            ),
-          );
-        },
-        child: SizedBox(
-          height: 56,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'AI 提示词',
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Color(0xFF000000),
-                  ),
-                ),
-                SvgPicture.asset(
-                  'assets/icon/common/arrow-right.svg',
-                  width: 14,
-                  height: 14,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black26,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ],
-            ),
-          ),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }
@@ -153,45 +106,20 @@ class _BackgroundItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: InkWell(
-        onTap: () {
-          HapticFeedback.lightImpact();
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => ChatBackgroundPage(chatId: chatId),
-            ),
-          );
-        },
-        child: SizedBox(
-          height: 56,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '设置当前聊天背景',
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Color(0xFF000000),
-                  ),
-                ),
-                SvgPicture.asset(
-                  'assets/icon/common/arrow-right.svg',
-                  width: 14,
-                  height: 14,
-                  colorFilter: const ColorFilter.mode(
-                    Colors.black26,
-                    BlendMode.srcIn,
-                  ),
-                ),
-              ],
-            ),
-          ),
+    return WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        WeuiCell(
+          title: '设置当前聊天背景',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ChatBackgroundPage(chatId: chatId),
+              ),
+            );
+          },
         ),
-      ),
+      ],
     );
   }
 }
@@ -233,10 +161,35 @@ class _ClearChatItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
+    return WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        _DestructiveCell(
+          title: '清空聊天记录',
+          onTap: () => _handleClear(context),
+        ),
+      ],
+    );
+  }
+}
+
+class _DestructiveCell extends StatelessWidget {
+  const _DestructiveCell({required this.title, required this.onTap});
+
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
       child: InkWell(
-        onTap: () => _handleClear(context),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        highlightColor: AppColors.disabledBg,
+        splashColor: Colors.transparent,
         child: SizedBox(
           height: 56,
           child: Padding(
@@ -244,19 +197,19 @@ class _ClearChatItem extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  '清空聊天记录',
-                  style: TextStyle(
+                Text(
+                  title,
+                  style: const TextStyle(
                     fontSize: 17,
-                    color: Color(0xFFFA5151),
+                    color: AppColors.error,
                   ),
                 ),
                 SvgPicture.asset(
-                  'assets/icon/common/arrow-right.svg',
-                  width: 14,
-                  height: 14,
+                  AppAssets.iconArrowRight,
+                  width: 12,
+                  height: 12,
                   colorFilter: const ColorFilter.mode(
-                    Colors.black26,
+                    AppColors.textHint,
                     BlendMode.srcIn,
                   ),
                 ),
@@ -276,7 +229,7 @@ class _ChatOptionsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 52,
-      color: const Color(0xFFEDEDED),
+      color: AppColors.backgroundChat,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
@@ -287,9 +240,13 @@ class _ChatOptionsHeader extends StatelessWidget {
               padding: EdgeInsets.zero,
               onPressed: () => Navigator.of(context).pop(),
               icon: SvgPicture.asset(
-                'assets/icon/common/go-back.svg',
+                AppAssets.iconGoBack,
                 width: 12,
                 height: 20,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.textPrimary,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
           ),
@@ -298,9 +255,9 @@ class _ChatOptionsHeader extends StatelessWidget {
               child: Text(
                 '聊天信息',
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1D2129),
+                  color: AppColors.textPrimary,
                 ),
               ),
             ),
@@ -320,20 +277,20 @@ class _ChatOptionsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 8),
       children: [
         _MembersSection(chatId: chatId),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _SearchChatItem(chatId: chatId),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _AiPromptItem(chatId: chatId),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         const _SwitchCard(),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _BackgroundItem(chatId: chatId),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _ClearChatItem(chatId: chatId),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         const _InfoListCard(items: [
           _InfoListItemData(title: '投诉'),
         ]),
@@ -357,68 +314,78 @@ class _MembersSection extends StatelessWidget {
         final avatar = friend?.avatar ?? AvatarUtils.defaultFriendAvatar;
         final name = friend?.name ?? '聊天对象';
 
-        return Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // AI 头像 - 点击打开控制面板
-              GestureDetector(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AiSoulPanelPage(chatId: chatId),
+        return WeuiCellGroup(
+          margin: EdgeInsets.zero,
+          dividerIndent: 0,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // AI 头像 - 点击打开控制面板
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => AiSoulPanelPage(chatId: chatId),
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        AvatarUtils.buildAvatarWidget(
+                          avatar,
+                          size: 64,
+                          borderRadius: AppStyles.radiusMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                  );
-                },
-                child: Column(
-                  children: [
-                    AvatarUtils.buildAvatarWidget(
-                      avatar,
-                      size: 64,
-                      borderRadius: AppStyles.radiusMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF999999),
+                  ),
+                  const SizedBox(width: 16),
+                  SizedBox(
+                    width: 64,
+                    height: 64,
+                    child: Material(
+                      color: AppColors.surface,
+                      shape: RoundedRectangleBorder(
+                        side: const BorderSide(color: AppColors.border, width: 0.5),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: 64,
-                height: 64,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    side: const BorderSide(color: AppColors.border, width: 1),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  onPressed: () {},
-                  child: SvgPicture.asset(
-                    'assets/icon/common/plus.svg',
-                    width: 32,
-                    height: 32,
-                    colorFilter: const ColorFilter.mode(
-                      Color(0x66000000),
-                      BlendMode.srcIn,
+                      child: InkWell(
+                        onTap: () => WeuiToast.show(context, message: '功能开发中'),
+                        borderRadius: BorderRadius.circular(4),
+                        highlightColor: AppColors.disabledBg,
+                        splashColor: Colors.transparent,
+                        child: Center(
+                          child: SvgPicture.asset(
+                            AppAssets.iconPlus,
+                            width: 32,
+                            height: 32,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.textHint,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
@@ -442,66 +409,15 @@ class _InfoListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          for (int i = 0; i < items.length; i++)
-            Column(
-              children: [
-                _InfoListItem(title: items[i].title),
-                if (i != items.length - 1)
-                  const Divider(
-                    height: 0,
-                    indent: 16,
-                    color: Color(0x14000000),
-                  ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoListItem extends StatelessWidget {
-  const _InfoListItem({
-    required this.title,
-  });
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {},
-      child: SizedBox(
-        height: 56,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  color: Color(0xFF000000),
-                ),
-              ),
-              SvgPicture.asset(
-                'assets/icon/common/arrow-right.svg',
-                width: 14,
-                height: 14,
-                colorFilter: const ColorFilter.mode(
-                  Colors.black26,
-                  BlendMode.srcIn,
-                ),
-              ),
-            ],
+    return WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        for (final item in items)
+          WeuiCell(
+            title: item.title,
+            onTap: () => WeuiToast.show(context, message: '功能开发中'),
           ),
-        ),
-      ),
+      ],
     );
   }
 }
@@ -511,17 +427,13 @@ class _SwitchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: const [
-          _SwitchItem(title: '消息免打扰', initialOn: false),
-          Divider(height: 0, indent: 16, color: Color(0x14000000)),
-          _SwitchItem(title: '置顶聊天', initialOn: true),
-          Divider(height: 0, indent: 16, color: Color(0x14000000)),
-          _SwitchItem(title: '消息提醒', initialOn: false),
-        ],
-      ),
+    return const WeuiCellGroup(
+      margin: EdgeInsets.zero,
+      children: [
+        _SwitchItem(title: '消息免打扰', initialOn: false),
+        _SwitchItem(title: '置顶聊天', initialOn: true),
+        _SwitchItem(title: '消息提醒', initialOn: false),
+      ],
     );
   }
 }
@@ -550,60 +462,21 @@ class _SwitchItemState extends State<_SwitchItem> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 56,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              widget.title,
-              style: const TextStyle(
-                fontSize: 17,
-                color: Color(0xFF000000),
-              ),
-            ),
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _on = !_on;
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 51,
-                height: 31,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15.5),
-                  color: _on ? const Color(0xFF34C759) : const Color(0xFFE5E5EA),
-                ),
-                child: Align(
-                  alignment: _on ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Container(
-                      width: 27,
-                      height: 27,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(13.5),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x33000000),
-                            offset: Offset(0, 2),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+    return WeuiCell(
+      title: widget.title,
+      showArrow: false,
+      trailing: IgnorePointer(
+        ignoring: true,
+        child: WeuiSwitch(
+          value: _on,
+          onChanged: (_) {},
         ),
       ),
+      onTap: () {
+        setState(() {
+          _on = !_on;
+        });
+      },
     );
   }
 }

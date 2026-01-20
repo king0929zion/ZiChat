@@ -23,6 +23,7 @@ class AppAssets {
   static const String iconPlus = 'assets/icon/common/plus.svg';
   static const String iconCirclePlus = 'assets/icon/common/circle-plus.svg';
   static const String iconArrowRight = 'assets/icon/common/arrow-right.svg';
+  static const String iconQrCode = 'assets/icon/qr-code.svg';
 
   // 聊天相关图标
   static const String iconThreeDot = 'assets/icon/three-dot.svg';
@@ -58,6 +59,7 @@ class AppAssets {
     iconPlus,
     iconCirclePlus,
     iconArrowRight,
+    iconQrCode,
     iconThreeDot,
     iconAddFriend,
     iconMuteRing,

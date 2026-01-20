@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class MyQrcodePage extends StatelessWidget {
   const MyQrcodePage({super.key});
@@ -63,9 +64,7 @@ class MyQrcodePage extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('更多功能暂未开放')),
-              );
+              WeuiToast.show(context, message: '更多功能暂未开放');
             },
             icon: SvgPicture.asset(
               'assets/icon/three-dot.svg',
@@ -210,9 +209,7 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void show(String text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(text)),
-      );
+      WeuiToast.show(context, message: text);
     }
 
     return Container(

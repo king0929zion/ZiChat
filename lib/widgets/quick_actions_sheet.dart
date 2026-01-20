@@ -4,6 +4,7 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/add_contacts_page.dart';
 import 'package:zichat/pages/code_scanner_page.dart';
 import 'package:zichat/pages/money_qrcode_page.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 显示快速操作弹窗 (仿微信右上角弹出菜单)
 void showQuickActionsSheet(BuildContext context) {
@@ -43,13 +44,11 @@ void showQuickActionsSheet(BuildContext context) {
     ],
   ).then((value) {
     if (value == null) return;
-    switch (value) {
-      case 'group_chat':
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('发起群聊功能暂未开放')),
-        );
+      switch (value) {
+        case 'group_chat':
+        WeuiToast.show(context, message: '发起群聊功能暂未开放');
         break;
-      case 'add_friend':
+        case 'add_friend':
         Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const AddContactsPage()),
         );

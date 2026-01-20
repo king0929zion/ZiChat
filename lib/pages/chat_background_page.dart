@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 聊天背景选择页面
 class ChatBackgroundPage extends StatefulWidget {
@@ -69,16 +70,12 @@ class _ChatBackgroundPageState extends State<ChatBackgroundPage> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('背景已更新')),
-        );
+        WeuiToast.show(context, message: '背景已更新');
       }
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('设置失败: $e')),
-        );
+        WeuiToast.show(context, message: '设置失败: $e');
       }
     }
   }
@@ -99,9 +96,7 @@ class _ChatBackgroundPageState extends State<ChatBackgroundPage> {
       _currentBackground = null;
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('已恢复默认背景')),
-      );
+      WeuiToast.show(context, message: '已恢复默认背景');
     }
   }
 

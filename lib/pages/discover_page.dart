@@ -1,60 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/moments_page.dart';
 import 'package:zichat/pages/code_scanner_page.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class DiscoverPage extends StatelessWidget {
   const DiscoverPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFEDEDED);
-    const Color arrowColor = Color(0x4D000000); // HTML: opacity: 0.3
-
-    Widget buildItem(_DiscoverCard item) {
-      return InkWell(
-        onTap: item.onTap,
-        child: SizedBox(
-          height: 56,
-          child: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Image.asset(
-                    item.image,
-                    width: 24,
-                    height: 24,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      color: Color(0xFF1D2129),
-                    ),
-                  ),
-                ),
-                SvgPicture.asset(
-                  'assets/icon/common/arrow-right.svg',
-                  width: 8,
-                  height: 14,
-                  colorFilter:
-                      const ColorFilter.mode(arrowColor, BlendMode.srcIn),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    Widget buildDivider() => Container(height: 8, color: bg);
+    void showTodo() => WeuiToast.show(context, message: '功能开发中');
 
     final List<_DiscoverCard> items = [
       _DiscoverCard(
@@ -119,19 +74,44 @@ class DiscoverPage extends StatelessWidget {
       ),
     ];
 
+    final groups = <List<_DiscoverCard>>[];
+    var currentGroup = <_DiscoverCard>[];
+    for (final item in items) {
+      currentGroup.add(item);
+      if (item.dividerAfter) {
+        groups.add(currentGroup);
+        currentGroup = <_DiscoverCard>[];
+      }
+    }
+    if (currentGroup.isNotEmpty) {
+      groups.add(currentGroup);
+    }
+
     return Container(
-      color: bg,
-      child: ListView.builder(
-        itemCount: items.length * 2 + 1,
-        itemBuilder: (context, index) {
-          if (index == 0) return buildDivider();
-          if (index.isOdd) {
-            final card = items[(index - 1) ~/ 2];
-            return buildItem(card);
-          }
-          final prev = items[(index - 2) ~/ 2];
-          return prev.dividerAfter ? buildDivider() : const SizedBox.shrink();
-        },
+      color: AppColors.background,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 12),
+        children: [
+          for (final group in groups)
+            WeuiCellGroup(
+              children: [
+                for (final item in group)
+                  WeuiCell(
+                    title: item.title,
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: Image.asset(
+                        item.image,
+                        width: 24,
+                        height: 24,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    onTap: item.onTap ?? showTodo,
+                  ),
+              ],
+            ),
+        ],
       ),
     );
   }

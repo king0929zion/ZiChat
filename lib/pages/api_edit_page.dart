@@ -8,6 +8,7 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/model_detector_service.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// API 添加/编辑页面
 class ApiEditPage extends StatefulWidget {
@@ -89,9 +90,7 @@ class _ApiEditPageState extends State<ApiEditPage> {
             _selectedModel = _detectedModels.first;
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('检测到 ${models.length} 个可用模型')),
-        );
+        WeuiToast.show(context, message: '检测到 ${models.length} 个可用模型');
       }
     } catch (e) {
       if (mounted) {
@@ -109,16 +108,12 @@ class _ApiEditPageState extends State<ApiEditPage> {
     final apiKey = _apiKeyController.text.trim();
 
     if (name.isEmpty || baseUrl.isEmpty || apiKey.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请填写完整信息')),
-      );
+      WeuiToast.show(context, message: '请填写完整信息');
       return;
     }
 
     if (_detectedModels.isEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请至少添加一个模型')),
-      );
+      WeuiToast.show(context, message: '请至少添加一个模型');
       return;
     }
 

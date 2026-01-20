@@ -6,6 +6,7 @@ import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// 模型选择页面
 /// 
@@ -52,9 +53,7 @@ class _ModelSelectionPageState extends State<ModelSelectionPage> {
     _loadData();
     
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已选择模型：$model')),
-      );
+      WeuiToast.show(context, message: '已选择模型：$model');
     }
   }
 

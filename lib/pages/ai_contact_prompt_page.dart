@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// AI 提示词配置页面 - 微信风格
 class AiContactPromptPage extends StatefulWidget {
@@ -70,9 +71,7 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
       if (friend == null) {
         if (!mounted) return;
         setState(() => _friendMissing = true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('好友不存在')),
-        );
+        WeuiToast.show(context, message: '好友不存在');
         return;
       }
 
@@ -82,11 +81,10 @@ class _AiContactPromptPageState extends State<AiContactPromptPage> {
       if (!mounted) return;
       
       HapticFeedback.lightImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('已保存'),
-          duration: Duration(seconds: 1),
-        ),
+      WeuiToast.show(
+        context,
+        message: '已保存',
+        duration: const Duration(seconds: 1),
       );
       Navigator.of(context).pop(true);
     } finally {

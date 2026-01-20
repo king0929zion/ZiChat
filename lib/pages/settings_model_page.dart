@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/api_list_page.dart';
 
 /// AI 模型选择设置页面（已弃用，重定向到 API 管理）
@@ -16,7 +17,7 @@ class SettingsModelPage extends StatelessWidget {
     });
 
     return const Scaffold(
-      backgroundColor: Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       body: Center(
         child: CircularProgressIndicator(),
       ),

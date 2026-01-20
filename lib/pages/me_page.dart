@@ -1,6 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/settings_page.dart';
 import 'package:zichat/pages/services_page.dart';
 import 'package:zichat/pages/my_qrcode_page.dart';
@@ -9,6 +10,7 @@ import 'package:zichat/services/user_data_manager.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
 import 'package:zichat/storage/user_profile_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class MePage extends StatefulWidget {
   const MePage({super.key});
@@ -59,17 +61,17 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFEFEFF4),
+      color: AppColors.background,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 12),
         children: [
           _buildProfileCard(context),
           const SizedBox(height: 12),
-          _buildSection([
+          _buildSection(context, [
             _MeItem(
               icon: 'assets/icon/me/pay-success-outline.svg',
               label: '支付与服务',
-              iconColor: const Color(0xFF07C160),
+              iconColor: AppColors.primary,
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ServicesPage()),
@@ -78,7 +80,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
             ),
           ]),
           const SizedBox(height: 12),
-          _buildSection([
+          _buildSection(context, [
             const _MeItem(
               icon: 'assets/icon/me/favorites.svg',
               label: '收藏',
@@ -92,7 +94,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
             const _MeItem(
               icon: 'assets/icon/me/cards-offers.svg',
               label: '卡包',
-              iconColor: Color(0xFF07C160),
+              iconColor: AppColors.primary,
             ),
             const _MeItem(
               icon: 'assets/icon/keyboard-panel/emoji-icon.svg',
@@ -101,7 +103,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
             ),
           ]),
           const SizedBox(height: 12),
-          _buildSection([
+          _buildSection(context, [
             _MeItem(
               icon: 'assets/icon/common/setting-outline.svg',
               label: '设置',
@@ -120,7 +122,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
 
   Widget _buildProfileCard(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       child: InkWell(
         onTap: () async {
           await Navigator.of(context).push(
@@ -136,7 +138,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
               AvatarUtils.buildAvatarWidget(
                 _profile.avatar,
                 size: 64,
-                borderRadius: 6,
+                borderRadius: 8,
               ),
               const SizedBox(width: 20),
               Expanded(
@@ -146,10 +148,10 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
                     Text(
                       _profile.name,
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF111111),
-                        height: 1.1,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -160,7 +162,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
                             '微信号：${_profile.wechatId}',
                             style: const TextStyle(
                               fontSize: 14,
-                              color: Color(0xFF7F7F7F),
+                              color: AppColors.textSecondary,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -179,21 +181,21 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               SvgPicture.asset(
-                                'assets/icon/qr-code.svg',
+                                AppAssets.iconQrCode,
                                 width: 16,
                                 height: 16,
                                 colorFilter: const ColorFilter.mode(
-                                  Color(0xFF7F7F7F),
+                                  AppColors.textSecondary,
                                   BlendMode.srcIn,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               SvgPicture.asset(
-                                'assets/icon/common/arrow-right.svg',
+                                AppAssets.iconArrowRight,
                                 width: 10,
                                 height: 16,
                                 colorFilter: const ColorFilter.mode(
-                                  Color(0x73000000),
+                                  AppColors.textHint,
                                   BlendMode.srcIn,
                                 ),
                               ),
@@ -208,20 +210,20 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: AppColors.surface,
                             borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: const Color(0xFFE5E5E5)),
+                            border: Border.all(color: AppColors.border, width: 0.5),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.add, size: 14, color: Color(0xFF7F7F7F)),
+                              const Icon(Icons.add, size: 14, color: AppColors.textSecondary),
                               const SizedBox(width: 4),
                               const Text(
                                 '状态',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF555555),
+                                  color: AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -232,29 +234,29 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
                         Container(
                            padding: const EdgeInsets.fromLTRB(4, 2, 8, 2),
                            decoration: BoxDecoration(
-                             borderRadius: BorderRadius.circular(14),
-                             border: Border.all(color: const Color(0xFFE5E5E5)),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border, width: 0.5),
+                            ),
+                           child: Row(
+                             mainAxisSize: MainAxisSize.min,
+                             children: [
+                                _avatarStack(),
+                                const SizedBox(width: 4),
+                                const Text(
+                                  '还有 9 位朋友',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(width: 4),
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.unreadBadge,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                             ],
                            ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                               _avatarStack(),
-                               const SizedBox(width: 4),
-                               const Text(
-                                 '还有 9 位朋友',
-                                 style: TextStyle(fontSize: 12, color: Color(0xFF7F7F7F)),
-                               ),
-                               const SizedBox(width: 4),
-                               Container(
-                                 width: 6,
-                                 height: 6,
-                                 decoration: BoxDecoration(
-                                   color: const Color(0xFFF54A45),
-                                   shape: BoxShape.circle,
-                                 ),
-                               ),
-                            ],
-                          ),
                         ),
                       ],
                     ),
@@ -295,18 +297,25 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
     return friends.take(3).map((f) => f.avatar).toList();
   }
 
-  Widget _buildSection(List<_MeItem> items) {
-    return Container(
-      color: Colors.white,
-      child: Column(
-        children: [
-          for (int i = 0; i < items.length; i++)
-            _MeListTile(
-              item: items[i],
-              isLast: i == items.length - 1,
+  Widget _buildSection(BuildContext context, List<_MeItem> items) {
+    void showTodo() => WeuiToast.show(context, message: '功能开发中');
+
+    return WeuiCellGroup(
+      children: [
+        for (final item in items)
+          WeuiCell(
+            title: item.label,
+            leading: SvgPicture.asset(
+              item.icon,
+              width: 20,
+              height: 20,
+              colorFilter: item.iconColor != null
+                  ? ColorFilter.mode(item.iconColor!, BlendMode.srcIn)
+                  : null,
             ),
-        ],
-      ),
+            onTap: item.onTap ?? showTodo,
+          ),
+      ],
     );
   }
 }
@@ -317,21 +326,20 @@ class _MiniAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (asset.isEmpty) {
-      return ClipOval(
-        child: Container(
-          width: 16,
-          height: 16,
-          color: const Color(0xFFE5E5E5),
-          child: const Icon(Icons.person, size: 10, color: Colors.grey),
+      return Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(
+          color: AppColors.disabledBg,
+          borderRadius: BorderRadius.circular(3),
         ),
+        child: const Icon(Icons.person, size: 10, color: AppColors.textHint),
       );
     }
-    return ClipOval(
-      child: AvatarUtils.buildAvatarWidget(
-        asset.isEmpty ? AvatarUtils.defaultFriendAvatar : asset,
-        size: 16,
-        borderRadius: 8,
-      ),
+    return AvatarUtils.buildAvatarWidget(
+      asset,
+      size: 16,
+      borderRadius: 3,
     );
   }
 }
@@ -348,66 +356,4 @@ class _MeItem {
   final String label;
   final Color? iconColor;
   final VoidCallback? onTap;
-}
-
-class _MeListTile extends StatelessWidget {
-  const _MeListTile({
-    required this.item,
-    this.isLast = false,
-  });
-
-  final _MeItem item;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: item.onTap,
-      child: Container(
-        height: 54, // HTML: height: 54px
-        padding: const EdgeInsets.only(left: 16, right: 12), // HTML: padding: 0 12px 0 16px
-        decoration: BoxDecoration(
-          border: isLast
-              ? null
-              : const Border(
-                  bottom: BorderSide(
-                    color: Color(0xFFEDEDED), // HTML: border-bottom: 0.5px solid #ededed
-                    width: 0.5,
-                  ),
-                ), // HTML: .list-item:last-child { border-bottom: none; }
-        ),
-        child: Row(
-          children: [
-            SvgPicture.asset(
-              item.icon,
-              width: 20, // HTML: width: 20px
-              height: 20, // HTML: height: 20px
-              colorFilter: item.iconColor != null
-                  ? ColorFilter.mode(item.iconColor!, BlendMode.srcIn)
-                  : null,
-            ),
-            const SizedBox(width: 14), // HTML: margin-right: 14px
-            Expanded(
-              child: Text(
-                item.label,
-                style: const TextStyle(
-                  fontSize: 16, // HTML: font-size: 16px
-                  color: Color(0xFF111111), // HTML: color: #111
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              'assets/icon/common/arrow-right.svg',
-              width: 8,
-              height: 14,
-              colorFilter: const ColorFilter.mode(
-                Color(0x59000000), // HTML: opacity: 0.35
-                BlendMode.srcIn,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

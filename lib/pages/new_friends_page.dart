@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/pages/add_contacts_page.dart';
 import 'package:zichat/pages/friend_info_page.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class NewFriendsPage extends StatelessWidget {
   const NewFriendsPage({super.key});
@@ -119,9 +120,7 @@ class NewFriendsPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('搜索朋友功能暂未开放')),
-          );
+          WeuiToast.show(context, message: '搜索朋友功能暂未开放');
         },
         child: Container(
           decoration: BoxDecoration(

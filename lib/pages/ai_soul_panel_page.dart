@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/services/ai_soul_engine.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 /// AI 灵魂控制面板
 /// 
@@ -54,12 +55,7 @@ class _AiSoulPanelPageState extends State<AiSoulPanelPage> {
     final aiEvent = await AiSoulEngine.instance.generateAiEvent();
     if (aiEvent != null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('发生了：${aiEvent.description}'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      WeuiToast.show(context, message: '发生了：${aiEvent.description}');
     } else {
       // 使用预设事件
       AiSoulEngine.instance.triggerRandomEvent();
