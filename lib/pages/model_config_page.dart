@@ -4,16 +4,13 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
-import 'package:zichat/pages/api_list_page.dart';
-import 'package:zichat/pages/model_selection_page.dart';
-import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/models/api_config.dart';
+import 'package:zichat/pages/api_edit_page.dart';
+import 'package:zichat/pages/api_list_page.dart';
+import 'package:zichat/services/model_detector_service.dart';
+import 'package:zichat/storage/api_config_storage.dart';
 
-/// 模型配置页面 - 统一的 AI 配置入口
-/// 
-/// 包含两个模块：
-/// 1. API 供应商配置 - 添加/管理 API 密钥
-/// 2. 模型选择 - 选择当前使用的对话模型
+/// 模型配置页面 - AI 配置入口
 class ModelConfigPage extends StatefulWidget {
   const ModelConfigPage({super.key});
 
@@ -22,20 +19,269 @@ class ModelConfigPage extends StatefulWidget {
 }
 
 class _ModelConfigPageState extends State<ModelConfigPage> {
-  ApiConfig? _activeConfig;
-  int _totalProviders = 0;
+  bool _detecting = false;
+  String? _detectError;
+  bool _showApiKey = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
+  String _formatHost(String baseUrl) {
+    try {
+      final uri = Uri.parse(baseUrl.trim());
+      if (uri.host.isNotEmpty) return uri.host;
+    } catch (_) {}
+    return baseUrl.trim();
   }
 
-  void _loadData() {
+  String _maskKey(String apiKey) {
+    final trimmed = apiKey.trim();
+    if (trimmed.isEmpty) return '';
+    if (_showApiKey) return trimmed;
+    if (trimmed.length <= 10) return '****';
+    return '${trimmed.substring(0, 6)}…${trimmed.substring(trimmed.length - 4)}';
+  }
+
+  Future<void> _openApiList() async {
+    HapticFeedback.lightImpact();
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ApiListPage()),
+    );
+  }
+
+  Future<void> _addApiQuick() async {
+    HapticFeedback.lightImpact();
+    final config = await Navigator.of(context).push<ApiConfig>(
+      MaterialPageRoute(builder: (_) => const ApiEditPage()),
+    );
+    if (config == null) return;
+    await ApiConfigStorage.saveConfig(config);
+    await ApiConfigStorage.setActiveConfig(config.id);
+  }
+
+  Future<void> _editApi(ApiConfig config) async {
+    HapticFeedback.lightImpact();
+    final updated = await Navigator.of(context).push<ApiConfig>(
+      MaterialPageRoute(builder: (_) => ApiEditPage(editConfig: config)),
+    );
+    if (updated == null) return;
+    await ApiConfigStorage.saveConfig(updated);
+    if (config.isActive) {
+      await ApiConfigStorage.setActiveConfig(updated.id);
+    }
+  }
+
+  Future<void> _pickProvider(List<ApiConfig> configs, ApiConfig? active) async {
+    if (configs.isEmpty) {
+      await _addApiQuick();
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    '选择默认 API',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                for (final config in configs)
+                  ListTile(
+                    title: Text(config.name),
+                    subtitle: Text(_formatHost(config.baseUrl)),
+                    trailing: config.id == active?.id
+                        ? const Icon(
+                            Icons.check,
+                            size: 20,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      HapticFeedback.selectionClick();
+                      await ApiConfigStorage.setActiveConfig(config.id);
+                    },
+                  ),
+                const Divider(height: 0, color: AppColors.divider),
+                ListTile(
+                  title: const Center(
+                    child: Text(
+                      '管理 API',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _openApiList();
+                  },
+                ),
+                ListTile(
+                  title: const Center(child: Text('添加新的 API')),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _addApiQuick();
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _detectModels(ApiConfig config) async {
+    if (_detecting) return;
+    HapticFeedback.lightImpact();
+
     setState(() {
-      _activeConfig = ApiConfigStorage.getActiveConfig();
-      _totalProviders = ApiConfigStorage.getAllConfigs().length;
+      _detecting = true;
+      _detectError = null;
     });
+
+    try {
+      final models = await ModelDetectorService.detectModels(
+        baseUrl: config.baseUrl,
+        apiKey: config.apiKey,
+      );
+
+      if (!mounted) return;
+
+      final nextSelected =
+          models.contains(config.selectedModel) ? config.selectedModel : null;
+      final updated = config.copyWith(
+        models: models,
+        selectedModel: nextSelected ?? (models.isEmpty ? null : models.first),
+      );
+      await ApiConfigStorage.saveConfig(updated);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已检测到 ${models.length} 个模型')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _detectError = e.toString());
+    } finally {
+      if (mounted) setState(() => _detecting = false);
+    }
+  }
+
+  Future<void> _pickModel(ApiConfig active) async {
+    final models = active.models;
+    if (models.isEmpty) {
+      await _detectModels(active);
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          ),
+          child: SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                const SizedBox(height: 8),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: Text(
+                      '选择对话模型',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+                for (final model in models)
+                  ListTile(
+                    title: Text(model),
+                    trailing: model == (active.selectedModel ?? models.first)
+                        ? const Icon(
+                            Icons.check,
+                            size: 20,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                    onTap: () async {
+                      Navigator.of(sheetContext).pop();
+                      HapticFeedback.selectionClick();
+                      await ApiConfigStorage.saveConfig(
+                        active.copyWith(selectedModel: model),
+                      );
+                      await ApiConfigStorage.setActiveConfig(active.id);
+                    },
+                  ),
+                const Divider(height: 0, color: AppColors.divider),
+                ListTile(
+                  title: const Center(
+                    child: Text(
+                      '重新检测模型',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    _detectModels(active);
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _updateParams(
+    ApiConfig active, {
+    double? temperature,
+    double? topP,
+    int? maxTokens,
+  }) async {
+    final updated = active.copyWith(
+      temperature: temperature,
+      topP: topP,
+      maxTokens: maxTokens,
+    );
+    await ApiConfigStorage.saveConfig(updated);
+    if (active.isActive) {
+      await ApiConfigStorage.setActiveConfig(active.id);
+    }
+  }
+
+  Future<void> _resetParams(ApiConfig active) async {
+    HapticFeedback.lightImpact();
+    await _updateParams(active, temperature: 0.7, topP: 0.9, maxTokens: 4096);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已恢复默认参数')),
+      );
+    }
   }
 
   @override
@@ -63,153 +309,142 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       body: SafeArea(
         top: false,
         bottom: true,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: ListView(
-              padding: const EdgeInsets.only(top: 12, bottom: 20),
-              children: [
-                _buildStatusCard(),
-                const SizedBox(height: 16),
-                _buildSection(
-                  title: 'API 配置',
-                  children: [
-                    _ConfigTile(
-                      icon: Icons.key_rounded,
-                      iconColor: const Color(0xFFFF9800),
-                      title: 'API 供应商',
-                      subtitle: _totalProviders > 0
-                          ? (_activeConfig != null
-                              ? '默认：${_activeConfig!.name} · 共 $_totalProviders 个'
-                              : '已添加 $_totalProviders 个供应商')
-                          : '点击添加 API 供应商',
-                      onTap: () => _openApiList(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildSection(
-                  title: '模型设置',
-                  children: [
-                    _ConfigTile(
-                      icon: Icons.smart_toy_rounded,
-                      iconColor: const Color(0xFF2196F3),
-                      title: '对话模型',
-                      subtitle: _activeConfig != null
-                          ? '${_activeConfig!.selectedModel ?? _activeConfig!.models.first} · ${_activeConfig!.name}'
-                          : '请先配置 API 供应商',
-                      onTap: () => _openModelSelection(),
-                      enabled: _activeConfig != null,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+        child: ValueListenableBuilder(
+          valueListenable: ApiConfigStorage.listenable(),
+          builder: (context, _, __) {
+            final configs = ApiConfigStorage.getAllConfigs();
+            final active = ApiConfigStorage.getActiveConfig();
 
-  Widget _buildStatusCard() {
-    final bool isConfigured = _activeConfig != null;
-    final String title = isConfigured ? '已配置' : '未配置';
-    final String subtitle = isConfigured
-        ? '默认供应商：${_activeConfig!.name}'
-        : '添加 API 供应商后即可使用 AI';
-    final String? model = _activeConfig?.selectedModel;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: (isConfigured ? AppColors.primary : AppColors.textHint)
-                        .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-                  ),
-                  child: Icon(
-                    isConfigured
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.info_outline_rounded,
-                    color: isConfigured ? AppColors.primary : AppColors.textSecondary,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: AppStyles.titleSmall),
-                      const SizedBox(height: 2),
-                      Text(subtitle, style: AppStyles.caption),
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: ListView(
+                  padding: const EdgeInsets.only(top: 12, bottom: 20),
+                  children: [
+                    _OverviewCard(
+                      totalProviders: configs.length,
+                      active: active,
+                      onPickProvider: () => _pickProvider(configs, active),
+                      onAddQuick: _addApiQuick,
+                      onManage: _openApiList,
+                    ),
+                    const SizedBox(height: 12),
+                    if (active == null) ...[
+                      _GuideCard(onAdd: _addApiQuick, onManage: _openApiList),
+                    ] else ...[
+                      _buildSection(
+                        title: '当前 API',
+                        children: [
+                          _InfoRow(
+                            label: '供应商',
+                            value: active.name,
+                            onTap: () => _pickProvider(configs, active),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                          _InfoRow(
+                            label: '地址',
+                            value: _formatHost(active.baseUrl),
+                          ),
+                          _KeyRow(
+                            value: _maskKey(active.apiKey),
+                            onToggle: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _showApiKey = !_showApiKey);
+                            },
+                            toggleText: _showApiKey ? '隐藏' : '显示',
+                            onCopy: () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: active.apiKey),
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('已复制密钥')),
+                              );
+                            },
+                          ),
+                          _ActionRow(
+                            primaryLabel: _detecting ? '检测中...' : '检测模型',
+                            primaryEnabled: !_detecting,
+                            onPrimary: () => _detectModels(active),
+                            secondaryLabel: '编辑',
+                            onSecondary: () => _editApi(active),
+                            tertiaryLabel: '管理',
+                            onTertiary: _openApiList,
+                          ),
+                          if (_detectError != null)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              child: Text(
+                                _detectError!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.error,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: '模型',
+                        children: [
+                          _InfoRow(
+                            label: '对话模型',
+                            value: active.models.isEmpty
+                                ? '未检测到模型'
+                                : (active.selectedModel ?? active.models.first),
+                            onTap: () => _pickModel(active),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: '参数',
+                        children: [
+                          _SliderRow(
+                            label: '温度',
+                            value: active.temperature.clamp(0.0, 2.0),
+                            min: 0,
+                            max: 2,
+                            divisions: 20,
+                            onChangedEnd: (v) =>
+                                _updateParams(active, temperature: v),
+                          ),
+                          _SliderRow(
+                            label: 'Top P',
+                            value: active.topP.clamp(0.0, 1.0),
+                            min: 0,
+                            max: 1,
+                            divisions: 20,
+                            onChangedEnd: (v) =>
+                                _updateParams(active, topP: v),
+                          ),
+                          _StepperRow(
+                            label: '最大 Tokens',
+                            value: active.maxTokens.clamp(1, 4096),
+                            min: 128,
+                            max: 4096,
+                            step: 128,
+                            onChanged: (v) =>
+                                _updateParams(active, maxTokens: v),
+                          ),
+                          _FooterButtonRow(onTap: () => _resetParams(active)),
+                        ],
+                      ),
                     ],
-                  ),
-                ),
-              ],
-            ),
-            if (isConfigured) ...[
-              const SizedBox(height: 12),
-              Text(
-                '当前模型：${model ?? '未选择'}',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.textSecondary,
+                  ],
                 ),
               ),
-            ],
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: _openApiList,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      backgroundColor: Colors.transparent,
-                    ),
-                    child: Text(isConfigured ? '管理 API' : '添加 API'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: isConfigured ? _openModelSelection : null,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      backgroundColor: Colors.transparent,
-                    ),
-                    child: const Text('选择模型'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -239,7 +474,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                   children[i],
                   if (i < children.length - 1)
                     const Padding(
-                      padding: EdgeInsets.only(left: 56),
+                      padding: EdgeInsets.only(left: 16),
                       child: Divider(height: 1, color: AppColors.divider),
                     ),
                 ],
@@ -250,103 +485,549 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       ],
     );
   }
-
-  void _openApiList() async {
-    HapticFeedback.lightImpact();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ApiListPage()),
-    );
-    _loadData();
-  }
-
-  void _openModelSelection() async {
-    if (_activeConfig == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先添加 API 供应商')),
-      );
-      return;
-    }
-    HapticFeedback.lightImpact();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ModelSelectionPage()),
-    );
-    _loadData();
-  }
-
-
 }
 
-class _ConfigTile extends StatelessWidget {
-  const _ConfigTile({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.enabled = true,
+class _OverviewCard extends StatelessWidget {
+  const _OverviewCard({
+    required this.totalProviders,
+    required this.active,
+    required this.onPickProvider,
+    required this.onAddQuick,
+    required this.onManage,
   });
 
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final bool enabled;
+  final int totalProviders;
+  final ApiConfig? active;
+  final VoidCallback onPickProvider;
+  final VoidCallback onAddQuick;
+  final VoidCallback onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasConfig = totalProviders > 0;
+    final title = hasConfig ? '已配置' : '未配置';
+    final subtitle = hasConfig
+        ? (active != null ? '默认：${active!.name}' : '已添加 $totalProviders 个 API')
+        : '添加 API 后即可使用 AI';
+
+    final modelText = active == null
+        ? '未选择'
+        : (active!.models.isEmpty
+            ? '未检测'
+            : (active!.selectedModel ?? active!.models.first));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: (hasConfig ? AppColors.primary : AppColors.textHint)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                  ),
+                  child: Icon(
+                    hasConfig
+                        ? Icons.check_circle_outline_rounded
+                        : Icons.info_outline_rounded,
+                    color:
+                        hasConfig ? AppColors.primary : AppColors.textSecondary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: AppStyles.titleSmall),
+                      const SizedBox(height: 2),
+                      Text(subtitle, style: AppStyles.caption),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '当前模型：$modelText',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: hasConfig ? onPickProvider : onAddQuick,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: Text(hasConfig ? '切换默认' : '添加 API'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onManage,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      backgroundColor: Colors.transparent,
+                    ),
+                    child: const Text('管理 API'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuideCard extends StatelessWidget {
+  const _GuideCard({
+    required this.onAdd,
+    required this.onManage,
+  });
+
+  final VoidCallback onAdd;
+  final VoidCallback onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('开始配置', style: AppStyles.titleSmall),
+            const SizedBox(height: 6),
+            const Text(
+              '1. 添加一个 API 供应商\n2. 检测模型\n3. 选择对话模型',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onAdd,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('添加 API'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onManage,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.border),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppStyles.radiusMedium),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('管理列表'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.onTap,
+    this.trailing,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: enabled ? onTap : null,
-      child: Opacity(
-        opacity: enabled ? 1.0 : 0.5,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 88,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KeyRow extends StatelessWidget {
+  const _KeyRow({
+    required this.value,
+    required this.onToggle,
+    required this.toggleText,
+    required this.onCopy,
+  });
+
+  final String value;
+  final VoidCallback onToggle;
+  final String toggleText;
+  final VoidCallback onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 88,
+            child: Text(
+              '密钥',
+              style: TextStyle(
+                fontSize: 15,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onCopy,
+            child: const Text('复制'),
+          ),
+          TextButton(
+            onPressed: onToggle,
+            child: Text(toggleText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.primaryLabel,
+    required this.onPrimary,
+    required this.secondaryLabel,
+    required this.onSecondary,
+    required this.tertiaryLabel,
+    required this.onTertiary,
+    this.primaryEnabled = true,
+  });
+
+  final String primaryLabel;
+  final VoidCallback onPrimary;
+  final bool primaryEnabled;
+  final String secondaryLabel;
+  final VoidCallback onSecondary;
+  final String tertiaryLabel;
+  final VoidCallback onTertiary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: primaryEnabled ? onPrimary : null,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: const BorderSide(color: AppColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              child: Text(primaryLabel),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onSecondary,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: const BorderSide(color: AppColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              child: Text(secondaryLabel),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: onTertiary,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: const BorderSide(color: AppColors.border),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+              child: Text(tertiaryLabel),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FooterButtonRow extends StatelessWidget {
+  const _FooterButtonRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '恢复默认参数',
+            style: TextStyle(
+              fontSize: 15,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SliderRow extends StatefulWidget {
+  const _SliderRow({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.divisions,
+    required this.onChangedEnd,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final int divisions;
+  final ValueChanged<double> onChangedEnd;
+
+  @override
+  State<_SliderRow> createState() => _SliderRowState();
+}
+
+class _SliderRowState extends State<_SliderRow> {
+  late double _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = widget.value;
+  }
+
+  @override
+  void didUpdateWidget(covariant _SliderRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && (widget.value - _value).abs() > 1e-6) {
+      _value = widget.value;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 20,
+              SizedBox(
+                width: 88,
+                child: Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppStyles.bodyMedium,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppStyles.caption.copyWith(fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              SvgPicture.asset(
-                AppAssets.iconArrowRight,
-                width: 12,
-                height: 12,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.textHint,
-                  BlendMode.srcIn,
+              Text(
+                _value.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
           ),
-        ),
+          Slider(
+            value: _value,
+            min: widget.min,
+            max: widget.max,
+            divisions: widget.divisions,
+            onChanged: (v) => setState(() => _value = v),
+            onChangeEnd: (v) => widget.onChangedEnd(v),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepperRow extends StatelessWidget {
+  const _StepperRow({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.onChanged,
+  });
+
+  final String label;
+  final int value;
+  final int min;
+  final int max;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final canMinus = value - step >= min;
+    final canPlus = value + step <= max;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              '$value',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: canMinus ? () => onChanged(value - step) : null,
+            icon: const Icon(Icons.remove_circle_outline),
+            color: AppColors.textPrimary,
+          ),
+          IconButton(
+            onPressed: canPlus ? () => onChanged(value + step) : null,
+            icon: const Icon(Icons.add_circle_outline),
+            color: AppColors.textPrimary,
+          ),
+        ],
       ),
     );
   }

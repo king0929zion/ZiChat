@@ -8,6 +8,9 @@ class ApiConfig {
     required this.models,
     this.isActive = false,
     this.selectedModel,
+    this.temperature = 0.7,
+    this.topP = 0.9,
+    this.maxTokens = 4096,
     this.createdAt,
   });
 
@@ -18,6 +21,9 @@ class ApiConfig {
   final List<String> models;
   final bool isActive;
   final String? selectedModel;
+  final double temperature;
+  final double topP;
+  final int maxTokens;
   final DateTime? createdAt;
 
   ApiConfig copyWith({
@@ -28,6 +34,9 @@ class ApiConfig {
     List<String>? models,
     bool? isActive,
     String? selectedModel,
+    double? temperature,
+    double? topP,
+    int? maxTokens,
     DateTime? createdAt,
   }) {
     return ApiConfig(
@@ -38,6 +47,9 @@ class ApiConfig {
       models: models ?? this.models,
       isActive: isActive ?? this.isActive,
       selectedModel: selectedModel ?? this.selectedModel,
+      temperature: temperature ?? this.temperature,
+      topP: topP ?? this.topP,
+      maxTokens: maxTokens ?? this.maxTokens,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -51,6 +63,9 @@ class ApiConfig {
       'models': models,
       'isActive': isActive,
       'selectedModel': selectedModel,
+      'temperature': temperature,
+      'topP': topP,
+      'maxTokens': maxTokens,
       'createdAt': createdAt?.toIso8601String(),
     };
   }
@@ -64,6 +79,9 @@ class ApiConfig {
       models: (map['models'] as List<dynamic>).cast<String>(),
       isActive: map['isActive'] as bool? ?? false,
       selectedModel: map['selectedModel'] as String?,
+      temperature: (map['temperature'] as num?)?.toDouble() ?? 0.7,
+      topP: (map['topP'] as num?)?.toDouble() ?? 0.9,
+      maxTokens: (map['maxTokens'] as int?) ?? 4096,
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'] as String)
           : null,

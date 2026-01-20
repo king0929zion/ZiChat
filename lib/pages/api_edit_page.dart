@@ -135,6 +135,9 @@ class _ApiEditPageState extends State<ApiEditPage> {
       models: _detectedModels,
       isActive: !_isEdit, // 新建默认激活，编辑不改变
       selectedModel: finalSelectedModel,
+      temperature: widget.editConfig?.temperature ?? 0.7,
+      topP: widget.editConfig?.topP ?? 0.9,
+      maxTokens: widget.editConfig?.maxTokens ?? 4096,
       createdAt: widget.editConfig?.createdAt ?? DateTime.now(),
     );
 

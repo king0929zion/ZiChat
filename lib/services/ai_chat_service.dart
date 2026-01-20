@@ -97,6 +97,9 @@ class AiChatService {
       systemPrompt: systemPrompt,
       userInput: normalizedInput,
       history: history,
+      temperature: config.temperature.clamp(0.0, 2.0),
+      topP: config.topP.clamp(0.0, 1.0),
+      maxTokens: config.maxTokens.clamp(1, 4096),
     )) {
       rawBuffer.write(chunk);
       buffer.write(chunk);
@@ -311,6 +314,9 @@ class AiChatService {
     required String systemPrompt,
     required String userInput,
     required List<Map<String, String>> history,
+    required double temperature,
+    required double topP,
+    required int maxTokens,
   }) async* {
     final uri = _joinUri(baseUrl, 'chat/completions');
 
@@ -329,9 +335,9 @@ class AiChatService {
     final body = jsonEncode({
       'model': model,
       'messages': messages,
-      'temperature': 0.7,
-      'top_p': 0.9,
-      'max_tokens': 4096,
+      'temperature': temperature,
+      'top_p': topP,
+      'max_tokens': maxTokens,
       'stream': false,
     });
 

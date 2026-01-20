@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zichat/models/api_config.dart';
+import 'package:flutter/foundation.dart';
 
 /// API 配置存储服务
 class ApiConfigStorage {
@@ -17,6 +18,10 @@ class ApiConfigStorage {
       throw Exception('ApiConfigStorage not initialized');
     }
     return _box!;
+  }
+
+  static ValueListenable<Box<String>> listenable() {
+    return _safeBox.listenable();
   }
 
   /// 获取所有 API 配置
