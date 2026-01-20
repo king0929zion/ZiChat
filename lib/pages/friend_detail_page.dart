@@ -9,6 +9,7 @@ import 'package:zichat/pages/chat_detail/chat_detail_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/services/chat_event_manager.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class FriendDetailPage extends StatelessWidget {
   const FriendDetailPage({
@@ -55,66 +56,53 @@ class FriendDetailPage extends StatelessWidget {
     final friend = FriendStorage.getFriend(friendId);
     if (friend == null) return;
 
-    await showModalBottomSheet<void>(
+    await showWeuiActionSheet(
       context: context,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('编辑好友'),
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => AddFriendPage(editFriend: friend),
-                    ),
-                  );
-                },
+      actions: [
+        WeuiActionSheetAction(
+          label: '编辑好友',
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AddFriendPage(editFriend: friend),
               ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text(
-                  '删除好友',
-                  style: TextStyle(color: Colors.red),
-                ),
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: const Text('删除好友'),
-                      content: Text('确定要删除“${friend.name}”吗？'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(false),
-                          child: const Text('取消'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(true),
-                          child: const Text(
-                            '删除',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
+            );
+          },
+        ),
+        WeuiActionSheetAction(
+          label: '删除好友',
+          tone: WeuiActionSheetTone.destructive,
+          onTap: () async {
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (dialogContext) => AlertDialog(
+                title: const Text('删除好友'),
+                content: Text('确定要删除“${friend.name}”吗？'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('取消'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text(
+                      '删除',
+                      style: TextStyle(color: Colors.red),
                     ),
-                  );
+                  ),
+                ],
+              ),
+            );
 
-                  if (confirm == true) {
-                    await FriendStorage.deleteFriend(friendId);
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        );
-      },
+            if (confirm == true) {
+              await FriendStorage.deleteFriend(friendId);
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -163,7 +151,7 @@ class FriendDetailPage extends StatelessWidget {
                                 AvatarUtils.buildAvatarWidget(
                                   avatarPath,
                                   size: 72,
-                                  borderRadius: 8,
+                                  borderRadius: 4,
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(

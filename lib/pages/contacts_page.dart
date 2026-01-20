@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/friend.dart';
 import 'package:zichat/pages/add_friend_page.dart';
@@ -8,6 +6,7 @@ import 'package:zichat/pages/friend_detail_page.dart';
 import 'package:zichat/pages/new_friends_page.dart';
 import 'package:zichat/services/avatar_utils.dart';
 import 'package:zichat/storage/friend_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
 class ContactsPage extends StatefulWidget {
   const ContactsPage({super.key});
@@ -17,12 +16,68 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
+  void _showTodo(String label) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('打开 $label')),
+    );
+  }
+
+  Future<void> _editFriend(Friend friend) async {
+    await Navigator.of(context).push<Friend>(
+      MaterialPageRoute(builder: (_) => AddFriendPage(editFriend: friend)),
+    );
+  }
+
+  Future<void> _deleteFriend(Friend friend) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除好友'),
+        content: Text('确定要删除"${friend.name}"吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              '删除',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FriendStorage.deleteFriend(friend.id);
+    }
+  }
+
+  void _showFriendActions(Friend friend) {
+    showWeuiActionSheet(
+      context: context,
+      actions: [
+        WeuiActionSheetAction(
+          label: '编辑好友',
+          onTap: () {
+            _editFriend(friend);
+          },
+        ),
+        WeuiActionSheetAction(
+          label: '删除好友',
+          tone: WeuiActionSheetTone.destructive,
+          onTap: () {
+            _deleteFriend(friend);
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFEDEDED);
-    const Color line = Color(0xFFE5E6EB);
-    const Color textSub = Color(0xFF86909C);
-
     return ValueListenableBuilder(
       valueListenable: FriendStorage.listenable(),
       builder: (context, _, __) {
@@ -30,106 +85,79 @@ class _ContactsPageState extends State<ContactsPage> {
         final totalFriends = customFriends.length;
 
         return Container(
-          color: bg,
+          color: AppColors.backgroundChat,
           child: ListView(
+            padding: EdgeInsets.zero,
             children: [
-              // 顶部卡片入口
-              Container(
+              WeuiCellGroup(
                 margin: EdgeInsets.zero,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    top: BorderSide(color: line, width: 0.5),
-                    bottom: BorderSide(color: line, width: 0.5),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    for (int i = 0; i < _cards.length; i++) ...[
-                      _ContactEntry(
-                        imageAsset: _cards[i].image,
-                        label: _cards[i].text,
-                        onTap: i == 0
-                            ? () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                      builder: (_) => const NewFriendsPage()),
-                                );
-                              }
-                            : () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text('打开 ${_cards[i].text}')),
-                                );
-                              },
+                children: [
+                  for (int i = 0; i < _cards.length; i++)
+                    WeuiCell(
+                      title: _cards[i].text,
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.asset(
+                          _cards[i].image,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                      if (i != _cards.length - 1)
-                        const Divider(height: 0, indent: 68, color: line),
-                    ],
-                  ],
-                ),
+                      onTap: () {
+                        if (i == 0) {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const NewFriendsPage(),
+                            ),
+                          );
+                          return;
+                        }
+                        _showTodo(_cards[i].text);
+                      },
+                    ),
+                ],
               ),
-              const SizedBox(height: 8),
 
               // 我创建的 AI 好友
               if (customFriends.isNotEmpty) ...[
-                Container(
-                  color: Colors.white,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _ContactsSectionHeader(label: 'AI 好友'),
-                      for (int i = 0; i < customFriends.length; i++)
-                        _CustomFriendItem(
-                          friend: customFriends[i],
-                          showDivider: i != customFriends.length - 1,
-                          onEdit: () async {
-                            await Navigator.of(context).push<Friend>(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    AddFriendPage(editFriend: customFriends[i]),
-                              ),
-                            );
-                          },
-                          onDelete: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                title: const Text('删除好友'),
-                                content:
-                                    Text('确定要删除"${customFriends[i].name}"吗？'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(ctx).pop(false),
-                                    child: const Text('取消'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(ctx).pop(true),
-                                    child: const Text('删除',
-                                        style: TextStyle(color: Colors.red)),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true) {
-                              await FriendStorage.deleteFriend(customFriends[i].id);
-                            }
-                          },
+                WeuiCellGroup(
+                  title: 'AI 好友',
+                  margin: const EdgeInsets.only(top: 12),
+                  children: [
+                    for (final friend in customFriends)
+                      WeuiCell(
+                        title: friend.name,
+                        description:
+                            friend.prompt.isNotEmpty ? friend.prompt : null,
+                        leading: AvatarUtils.buildAvatarWidget(
+                          friend.avatar.isEmpty
+                              ? AvatarUtils.defaultFriendAvatar
+                              : friend.avatar,
+                          size: 42,
+                          borderRadius: 4,
                         ),
-                    ],
-                  ),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  FriendDetailPage(friendId: friend.id),
+                            ),
+                          );
+                        },
+                        onLongPress: () => _showFriendActions(friend),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 8),
               ],
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 child: Center(
                   child: Text(
                     '$totalFriends 位联系人',
-                    style: const TextStyle(
+                  style: const TextStyle(
                       fontSize: 14,
-                      color: textSub,
+                      color: AppColors.textSecondary,
                     ),
                   ),
                 ),
@@ -138,200 +166,6 @@ class _ContactsPageState extends State<ContactsPage> {
           ),
         );
       },
-    );
-  }
-}
-
-/// 自定义好友列表项
-class _CustomFriendItem extends StatelessWidget {
-  const _CustomFriendItem({
-    required this.friend,
-    required this.showDivider,
-    required this.onEdit,
-    required this.onDelete,
-  });
-
-  final Friend friend;
-  final bool showDivider;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => FriendDetailPage(friendId: friend.id),
-          ),
-        );
-      },
-      onLongPress: () {
-        HapticFeedback.mediumImpact();
-        showModalBottomSheet(
-          context: context,
-          builder: (ctx) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text('编辑好友'),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    onEdit();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.delete_outline, color: Colors.red),
-                  title: const Text('删除好友', style: TextStyle(color: Colors.red)),
-                  onTap: () {
-                    Navigator.of(ctx).pop();
-                    onDelete();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            const SizedBox(width: 16),
-            AvatarUtils.buildAvatarWidget(
-              friend.avatar.isEmpty ? AvatarUtils.defaultFriendAvatar : friend.avatar,
-              size: 42,
-              borderRadius: 4,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                alignment: Alignment.centerLeft,
-                decoration: showDivider
-                    ? const BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Color(0xFFE5E6EB),
-                            width: 0.5,
-                          ),
-                        ),
-                      )
-                    : null,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      friend.name,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        color: Color(0xFF1D2129),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (friend.prompt.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        friend.prompt,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF86909C),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ContactEntry extends StatelessWidget {
-  const _ContactEntry({
-    required this.imageAsset,
-    required this.label,
-    this.onTap,
-  });
-
-  final String imageAsset;
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          children: [
-            const SizedBox(width: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: Image.asset(
-                imageAsset,
-                width: 40,
-                height: 40,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 17,
-                  color: Color(0xFF1D2129),
-                ),
-              ),
-            ),
-            SvgPicture.asset(
-              'assets/icon/common/arrow-right.svg',
-              width: 12,
-              height: 12,
-              colorFilter: const ColorFilter.mode(
-                Colors.black26,
-                BlendMode.srcIn,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ContactsSectionHeader extends StatelessWidget {
-  const _ContactsSectionHeader({
-    required this.label,
-  });
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 24,
-      color: const Color(0xFFEDEDED),
-      alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.only(left: 16),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 14,
-          color: Color(0xFF86909C),
-        ),
-      ),
     );
   }
 }

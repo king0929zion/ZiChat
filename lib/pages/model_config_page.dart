@@ -573,16 +573,6 @@ class _OverviewCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: hasConfig ? onPickProvider : onAddQuick,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      backgroundColor: Colors.transparent,
-                    ),
                     child: Text(hasConfig ? '切换默认' : '添加 API'),
                   ),
                 ),
@@ -590,16 +580,6 @@ class _OverviewCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onManage,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      backgroundColor: Colors.transparent,
-                    ),
                     child: const Text('管理 API'),
                   ),
                 ),
@@ -646,16 +626,6 @@ class _GuideCard extends StatelessWidget {
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onAdd,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
                     child: const Text('添加 API'),
                   ),
                 ),
@@ -663,15 +633,6 @@ class _GuideCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onManage,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: const BorderSide(color: AppColors.border),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppStyles.radiusMedium),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
                     child: const Text('管理列表'),
                   ),
                 ),
@@ -819,14 +780,6 @@ class _ActionRow extends StatelessWidget {
           Expanded(
             child: OutlinedButton(
               onPressed: primaryEnabled ? onPrimary : null,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
               child: Text(primaryLabel),
             ),
           ),
@@ -834,14 +787,6 @@ class _ActionRow extends StatelessWidget {
           Expanded(
             child: OutlinedButton(
               onPressed: onSecondary,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
               child: Text(secondaryLabel),
             ),
           ),
@@ -849,14 +794,6 @@ class _ActionRow extends StatelessWidget {
           Expanded(
             child: OutlinedButton(
               onPressed: onTertiary,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.textPrimary,
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 10),
-              ),
               child: Text(tertiaryLabel),
             ),
           ),

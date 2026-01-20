@@ -34,18 +34,24 @@ class _EditGenderPageState extends State<EditGenderPage> {
         centerTitle: true,
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context, _selectedGender);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF07C160),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              child: TextButton(
+                onPressed: () => Navigator.pop(context, _selectedGender),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  '完成',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
-              child: const Text('完成', style: TextStyle(fontSize: 14)),
             ),
           ),
         ],
@@ -57,7 +63,7 @@ class _EditGenderPageState extends State<EditGenderPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _buildItem('男'),
-            const Divider(height: 0.5, indent: 16, color: Color(0xFFE5E5E5)),
+            const Divider(height: 0.5, indent: 16, color: AppColors.divider),
             _buildItem('女'),
           ],
         ),

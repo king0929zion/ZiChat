@@ -56,22 +56,26 @@ class _EditTextPageState extends State<EditTextPage> {
         centerTitle: true,
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: ElevatedButton(
-              onPressed: _hasChanged
-                  ? () {
-                      Navigator.pop(context, _controller.text);
-                    }
-                  : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF07C160),
-                disabledBackgroundColor: const Color(0xFFE0E0E0),
-                disabledForegroundColor: const Color(0xFFAAAAAA),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Center(
+              child: TextButton(
+                onPressed: _hasChanged
+                    ? () => Navigator.pop(context, _controller.text)
+                    : null,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 36),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: Text(
+                  '保存',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: _hasChanged ? AppColors.primary : AppColors.textHint,
+                  ),
+                ),
               ),
-              child: const Text('保存', style: TextStyle(fontSize: 14)),
             ),
           ),
         ],

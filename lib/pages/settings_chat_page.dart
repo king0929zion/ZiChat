@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 
 class SettingsChatPage extends StatefulWidget {
   const SettingsChatPage({super.key});
@@ -17,39 +20,34 @@ class _SettingsChatPageState extends State<SettingsChatPage> {
   bool _keepOriginal = false;
 
   void _showSnack(String message) {
-     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), duration: const Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    const Color bg = Color(0xFFEFEFF4);
+    const bg = AppColors.background;
 
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: bg,
-        elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.of(context).pop(),
           icon: SvgPicture.asset(
-            'assets/icon/common/go-back.svg',
+            AppAssets.iconGoBack,
             width: 12,
             height: 20,
             colorFilter: const ColorFilter.mode(
-              Color(0xFF1D2129),
+              AppColors.textPrimary,
               BlendMode.srcIn,
             ),
           ),
         ),
-        title: const Text(
-          '聊天',
-          style: TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1D2129),
-          ),
-        ),
-        centerTitle: true,
+        title: const Text('聊天'),
       ),
       body: SafeArea(
         child: ListView(
@@ -123,18 +121,19 @@ class _SettingsItem extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              label,
-              style: const TextStyle(fontSize: 17, color: Color(0xFF1D2129)),
-            ),
-            SvgPicture.asset(
-              'assets/icon/common/arrow-right.svg',
-              width: 12,
-              height: 12,
-              colorFilter: const ColorFilter.mode(Colors.black26, BlendMode.srcIn),
-            ),
-          ],
+                label,
+                style: const TextStyle(fontSize: 17, color: AppColors.textPrimary),
+              ),
+              SvgPicture.asset(
+              AppAssets.iconArrowRight,
+               width: 12,
+               height: 12,
+               colorFilter:
+                   const ColorFilter.mode(Colors.black26, BlendMode.srcIn),
+              ),
+            ],
+          ),
         ),
-      ),
     );
   }
 }
@@ -170,13 +169,20 @@ class _SwitchItem extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 17, color: Color(0xFF1D2129)),
+                  style: const TextStyle(
+                    fontSize: 17,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF86909C), height: 1.4),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
                   ),
                 ],
               ],
@@ -204,30 +210,30 @@ class _ToggleSwitch extends StatelessWidget {
     return GestureDetector(
       onTap: () => onChanged(!active),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: AppStyles.animationNormal,
+        curve: AppStyles.curveDefault,
         width: 51,
         height: 31,
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF07C160) : const Color(0xFFE5E5EA),
+          color: active ? AppColors.primary : AppColors.border,
           borderRadius: BorderRadius.circular(15.5),
         ),
         padding: const EdgeInsets.all(2),
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
+          duration: AppStyles.animationNormal,
+          curve: AppStyles.curveDefault,
           alignment: active ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             width: 27,
             height: 27,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               shape: BoxShape.circle,
               boxShadow: [
-                 BoxShadow(
-                  color: const Color.fromRGBO(0, 0, 0, 0.15),
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
+                BoxShadow(
+                  color: AppColors.shadow.withValues(alpha: 0.08),
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
                 ),
               ],
             ),
@@ -245,12 +251,9 @@ class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        color: Colors.white,
-        padding: const EdgeInsets.only(left: 16),
-        child: Container(
-            height: 0.5,
-            color: const Color(0xFFE5E6EB)
-        )
+      color: AppColors.surface,
+      padding: const EdgeInsets.only(left: 16),
+      child: const Divider(height: 1, color: AppColors.divider),
     );
   }
 }

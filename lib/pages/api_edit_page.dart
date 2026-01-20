@@ -285,23 +285,14 @@ class _ApiEditPageState extends State<ApiEditPage> {
             const SizedBox(height: 12),
              Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _detecting ? null : _detectModels,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.textHint,
-                    minimumSize: const Size(double.infinity, 44),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  child: _detecting
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _detecting ? null : _detectModels,
+                    child: _detecting
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             color: Colors.white,

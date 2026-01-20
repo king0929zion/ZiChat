@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/model_config_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
 
@@ -340,35 +342,30 @@ class _ToggleSwitch extends StatelessWidget {
     return GestureDetector(
       onTap: () => onChanged(!active),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
+        duration: AppStyles.animationNormal,
+        curve: AppStyles.curveDefault,
         width: 51,
         height: 31,
         decoration: BoxDecoration(
-          color: active ? const Color(0xFF34C759) : const Color(0xFFE5E5EA),
+          color: active ? AppColors.primary : AppColors.border,
           borderRadius: BorderRadius.circular(15.5),
         ),
         padding: const EdgeInsets.all(2),
         child: AnimatedAlign(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
+          duration: AppStyles.animationNormal,
+          curve: AppStyles.curveDefault,
           alignment: active ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
             width: 27,
             height: 27,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color.fromRGBO(0, 0, 0, 0.15),
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                ),
-                BoxShadow(
-                  color: const Color.fromRGBO(0, 0, 0, 0.1),
-                  offset: const Offset(0, 0),
-                  blurRadius: 1,
+                  color: AppColors.shadow.withValues(alpha: 0.08),
+                  offset: const Offset(0, 1),
+                  blurRadius: 2,
                 ),
               ],
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/constants/app_styles.dart';
 import 'package:zichat/pages/ai_contact_prompt_page.dart';
 import 'package:zichat/pages/ai_soul_panel_page.dart';
@@ -399,11 +400,10 @@ class _MembersSection extends StatelessWidget {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.zero,
-                    side: const BorderSide(color: Color(0xFFD1D1D6), width: 2),
+                    side: const BorderSide(color: AppColors.border, width: 1),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppStyles.radiusMedium),
+                      borderRadius: BorderRadius.circular(4),
                     ),
-                    backgroundColor: Colors.transparent,
                   ),
                   onPressed: () {},
                   child: SvgPicture.asset(

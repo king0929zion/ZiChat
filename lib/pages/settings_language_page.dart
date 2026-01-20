@@ -93,17 +93,16 @@ class _SettingsLanguagePageState extends State<SettingsLanguagePage> {
         centerTitle: true,
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-            child: ElevatedButton(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            child: TextButton(
               onPressed: _saveLanguage,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primarySelectionColor,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                minimumSize: const Size(56, 32),
+              style: TextButton.styleFrom(
+                foregroundColor: primarySelectionColor,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                minimumSize: const Size(0, 36),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Text('保存', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.normal)),
+              child: const Text('保存'),
             ),
           ),
         ],
