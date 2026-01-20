@@ -193,9 +193,9 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFEDEDED),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFFEDEDED),
+        backgroundColor: AppColors.background,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
@@ -235,7 +235,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
               onTap: () {}, // TODO
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildSection([
              const _ProfileItem(
               label: '手机号',
@@ -268,7 +268,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
               onTap: _editSignature,
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
            _buildSection([
             const _ProfileItem(
               label: '来电铃声',
@@ -277,7 +277,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
               onTap: null,
             ),
            ]),
-           const SizedBox(height: 12),
+           const SizedBox(height: 8),
            _buildSection([
             const _ProfileItem(
               label: '我的地址',
@@ -286,7 +286,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
               onTap: null,
             ),
            ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
            _buildSection([
             const _ProfileItem(
               label: '我的发票抬头',
@@ -295,7 +295,7 @@ class _MyProfilePageState extends State<MyProfilePage> with WidgetsBindingObserv
               onTap: null,
             ),
            ]),
-           const SizedBox(height: 12),
+           const SizedBox(height: 8),
         ],
       ),
     );

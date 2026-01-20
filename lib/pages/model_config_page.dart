@@ -22,7 +22,10 @@ class ModelConfigPage extends StatefulWidget {
 class _ModelConfigPageState extends State<ModelConfigPage> {
   bool _detecting = false;
   String? _detectError;
+  String? _detectInfo;
   bool _showApiKey = false;
+  bool _copiedApiKey = false;
+  String? _paramInfo;
 
   String _formatHost(String baseUrl) {
     try {
@@ -170,6 +173,7 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
     setState(() {
       _detecting = true;
       _detectError = null;
+      _detectInfo = null;
     });
 
     try {
@@ -189,7 +193,9 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
       await ApiConfigStorage.saveConfig(updated);
 
       if (!mounted) return;
-      WeuiToast.show(context, message: '已检测到 ${models.length} 个模型');
+      setState(() {
+        _detectInfo = '已检测到 ${models.length} 个模型';
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => _detectError = e.toString());
@@ -309,8 +315,116 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
     HapticFeedback.lightImpact();
     await _updateParams(active, temperature: 0.7, topP: 0.9, maxTokens: 4096);
     if (mounted) {
-      WeuiToast.show(context, message: '已恢复默认参数');
+      setState(() => _paramInfo = '已恢复默认参数');
     }
+  }
+
+  Future<void> _updateCapabilities(
+    ApiConfig active, {
+    bool? chatModelSupportsImage,
+    bool? ocrEnabled,
+    String? ocrModel,
+    bool? ocrModelSupportsImage,
+  }) async {
+    final next = active.copyWith(
+      chatModelSupportsImage: chatModelSupportsImage,
+      ocrEnabled: ocrEnabled,
+      ocrModel: ocrModel,
+      ocrModelSupportsImage: ocrModelSupportsImage,
+    );
+    await ApiConfigStorage.saveConfig(next);
+    if (active.isActive) {
+      await ApiConfigStorage.setActiveConfig(active.id);
+    }
+  }
+
+  Future<void> _pickOcrModel(ApiConfig active) async {
+    final models = active.models;
+    if (models.isEmpty) {
+      await _detectModels(active);
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Container(
+              color: AppColors.surface,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      '选择 OCR 模型',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: [
+                        WeuiCellGroup(
+                          margin: EdgeInsets.zero,
+                          children: [
+                            for (final model in models)
+                              WeuiCell(
+                                title: model,
+                                showArrow: false,
+                                trailing: model == active.ocrModel
+                                    ? const Icon(
+                                        Icons.check,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      )
+                                    : null,
+                                onTap: () async {
+                                  Navigator.of(sheetContext).pop();
+                                  HapticFeedback.selectionClick();
+                                  await _updateCapabilities(
+                                    active,
+                                    ocrEnabled: true,
+                                    ocrModel: model,
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                        WeuiCellGroup(
+                          margin: const EdgeInsets.only(top: 8),
+                          children: [
+                            WeuiCell(
+                              title: '不使用 OCR 模型',
+                              showArrow: false,
+                              onTap: () async {
+                                Navigator.of(sheetContext).pop();
+                                HapticFeedback.selectionClick();
+                                await _updateCapabilities(active, ocrEnabled: false);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -379,6 +493,8 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                           ),
                           _KeyRow(
                             value: _maskKey(active.apiKey),
+                            copyText: _copiedApiKey ? '已复制' : '复制',
+                            copyEnabled: !_copiedApiKey,
                             onToggle: () {
                               HapticFeedback.selectionClick();
                               setState(() => _showApiKey = !_showApiKey);
@@ -389,7 +505,10 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                                 ClipboardData(text: active.apiKey),
                               );
                               if (!mounted) return;
-                              WeuiToast.show(context, message: '已复制密钥');
+                              setState(() => _copiedApiKey = true);
+                              await Future.delayed(const Duration(seconds: 1));
+                              if (!mounted) return;
+                              setState(() => _copiedApiKey = false);
                             },
                           ),
                           _ActionRow(
@@ -413,6 +532,18 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                                 ),
                               ),
                             ),
+                          if (_detectInfo != null)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              child: Text(
+                                _detectInfo!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -429,6 +560,69 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                               Icons.chevron_right,
                               color: AppColors.textHint,
                             ),
+                          ),
+                          _SwitchRow(
+                            label: '图片输入',
+                            value: active.chatModelSupportsImage,
+                            onChanged: (v) async {
+                              HapticFeedback.selectionClick();
+                              await _updateCapabilities(
+                                active,
+                                chatModelSupportsImage: v,
+                              );
+                            },
+                            helperText: '开启后将把图片直接发送给对话模型',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildSection(
+                        title: 'OCR 视觉回退',
+                        children: [
+                          _SwitchRow(
+                            label: '启用 OCR',
+                            value: active.ocrEnabled,
+                            onChanged: active.models.isEmpty
+                                ? null
+                                : (v) async {
+                                    HapticFeedback.selectionClick();
+                                    final nextModel = active.ocrModel ??
+                                        (active.selectedModel ??
+                                            (active.models.isEmpty
+                                                ? null
+                                                : active.models.first));
+                                    await _updateCapabilities(
+                                      active,
+                                      ocrEnabled: v,
+                                      ocrModel: v ? nextModel : active.ocrModel,
+                                    );
+                                  },
+                            helperText: '当对话模型不支持图片时，用 OCR 模型先解析图片再转成文字',
+                          ),
+                          _InfoRow(
+                            label: 'OCR 模型',
+                            value: active.models.isEmpty
+                                ? '未检测到模型'
+                                : (active.ocrModel ?? '未选择'),
+                            onTap: () => _pickOcrModel(active),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textHint,
+                            ),
+                          ),
+                          _SwitchRow(
+                            label: 'OCR 支持图片',
+                            value: active.ocrModelSupportsImage,
+                            onChanged: active.ocrEnabled
+                                ? (v) async {
+                                    HapticFeedback.selectionClick();
+                                    await _updateCapabilities(
+                                      active,
+                                      ocrModelSupportsImage: v,
+                                    );
+                                  }
+                                : null,
+                            helperText: '关闭将导致 OCR 无法读取图片内容',
                           ),
                         ],
                       ),
@@ -464,6 +658,17 @@ class _ModelConfigPageState extends State<ModelConfigPage> {
                                 _updateParams(active, maxTokens: v),
                           ),
                           _FooterButtonRow(onTap: () => _resetParams(active)),
+                          if (_paramInfo != null)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              child: Text(
+                                _paramInfo!,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ],
@@ -728,12 +933,16 @@ class _InfoRow extends StatelessWidget {
 class _KeyRow extends StatelessWidget {
   const _KeyRow({
     required this.value,
+    required this.copyText,
+    required this.copyEnabled,
     required this.onToggle,
     required this.toggleText,
     required this.onCopy,
   });
 
   final String value;
+  final String copyText;
+  final bool copyEnabled;
   final VoidCallback onToggle;
   final String toggleText;
   final VoidCallback onCopy;
@@ -766,12 +975,65 @@ class _KeyRow extends StatelessWidget {
             ),
           ),
           TextButton(
-            onPressed: onCopy,
-            child: const Text('复制'),
+            onPressed: copyEnabled ? onCopy : null,
+            child: Text(copyText),
           ),
           TextButton(
             onPressed: onToggle,
             child: Text(toggleText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+    this.helperText,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final String? helperText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: helperText == null
+                ? const SizedBox.shrink()
+                : Text(
+                    helperText!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.25,
+                    ),
+                  ),
+          ),
+          WeuiSwitch(
+            value: value,
+            onChanged: onChanged,
           ),
         ],
       ),

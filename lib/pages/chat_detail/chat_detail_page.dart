@@ -360,6 +360,12 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     _send();
 
+    await _requestAiReply(userInput: text);
+  }
+
+  Future<void> _requestAiReply({String? userInput}) async {
+    if (_aiRequesting) return;
+
     setState(() {
       _aiRequesting = true;
     });
@@ -371,8 +377,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       // 流式响应期间不显示临时消息，只显示"正在输入"状态
       await for (final chunk in AiChatService.sendChatStream(
         chatId: widget.chatId,
-        userInput: text,
+        userInput: userInput,
         friendPrompt: _getFriendPrompt(),
+        contextMessages: _allMessages,
       )) {
         if (!mounted) return;
         if (chunk.isEmpty) continue;
@@ -380,11 +387,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       }
 
       if (!mounted) return;
-      
+
       final fullText = buffer.toString();
-      
+
       debugPrint('AI raw response length: ${fullText.length}');
-      
+
       // 如果原始内容为空
       if (fullText.isEmpty) {
         setState(() {
@@ -397,21 +404,24 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _saveMessages();
         return;
       }
-      
+
       // 过滤 thinking 标签内容
       final filteredText = _removeThinkingContent(fullText);
-      
+
       // 如果过滤后没有内容
       if (filteredText.isEmpty) {
-        final hasThinking = fullText.contains('<think') || 
-                           fullText.contains('<thinking') ||
-                           fullText.contains('【思考】');
-        
+        final hasThinking = fullText.contains('<think') ||
+            fullText.contains('<thinking') ||
+            fullText.contains('【思考】');
+
         setState(() {
           if (hasThinking) {
             final rawContent = fullText
                 .replaceAll(RegExp(r'</?think[^>]*>', caseSensitive: false), '')
-                .replaceAll(RegExp(r'</?thinking[^>]*>', caseSensitive: false), '')
+                .replaceAll(
+                  RegExp(r'</?thinking[^>]*>', caseSensitive: false),
+                  '',
+                )
                 .replaceAll('【思考】', '')
                 .replaceAll('【/思考】', '')
                 .trim();
@@ -438,13 +448,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         _saveMessages();
         return;
       }
-      
+
       // 解析工具调用
       final toolCalls = AiToolsService.parseToolCalls(filteredText);
-      
+
       // 移除工具标记后的文本
       final cleanText = AiToolsService.removeToolMarkers(filteredText);
-      
+
       // 按 || 分隔成多条消息
       final parts = cleanText
           .split('||')
@@ -468,7 +478,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         for (int i = 0; i < parts.length; i++) {
           if (i > 0) {
             // 后续消息有延迟，模拟打字
-            await Future.delayed(Duration(milliseconds: 300 + parts[i].length * 20));
+            await Future.delayed(
+              Duration(milliseconds: 300 + parts[i].length * 20),
+            );
           }
           if (!mounted) return;
           setState(() {
@@ -488,7 +500,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           _aiRequesting = false;
         });
       }
-      
+
       // 处理工具调用
       await _processToolCalls(toolCalls, aiMessageId);
 
@@ -665,6 +677,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         chatId: widget.chatId,
         userInput: transferContext,
         friendPrompt: _getFriendPrompt(),
+        contextMessages: _allMessages,
       )) {
         if (!mounted) return;
         if (chunk.isEmpty) continue;
@@ -827,6 +840,9 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     });
     _saveMessages();
     _scrollToBottom();
+
+    // 图片消息也触发一次 AI 回复（支持视觉模型或 OCR 回退）
+    await _requestAiReply();
   }
 
   void _handleFnTap(FnItem item) {

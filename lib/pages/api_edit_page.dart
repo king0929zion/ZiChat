@@ -130,6 +130,10 @@ class _ApiEditPageState extends State<ApiEditPage> {
       models: _detectedModels,
       isActive: !_isEdit, // 新建默认激活，编辑不改变
       selectedModel: finalSelectedModel,
+      chatModelSupportsImage: widget.editConfig?.chatModelSupportsImage ?? false,
+      ocrEnabled: widget.editConfig?.ocrEnabled ?? false,
+      ocrModel: widget.editConfig?.ocrModel,
+      ocrModelSupportsImage: widget.editConfig?.ocrModelSupportsImage ?? true,
       temperature: widget.editConfig?.temperature ?? 0.7,
       topP: widget.editConfig?.topP ?? 0.9,
       maxTokens: widget.editConfig?.maxTokens ?? 4096,

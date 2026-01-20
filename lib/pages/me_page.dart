@@ -63,10 +63,10 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
     return Container(
       color: AppColors.background,
       child: ListView(
-        padding: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(bottom: 8),
         children: [
           _buildProfileCard(context),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildSection(context, [
             _MeItem(
               icon: 'assets/icon/me/pay-success-outline.svg',
@@ -79,7 +79,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
               },
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildSection(context, [
             const _MeItem(
               icon: 'assets/icon/me/favorites.svg',
@@ -102,7 +102,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
               iconColor: Color(0xFFEEAA4D),
             ),
           ]),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildSection(context, [
             _MeItem(
               icon: 'assets/icon/common/setting-outline.svg',
@@ -301,6 +301,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
     void showTodo() => WeuiToast.show(context, message: '功能开发中');
 
     return WeuiCellGroup(
+      margin: EdgeInsets.zero,
       children: [
         for (final item in items)
           WeuiCell(

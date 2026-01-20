@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:cross_file/cross_file.dart';
 import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/models/chat_message.dart';
@@ -24,6 +25,12 @@ class AiChatService {
 
   // 最大 token 估算 (用于控制上下文长度)
   static const int _maxContextTokens = 3000;
+
+  // 多模态：上下文最多携带图片数量（避免 payload 过大）
+  static const int _maxImagesInContext = 2;
+
+  // OCR 结果缓存（同一图片路径 + OCR 模型）
+  static final Map<String, String> _ocrCache = {};
 
   // 随机数生成器
   static final _random = math.Random();
@@ -49,15 +56,220 @@ class AiChatService {
     return config;
   }
 
+  static bool _contextAlreadyHasUserInput(
+    List<ChatMessage> contextMessages,
+    String userInput,
+  ) {
+    if (userInput.trim().isEmpty) return true;
+    for (final msg in contextMessages.reversed) {
+      if (msg.direction != 'out') continue;
+      if (msg.type != 'text') continue;
+      final text = (msg.text ?? '').trim();
+      if (text.isEmpty) continue;
+      return text == userInput.trim();
+    }
+    return false;
+  }
+
+  static int _estimateContentTokens(dynamic content) {
+    if (content is String) return _estimateTokens(content);
+    if (content is List) {
+      int tokens = 0;
+      for (final part in content) {
+        if (part is Map) {
+          final type = (part['type'] ?? '').toString();
+          if (type == 'text') {
+            tokens += _estimateTokens((part['text'] ?? '').toString());
+          }
+          if (type == 'image_url') {
+            tokens += 200;
+          }
+        }
+      }
+      return tokens;
+    }
+    return 0;
+  }
+
+  static Future<String> _ocrImageIfNeeded(
+    ApiConfig config,
+    String imagePath,
+  ) async {
+    if (!config.ocrEnabled) return '';
+    if (!config.ocrModelSupportsImage) return '';
+    final ocrModel = config.ocrModel;
+    if (ocrModel == null || ocrModel.trim().isEmpty) return '';
+
+    final cacheKey = '$ocrModel|$imagePath';
+    final cached = _ocrCache[cacheKey];
+    if (cached != null) return cached;
+
+    final dataUrl = await _imagePathToDataUrl(imagePath);
+    if (dataUrl == null) return '';
+
+    final ocrMessages = <Map<String, dynamic>>[
+      {
+        'role': 'system',
+        'content':
+            '你是图片理解助手，把图片内容转成文字给另一个模型使用：\n'
+            '1) 图片简要描述（包含主体/场景/动作）\n'
+            '2) 图片中的文字（如有，按原样）\n'
+            '3) 关键细节（如颜色/位置/数量/时间等）\n'
+            '要求：用简短要点输出；不要解释，不要寒暄；控制在 200 字以内。',
+      },
+      {
+        'role': 'user',
+        'content': [
+          {'type': 'text', 'text': '请解析这张图片。'},
+          {
+            'type': 'image_url',
+            'image_url': {'url': dataUrl},
+          },
+        ],
+      },
+    ];
+
+    final buffer = StringBuffer();
+    await for (final chunk in _callOpenAiStream(
+      baseUrl: config.baseUrl,
+      apiKey: config.apiKey,
+      model: ocrModel,
+      messages: ocrMessages,
+      temperature: 0,
+      topP: 1,
+      maxTokens: 1024,
+    )) {
+      buffer.write(chunk);
+    }
+
+    final raw = buffer.toString();
+    final text = AiToolsService.removeToolMarkers(_removeThinkingContent(raw))
+        .trim();
+
+    _ocrCache[cacheKey] = text;
+    return text;
+  }
+
+  static Future<Map<String, dynamic>?> _chatMessageToApiMessage(
+    ChatMessage message,
+    ApiConfig config, {
+    required int imageCount,
+  }) async {
+    final direction = message.direction;
+    if (direction != 'out' && direction != 'in') return null;
+    if (message.isSystemMessage) return null;
+
+    final role = direction == 'out' ? 'user' : 'assistant';
+
+    switch (message.type) {
+      case 'text':
+        final text = (message.text ?? '').trim();
+        if (text.isEmpty) return null;
+        final clean =
+            AiToolsService.removeToolMarkers(_removeThinkingContent(text)).trim();
+        if (clean.isEmpty) return null;
+        return {'role': role, 'content': clean};
+      case 'image':
+        final path = (message.image ?? '').trim();
+        if (path.isEmpty) return {'role': role, 'content': '[图片]'};
+
+        if (role != 'user') {
+          return {'role': role, 'content': '[图片]'};
+        }
+
+        final allowImage = imageCount < _maxImagesInContext;
+        final canOcr = config.ocrEnabled &&
+            config.ocrModelSupportsImage &&
+            (config.ocrModel?.trim().isNotEmpty ?? false);
+
+        if (config.chatModelSupportsImage && allowImage) {
+          final dataUrl = await _imagePathToDataUrl(path);
+          if (dataUrl == null) {
+            return {'role': role, 'content': '[图片]'};
+          }
+          return {
+            'role': role,
+            'content': [
+              {'type': 'text', 'text': '看下这张图'},
+              {
+                'type': 'image_url',
+                'image_url': {'url': dataUrl},
+              },
+            ],
+            '__imageUsed': true,
+          };
+        }
+
+        if (allowImage && canOcr) {
+          final ocrText = await _ocrImageIfNeeded(config, path);
+          return {
+            'role': role,
+            'content':
+                ocrText.trim().isEmpty ? '[图片]' : '【图片解析】\n$ocrText',
+            '__imageUsed': true,
+          };
+        }
+
+        return {'role': role, 'content': '[图片]'};
+      case 'voice':
+        return {'role': role, 'content': '[语音]'};
+      case 'transfer':
+        final amount = (message.amount ?? '').trim();
+        return {
+          'role': role,
+          'content': amount.isEmpty ? '[转账]' : '[转账 ¥$amount]',
+        };
+      case 'red-packet':
+        return {'role': role, 'content': '[红包]'};
+      default:
+        return null;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> _buildMessagesFromContext(
+    List<ChatMessage> contextMessages,
+    ApiConfig config,
+  ) async {
+    final result = <Map<String, dynamic>>[];
+    int tokenCount = 0;
+    int imageCount = 0;
+
+    for (int i = contextMessages.length - 1; i >= 0; i--) {
+      final msg = contextMessages[i];
+      final built = await _chatMessageToApiMessage(
+        msg,
+        config,
+        imageCount: imageCount,
+      );
+      if (built == null) continue;
+
+      if (built['__imageUsed'] == true) {
+        imageCount += 1;
+        built.remove('__imageUsed');
+      }
+
+      final content = built['content'];
+      final tokens = _estimateContentTokens(content);
+      if (tokenCount + tokens > _maxContextTokens) break;
+
+      tokenCount += tokens;
+      result.insert(0, built);
+    }
+
+    return result;
+  }
+
   /// 流式发送消息 - 实现打字机效果
   /// 返回 Stream，每次 yield 一个字符或词
   static Stream<String> sendChatStream({
     required String chatId,
-    required String userInput,
+    String? userInput,
     String? friendPrompt,
+    List<ChatMessage>? contextMessages,
   }) async* {
-    final normalizedInput = userInput.trim();
-    if (normalizedInput.isEmpty) return;
+    final normalizedInput = (userInput ?? '').trim();
+    final hasContext = contextMessages != null && contextMessages.isNotEmpty;
+    if (normalizedInput.isEmpty && !hasContext) return;
 
     // 获取活动配置
     final config = await _getActiveConfig();
@@ -72,21 +284,43 @@ class AiChatService {
     // 构建系统提示词
     final systemPrompt = await _buildSystemPrompt(chatId, friendPrompt);
 
-    // 获取智能上下文历史
-    final history = _getSmartHistory(chatId, normalizedInput);
-
-    // 避免历史中已包含当前输入，导致重复
-    if (history.isNotEmpty) {
-      final last = history.last;
-      final lastRole = last['role'] ?? '';
-      final lastContent = (last['content'] ?? '').trim();
-      if (lastRole == 'user' && lastContent == normalizedInput) {
-        history.removeLast();
-      }
+    final messages = <Map<String, dynamic>>[];
+    if (systemPrompt.isNotEmpty) {
+      messages.add({'role': 'system', 'content': systemPrompt});
     }
 
-    // 记录用户消息到历史
-    _addToHistory(chatId, 'user', normalizedInput);
+    if (hasContext) {
+      final context = await _buildMessagesFromContext(contextMessages!, config);
+      messages.addAll(context);
+
+      if (normalizedInput.isNotEmpty &&
+          !_contextAlreadyHasUserInput(contextMessages!, normalizedInput)) {
+        messages.add({'role': 'user', 'content': normalizedInput});
+      }
+    } else {
+      if (normalizedInput.isEmpty) return;
+
+      // 获取智能上下文历史
+      final history = _getSmartHistory(chatId, normalizedInput);
+
+      // 避免历史中已包含当前输入，导致重复
+      if (history.isNotEmpty) {
+        final last = history.last;
+        final lastRole = last['role'] ?? '';
+        final lastContent = (last['content'] ?? '').trim();
+        if (lastRole == 'user' && lastContent == normalizedInput) {
+          history.removeLast();
+        }
+      }
+
+      // 记录用户消息到历史
+      _addToHistory(chatId, 'user', normalizedInput);
+
+      for (final item in history) {
+        messages.add({'role': item['role'], 'content': item['content']});
+      }
+      messages.add({'role': 'user', 'content': normalizedInput});
+    }
 
     final buffer = StringBuffer();
     final rawBuffer = StringBuffer();
@@ -95,9 +329,7 @@ class AiChatService {
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
       model: model,
-      systemPrompt: systemPrompt,
-      userInput: normalizedInput,
-      history: history,
+      messages: messages,
       temperature: config.temperature.clamp(0.0, 2.0),
       topP: config.topP.clamp(0.0, 1.0),
       maxTokens: config.maxTokens.clamp(1, 4096),
@@ -112,17 +344,19 @@ class AiChatService {
     finalContent = _removeThinkingContent(finalContent);
     finalContent = finalContent.trim();
 
-    // 记录 AI 回复到历史（过滤 thinking + 移除 tool marker）
-    final historyText = AiToolsService.removeToolMarkers(finalContent).trim();
-    if (historyText.contains('||')) {
-      for (final part in historyText
-          .split('||')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)) {
-        _addToHistory(chatId, 'assistant', part);
+    if (!hasContext) {
+      // 记录 AI 回复到历史（过滤 thinking + 移除 tool marker）
+      final historyText = AiToolsService.removeToolMarkers(finalContent).trim();
+      if (historyText.contains('||')) {
+        for (final part in historyText
+            .split('||')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)) {
+          _addToHistory(chatId, 'assistant', part);
+        }
+      } else {
+        _addToHistory(chatId, 'assistant', historyText);
       }
-    } else {
-      _addToHistory(chatId, 'assistant', historyText);
     }
   }
 
@@ -316,31 +550,37 @@ class AiChatService {
     return (text.length / 2).ceil();
   }
 
+  static String _guessImageMimeType(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    return 'image/jpeg';
+  }
+
+  static Future<String?> _imagePathToDataUrl(String path) async {
+    try {
+      final bytes = await XFile(path).readAsBytes();
+      if (bytes.isEmpty) return null;
+      final mime = _guessImageMimeType(path);
+      return 'data:$mime;base64,${base64Encode(bytes)}';
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// OpenAI 流式请求
   static Stream<String> _callOpenAiStream({
     required String baseUrl,
     required String apiKey,
     required String model,
-    required String systemPrompt,
-    required String userInput,
-    required List<Map<String, String>> history,
+    required List<Map<String, dynamic>> messages,
     required double temperature,
     required double topP,
     required int maxTokens,
   }) async* {
     final uri = _joinUri(baseUrl, 'chat/completions');
-
-    final List<Map<String, dynamic>> messages = [];
-
-    if (systemPrompt.isNotEmpty) {
-      messages.add({'role': 'system', 'content': systemPrompt});
-    }
-
-    for (final item in history) {
-      messages.add({'role': item['role'], 'content': item['content']});
-    }
-
-    messages.add({'role': 'user', 'content': userInput});
 
     final body = jsonEncode({
       'model': model,
