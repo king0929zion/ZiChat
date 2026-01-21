@@ -11,6 +11,7 @@ class ApiConfigStorage {
   /// 初始化
   static Future<void> initialize() async {
     _box = await Hive.openBox<String>(_boxName);
+    await _ensureBuiltInProviders();
   }
 
   static Box<String> get _safeBox {
@@ -35,10 +36,13 @@ class ApiConfigStorage {
         } catch (_) {}
       }
     }
-    // 按创建时间排序
+    // 先按 sortOrder，再按创建时间排序
     configs.sort((a, b) {
-      final aTime = a.createdAt ?? DateTime.now();
-      final bTime = b.createdAt ?? DateTime.now();
+      final aOrder = a.sortOrder ?? 1 << 30;
+      final bOrder = b.sortOrder ?? 1 << 30;
+      if (aOrder != bOrder) return aOrder.compareTo(bOrder);
+      final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
       return bTime.compareTo(aTime);
     });
     return configs;
@@ -75,5 +79,231 @@ class ApiConfigStorage {
   /// 获取所有已启用的配置
   static List<ApiConfig> getEnabledConfigs() {
     return getAllConfigs().where((c) => c.isActive).toList();
+  }
+
+  static Future<void> _ensureBuiltInProviders() async {
+    final existing = getAllConfigs();
+    final existingIds = existing.map((c) => c.id).toSet();
+
+    final builtIns = <ApiConfig>[
+      ApiConfig(
+        id: 'builtin-openai',
+        type: ProviderType.openai,
+        name: 'OpenAI',
+        baseUrl: 'https://api.openai.com/v1',
+        apiKey: '',
+        models: const [
+          ApiModel(
+            id: 'gpt-4o-mini',
+            modelId: 'gpt-4o-mini',
+            displayName: 'GPT-4o mini',
+            inputModalities: [ModelModality.text, ModelModality.image],
+            abilities: [ModelAbility.tool, ModelAbility.reasoning],
+          ),
+          ApiModel(
+            id: 'gpt-4o',
+            modelId: 'gpt-4o',
+            displayName: 'GPT-4o',
+            inputModalities: [ModelModality.text, ModelModality.image],
+            abilities: [ModelAbility.tool, ModelAbility.reasoning],
+          ),
+        ],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 0,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-gemini',
+        type: ProviderType.google,
+        name: 'Gemini',
+        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+        apiKey: '',
+        models: const [
+          ApiModel(
+            id: 'gemini-1.5-flash',
+            modelId: 'gemini-1.5-flash',
+            displayName: 'Gemini 1.5 Flash',
+            inputModalities: [ModelModality.text, ModelModality.image],
+          ),
+          ApiModel(
+            id: 'gemini-1.5-pro',
+            modelId: 'gemini-1.5-pro',
+            displayName: 'Gemini 1.5 Pro',
+            inputModalities: [ModelModality.text, ModelModality.image],
+          ),
+        ],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 1,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-claude',
+        type: ProviderType.claude,
+        name: 'Anthropic',
+        baseUrl: 'https://api.anthropic.com/v1',
+        apiKey: '',
+        models: const [
+          ApiModel(
+            id: 'claude-3-5-sonnet-latest',
+            modelId: 'claude-3-5-sonnet-latest',
+            displayName: 'Claude 3.5 Sonnet',
+            inputModalities: [ModelModality.text, ModelModality.image],
+            abilities: [ModelAbility.reasoning],
+          ),
+        ],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 2,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-aihubmix',
+        type: ProviderType.openai,
+        name: 'AiHubMix',
+        baseUrl: 'https://aihubmix.com/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 10,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-siliconflow',
+        type: ProviderType.openai,
+        name: '硅基流动',
+        baseUrl: 'https://api.siliconflow.cn/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 11,
+        builtIn: true,
+        balanceOption: const BalanceOption(
+          enabled: true,
+          apiPath: '/user/info',
+          resultPath: 'data.totalBalance',
+        ),
+      ),
+      ApiConfig(
+        id: 'builtin-deepseek',
+        type: ProviderType.openai,
+        name: 'DeepSeek',
+        baseUrl: 'https://api.deepseek.com/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 12,
+        builtIn: true,
+        balanceOption: const BalanceOption(
+          enabled: true,
+          apiPath: '/user/balance',
+          resultPath: 'balance_infos[0].total_balance',
+        ),
+      ),
+      ApiConfig(
+        id: 'builtin-openrouter',
+        type: ProviderType.openai,
+        name: 'OpenRouter',
+        baseUrl: 'https://openrouter.ai/api/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 13,
+        builtIn: true,
+        balanceOption: const BalanceOption(
+          enabled: true,
+          apiPath: '/credits',
+          resultPath: 'data.total_credits - data.total_usage',
+        ),
+      ),
+      ApiConfig(
+        id: 'builtin-dashscope',
+        type: ProviderType.openai,
+        name: '阿里云百炼',
+        baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 14,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-volcengine',
+        type: ProviderType.openai,
+        name: '火山引擎',
+        baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 15,
+        builtIn: true,
+        chatCompletionsPath: '/chat/completions',
+      ),
+      ApiConfig(
+        id: 'builtin-moonshot',
+        type: ProviderType.openai,
+        name: '月之暗面',
+        baseUrl: 'https://api.moonshot.cn/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 16,
+        builtIn: true,
+        balanceOption: const BalanceOption(
+          enabled: true,
+          apiPath: '/users/me/balance',
+          resultPath: 'data.available_balance',
+        ),
+      ),
+      ApiConfig(
+        id: 'builtin-bigmodel',
+        type: ProviderType.openai,
+        name: '智谱 AI',
+        baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 17,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-stepfun',
+        type: ProviderType.openai,
+        name: '阶跃星辰',
+        baseUrl: 'https://api.stepfun.com/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 18,
+        builtIn: true,
+      ),
+      ApiConfig(
+        id: 'builtin-302ai',
+        type: ProviderType.openai,
+        name: '302.AI',
+        baseUrl: 'https://api.302.ai/v1',
+        apiKey: '',
+        models: const [],
+        isActive: false,
+        createdAt: DateTime.now(),
+        sortOrder: 19,
+        builtIn: true,
+      ),
+    ];
+
+    for (final builtin in builtIns) {
+      if (existingIds.contains(builtin.id)) continue;
+      await saveConfig(builtin);
+    }
   }
 }

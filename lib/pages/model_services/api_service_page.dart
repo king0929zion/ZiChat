@@ -214,10 +214,11 @@ class _ApiServicePageState extends State<ApiServicePage> {
 
       final config = (_original ?? ApiConfig(
             id: const Uuid().v4(),
+            type: ProviderType.openai,
             name: name,
             baseUrl: baseUrl,
             apiKey: apiKey,
-            models: const [],
+            models: const <ApiModel>[],
             isActive: false,
             selectedModel: null,
             temperature: 0.7,

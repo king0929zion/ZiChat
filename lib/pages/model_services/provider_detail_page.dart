@@ -270,16 +270,25 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
         apiKey: config.apiKey,
       );
 
-      final merged = <String>{
-        ...config.models,
-        ...models,
-      }.toList()
-        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      final byId = <String, ApiModel>{
+        for (final model in config.models) model.modelId: model,
+      };
+      for (final id in models) {
+        final trimmed = id.trim();
+        if (trimmed.isEmpty) continue;
+        byId.putIfAbsent(trimmed, () => ApiModel.fromLegacy(trimmed));
+      }
 
+      final merged = byId.values.toList()
+        ..sort(
+          (a, b) => a.modelId.toLowerCase().compareTo(b.modelId.toLowerCase()),
+        );
+
+      final mergedIds = merged.map((m) => m.modelId).toSet();
       final nextSelected = (config.selectedModel != null &&
-              merged.contains(config.selectedModel))
+              mergedIds.contains(config.selectedModel))
           ? config.selectedModel
-          : (merged.isEmpty ? null : merged.first);
+          : (merged.isEmpty ? null : merged.first.modelId);
 
       await ApiConfigStorage.saveConfig(
         config.copyWith(models: merged, selectedModel: nextSelected),
@@ -324,12 +333,13 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     );
 
     if (model == null || model.trim().isEmpty) return;
-    if (config.models.contains(model.trim())) {
+    if (config.getModelById(model.trim()) != null) {
       _setModelsHint('模型已存在');
       return;
     }
 
-    final updated = List<String>.from(config.models)..add(model.trim());
+    final updated = List<ApiModel>.from(config.models)
+      ..add(ApiModel.fromLegacy(model.trim()));
     await ApiConfigStorage.saveConfig(
       config.copyWith(
         models: updated,
@@ -341,9 +351,10 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
 
   Future<void> _removeModel(ApiConfig config, String model) async {
     HapticFeedback.mediumImpact();
-    final updated = List<String>.from(config.models)..remove(model);
+    final updated = List<ApiModel>.from(config.models)
+      ..removeWhere((m) => m.modelId == model);
     final nextSelected = config.selectedModel == model
-        ? (updated.isEmpty ? null : updated.first)
+        ? (updated.isEmpty ? null : updated.first.modelId)
         : config.selectedModel;
 
     await ApiConfigStorage.saveConfig(
@@ -358,34 +369,44 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     _setModelsHint('已设为默认模型');
   }
 
-  Map<String, List<String>> _groupModels(List<String> models) {
+  Map<String, List<ApiModel>> _groupModels(List<ApiModel> models) {
     final query = _modelSearchController.text.trim().toLowerCase();
     final filtered = query.isEmpty
         ? models
-        : models.where((m) => m.toLowerCase().contains(query)).toList();
+        : models
+            .where((m) =>
+                m.modelId.toLowerCase().contains(query) ||
+                m.displayName.toLowerCase().contains(query))
+            .toList();
 
-    final map = <String, List<String>>{};
+    final map = <String, List<ApiModel>>{};
     for (final model in filtered) {
-      final group = model.contains('/') ? model.split('/').first : '其他';
+      final group = model.modelId.contains('/')
+          ? model.modelId.split('/').first
+          : '其他';
       map.putIfAbsent(group, () => []).add(model);
     }
 
     final sortedKeys = map.keys.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-    final result = <String, List<String>>{};
+    final result = <String, List<ApiModel>>{};
     for (final k in sortedKeys) {
       final list = map[k]!
-        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+        ..sort(
+          (a, b) =>
+              a.modelId.toLowerCase().compareTo(b.modelId.toLowerCase()),
+        );
       result[k] = list;
     }
     return result;
   }
 
-  String _modelDisplay(String group, String model) {
-    if (group != '其他' && model.startsWith('$group/')) {
-      return model.substring(group.length + 1);
+  String _modelDisplay(String group, ApiModel model) {
+    final id = model.modelId;
+    if (group != '其他' && id.startsWith('$group/')) {
+      return id.substring(group.length + 1);
     }
-    return model;
+    return model.displayName.isNotEmpty ? model.displayName : id;
   }
 
   Future<void> _showModelActions(ApiConfig config) async {
@@ -693,10 +714,10 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                                   _ModelRow(
                                     leadingName: entry.key,
                                     title: _modelDisplay(entry.key, model),
-                                    fullModel: model,
-                                    selected: model == config.selectedModel,
-                                    onTap: () => _selectModel(config, model),
-                                    onRemove: () => _removeModel(config, model),
+                                    fullModel: model.modelId,
+                                    selected: model.modelId == config.selectedModel,
+                                    onTap: () => _selectModel(config, model.modelId),
+                                    onRemove: () => _removeModel(config, model.modelId),
                                   ),
                                 ],
                               const Divider(

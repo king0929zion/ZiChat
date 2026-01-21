@@ -570,10 +570,9 @@ Future<_ModelSelection?> _showModelPicker({
       : configs.where((c) => c.id == initialConfigId).firstOrNull;
   final selectedConfig =
       initConfig ?? configs.firstWhere((c) => c.isActive, orElse: () => configs.first);
-  final fallbackModel =
-      selectedConfig.selectedModel ?? (selectedConfig.models.isEmpty ? null : selectedConfig.models.first);
+  final fallbackModel = selectedConfig.defaultChatModel?.modelId;
   final initSelectedModel =
-      (initialModel != null && selectedConfig.models.contains(initialModel))
+      (initialModel != null && selectedConfig.getModelById(initialModel) != null)
           ? initialModel
           : fallbackModel;
 
@@ -639,9 +638,13 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
     final query = _searchController.text.trim().toLowerCase();
     final models = query.isEmpty
         ? allModels
-        : allModels.where((m) => m.toLowerCase().contains(query)).toList();
+        : allModels
+            .where((m) =>
+                m.modelId.toLowerCase().contains(query) ||
+                m.displayName.toLowerCase().contains(query))
+            .toList();
     final selectedModel =
-        _model ?? config.selectedModel ?? (allModels.isEmpty ? null : allModels.first);
+        _model ?? config.selectedModel ?? config.defaultChatModel?.modelId;
 
     return SafeArea(
       top: false,
@@ -739,8 +742,7 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
                     selected: c.id == _configId,
                     onTap: () => setState(() {
                       _configId = c.id;
-                      _model = c.selectedModel ??
-                          (c.models.isEmpty ? null : c.models.first);
+                      _model = c.selectedModel ?? c.defaultChatModel?.modelId;
                       _searchController.clear();
                     }),
                   ),
@@ -801,14 +803,14 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
                         const Divider(height: 1, color: AppColors.divider),
                     itemBuilder: (ctx, index) {
                       final model = models[index];
-                      final isSelected = selectedModel == model;
+                      final isSelected = selectedModel == model.modelId;
                       return _ModelPickRow(
                         model: model,
                         selected: isSelected,
                         onTap: () => Navigator.of(context).pop(
                           _ModelSelection(
                             configId: _configId,
-                            model: model,
+                            model: model.modelId,
                           ),
                         ),
                       );
@@ -878,7 +880,7 @@ class _ModelPickRow extends StatelessWidget {
     required this.onTap,
   });
 
-  final String model;
+  final ApiModel model;
   final bool selected;
   final VoidCallback onTap;
 
@@ -909,15 +911,34 @@ class _ModelPickRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                model,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  color: selected ? AppColors.primary : AppColors.textPrimary,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    model.displayName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      color: selected ? AppColors.primary : AppColors.textPrimary,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (model.displayName.trim() != model.modelId.trim()) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      model.modelId,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        height: 1.2,
+                        color: AppColors.textHint,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
