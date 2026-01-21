@@ -50,7 +50,7 @@ class AiChatService {
     final config = ApiConfigStorage.getActiveConfig();
     if (config == null || config.models.isEmpty) {
       throw Exception(
-        '请先在"我-设置-通用-API 管理"中添加并配置 API',
+        '请先在“我-设置-通用-AI 设置-模型服务”中添加并启用服务商，并导入模型',
       );
     }
     return config;

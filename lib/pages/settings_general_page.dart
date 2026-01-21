@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
-import 'package:zichat/pages/model_config_page.dart';
+import 'package:zichat/pages/model_services/model_services_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
@@ -40,7 +40,7 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
 
   void _openAiSettings() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ModelConfigPage()),
+      MaterialPageRoute(builder: (_) => const ModelServicesPage()),
     );
   }
 
@@ -135,4 +135,3 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
     );
   }
 }
-
