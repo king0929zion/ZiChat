@@ -147,10 +147,18 @@ class _BaseModelsBody extends StatelessWidget {
                     allowClear: false,
                   );
                   if (selection == null) return;
+                  final selectedConfig = configs
+                      .where((c) => c.id == selection.configId)
+                      .firstOrNull;
+                  final selectedModel =
+                      selectedConfig?.getModelById(selection.model);
+                  final supportsImage =
+                      selectedModel?.supportsImageInput ?? false;
                   await AiConfigStorage.saveBaseModelsConfig(
                     models.copyWith(
                       chatConfigId: selection.configId,
                       chatModel: selection.model,
+                      chatModelSupportsImage: supportsImage,
                     ),
                   );
                 },
@@ -203,11 +211,19 @@ class _BaseModelsBody extends StatelessWidget {
                         );
                         return;
                       }
+                      final selectedConfig = configs
+                          .where((c) => c.id == selection.configId)
+                          .firstOrNull;
+                      final selectedModel =
+                          selectedConfig?.getModelById(selection.model);
+                      final supportsImage =
+                          selectedModel?.supportsImageInput ?? true;
                       await AiConfigStorage.saveBaseModelsConfig(
                         models.copyWith(
                           ocrEnabled: true,
                           ocrConfigId: selection.configId,
                           ocrModel: selection.model,
+                          ocrModelSupportsImage: supportsImage,
                         ),
                       );
                       return;
@@ -244,11 +260,18 @@ class _BaseModelsBody extends StatelessWidget {
                     );
                     return;
                   }
+                  final selectedConfig = configs
+                      .where((c) => c.id == selection.configId)
+                      .firstOrNull;
+                  final selectedModel =
+                      selectedConfig?.getModelById(selection.model);
+                  final supportsImage = selectedModel?.supportsImageInput ?? true;
                   await AiConfigStorage.saveBaseModelsConfig(
                     models.copyWith(
                       ocrConfigId: selection.configId,
                       ocrModel: selection.model,
                       ocrEnabled: true,
+                      ocrModelSupportsImage: supportsImage,
                     ),
                   );
                 },
@@ -941,6 +964,19 @@ class _ModelPickRow extends StatelessWidget {
                 ],
               ),
             ),
+            if (model.type != ModelType.chat || model.supportsImageInput) ...[
+              const SizedBox(width: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  if (model.type == ModelType.image) const WeuiTag(label: '生图'),
+                  if (model.type == ModelType.embedding)
+                    const WeuiTag(label: '向量'),
+                  if (model.supportsImageInput) const WeuiTag(label: '识图'),
+                ],
+              ),
+            ],
           ],
         ),
       ),

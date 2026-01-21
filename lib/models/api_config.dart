@@ -240,14 +240,8 @@ class ApiConfig {
     this.sortOrder,
     this.builtIn = false,
     this.chatCompletionsPath = '/chat/completions',
-    this.useResponseApi = false,
     this.proxy = const ProviderProxy.none(),
     this.balanceOption = const BalanceOption(),
-    this.vertexAI = false,
-    this.privateKey = '',
-    this.serviceAccountEmail = '',
-    this.location = 'us-central1',
-    this.projectId = '',
   });
 
   final String id;
@@ -265,15 +259,8 @@ class ApiConfig {
   final int? sortOrder;
   final bool builtIn;
   final String chatCompletionsPath;
-  final bool useResponseApi;
   final ProviderProxy proxy;
   final BalanceOption balanceOption;
-
-  final bool vertexAI;
-  final String privateKey;
-  final String serviceAccountEmail;
-  final String location;
-  final String projectId;
 
   ApiConfig copyWith({
     String? id,
@@ -291,14 +278,8 @@ class ApiConfig {
     int? sortOrder,
     bool? builtIn,
     String? chatCompletionsPath,
-    bool? useResponseApi,
     ProviderProxy? proxy,
     BalanceOption? balanceOption,
-    bool? vertexAI,
-    String? privateKey,
-    String? serviceAccountEmail,
-    String? location,
-    String? projectId,
   }) {
     return ApiConfig(
       id: id ?? this.id,
@@ -316,14 +297,8 @@ class ApiConfig {
       sortOrder: sortOrder ?? this.sortOrder,
       builtIn: builtIn ?? this.builtIn,
       chatCompletionsPath: chatCompletionsPath ?? this.chatCompletionsPath,
-      useResponseApi: useResponseApi ?? this.useResponseApi,
       proxy: proxy ?? this.proxy,
       balanceOption: balanceOption ?? this.balanceOption,
-      vertexAI: vertexAI ?? this.vertexAI,
-      privateKey: privateKey ?? this.privateKey,
-      serviceAccountEmail: serviceAccountEmail ?? this.serviceAccountEmail,
-      location: location ?? this.location,
-      projectId: projectId ?? this.projectId,
     );
   }
 
@@ -344,14 +319,8 @@ class ApiConfig {
       'sortOrder': sortOrder,
       'builtIn': builtIn,
       'chatCompletionsPath': chatCompletionsPath,
-      'useResponseApi': useResponseApi,
       'proxy': proxy.toMap(),
       'balanceOption': balanceOption.toMap(),
-      'vertexAI': vertexAI,
-      'privateKey': privateKey,
-      'serviceAccountEmail': serviceAccountEmail,
-      'location': location,
-      'projectId': projectId,
     };
   }
 
@@ -392,14 +361,8 @@ class ApiConfig {
       builtIn: map['builtIn'] as bool? ?? false,
       chatCompletionsPath:
           (map['chatCompletionsPath'] ?? '/chat/completions').toString(),
-      useResponseApi: map['useResponseApi'] as bool? ?? false,
       proxy: ProviderProxy.fromMap(map['proxy']),
       balanceOption: BalanceOption.fromMap(map['balanceOption']),
-      vertexAI: map['vertexAI'] as bool? ?? false,
-      privateKey: (map['privateKey'] ?? '').toString(),
-      serviceAccountEmail: (map['serviceAccountEmail'] ?? '').toString(),
-      location: (map['location'] ?? 'us-central1').toString(),
-      projectId: (map['projectId'] ?? '').toString(),
     );
   }
 

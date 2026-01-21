@@ -210,6 +210,7 @@ class AiChatService {
     await for (final chunk in _callOpenAiStream(
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
+      chatCompletionsPath: config.chatCompletionsPath,
       model: model,
       messages: ocrMessages,
       temperature: 0,
@@ -405,6 +406,7 @@ class AiChatService {
     await for (final chunk in _callOpenAiStream(
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
+      chatCompletionsPath: config.chatCompletionsPath,
       model: model,
       messages: messages,
       temperature: config.temperature.clamp(0.0, 2.0),
@@ -672,13 +674,20 @@ class AiChatService {
   static Stream<String> _callOpenAiStream({
     required String baseUrl,
     required String apiKey,
+    required String chatCompletionsPath,
     required String model,
     required List<Map<String, dynamic>> messages,
     required double temperature,
     required double topP,
     required int maxTokens,
   }) async* {
-    final uri = _joinUri(baseUrl, 'chat/completions');
+    final cleanPath = chatCompletionsPath.trim();
+    final normalizedPath =
+        cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+    final uri = _joinUri(
+      baseUrl,
+      normalizedPath.isEmpty ? 'chat/completions' : normalizedPath,
+    );
 
     final body = jsonEncode({
       'model': model,

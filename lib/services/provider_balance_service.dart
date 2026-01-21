@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/provider_http_client.dart';
 
@@ -151,4 +150,3 @@ class ProviderBalanceService {
     return key;
   }
 }
-

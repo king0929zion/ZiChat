@@ -1055,6 +1055,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                                     title: _modelDisplay(entry.key, model),
                                     fullModel: model.modelId,
                                     selected: model.modelId == config.selectedModel,
+                                    supportsImageInput: model.supportsImageInput,
                                     onTap: () => _selectModel(config, model.modelId),
                                     onRemove: () => _removeModel(config, model.modelId),
                                   ),
@@ -1245,6 +1246,7 @@ class _ModelRow extends StatelessWidget {
     required this.title,
     required this.fullModel,
     required this.selected,
+    required this.supportsImageInput,
     required this.onTap,
     required this.onRemove,
   });
@@ -1253,6 +1255,7 @@ class _ModelRow extends StatelessWidget {
   final String title;
   final String fullModel;
   final bool selected;
+  final bool supportsImageInput;
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
@@ -1298,6 +1301,27 @@ class _ModelRow extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (supportsImageInput) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '识图',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                         if (selected) ...[
                           const SizedBox(width: 6),
                           Container(

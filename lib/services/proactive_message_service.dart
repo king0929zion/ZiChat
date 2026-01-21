@@ -144,7 +144,13 @@ $prompt
 ''';
 
       // 使用配置的第一个模型
-      final uri = _joinUri(config.baseUrl, 'chat/completions');
+      final cleanPath = config.chatCompletionsPath.trim();
+      final normalizedPath =
+          cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+      final uri = _joinUri(
+        config.baseUrl,
+        normalizedPath.isEmpty ? 'chat/completions' : normalizedPath,
+      );
 
       final response = await http.post(
         uri,

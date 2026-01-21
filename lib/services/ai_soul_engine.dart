@@ -401,8 +401,16 @@ class AiSoulEngine {
 {"description": "事件描述", "energy": 10, "mood": 15, "stress": -5, "activity": "当前活动"}
 ''';
 
+      final cleanPath = config.chatCompletionsPath.trim();
+      final normalizedPath =
+          cleanPath.startsWith('/') ? cleanPath.substring(1) : cleanPath;
+      final uri = _joinUri(
+        config.baseUrl,
+        normalizedPath.isEmpty ? 'chat/completions' : normalizedPath,
+      );
+
       final response = await http.post(
-        _joinUri(config.baseUrl, 'chat/completions'),
+        uri,
         headers: {
           'Authorization': 'Bearer ${config.apiKey}',
           'Content-Type': 'application/json',
