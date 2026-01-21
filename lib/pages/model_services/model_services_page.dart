@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive/hive.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
@@ -140,52 +141,148 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
                 final filtered = _filterConfigs(configs);
 
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
-                    WeuiPillSearchBar(
-                      controller: _searchController,
-                      hintText: '输入厂商名称',
-                      onChanged: (_) => setState(() {}),
+                    // 搜索栏 - 更突出的设计
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF2F2F2),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 14),
+                          SvgPicture.asset(
+                            AppAssets.iconSearch,
+                            width: 18,
+                            height: 18,
+                            colorFilter: const ColorFilter.mode(
+                              AppColors.textHint,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchController,
+                              autofocus: false,
+                              onChanged: (_) => setState(() {}),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                height: 1.2,
+                                color: AppColors.textPrimary,
+                              ),
+                              cursorColor: AppColors.primary,
+                              decoration: InputDecoration(
+                                hintText: '搜索厂商或模型…',
+                                hintStyle: const TextStyle(
+                                  fontSize: 16,
+                                  height: 1.2,
+                                  color: AppColors.textHint,
+                                ),
+                                border: InputBorder.none,
+                                isCollapsed: true,
+                              ),
+                            ),
+                          ),
+                          if (_searchController.text.isNotEmpty)
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                _searchController.clear();
+                                setState(() {});
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                child: Icon(
+                                  Icons.cancel,
+                                  size: 18,
+                                  color: AppColors.textHint,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 4),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
                     if (configs.isEmpty)
                       _EmptyState(onAdd: _addProvider)
                     else if (filtered.isEmpty)
-                      const _NoSearchResult()
+                      _NoSearchResult(query: _searchController.text)
                     else
                       ...[
+                        // 显示启用状态统计
+                        _StatsBar(configs: configs, filtered: filtered),
+                        const SizedBox(height: 8),
                         for (final config in filtered) ...[
                           ModelServiceCard(
                             onTap: () => _openProvider(config),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                             child: Row(
                               children: [
                                 ProviderAvatar(name: config.name),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 14),
                                 Expanded(
-                                  child: Text(
-                                    config.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textPrimary,
-                                    ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        config.name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            config.models.isEmpty
+                                                ? '暂无模型'
+                                                : '${config.models.length} 个模型',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          if (config.isActive) ...[
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              width: 6,
+                                              height: 6,
+                                              decoration: const BoxDecoration(
+                                                color: AppColors.online,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            const Text(
+                                              '已启用',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.online,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                if (config.isActive)
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.online,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
+                                Icon(
+                                  Icons.chevron_right,
+                                  color: AppColors.textHint,
+                                  size: 22,
+                                ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                         ],
                       ],
                   ],
@@ -240,7 +337,9 @@ class _EmptyState extends StatelessWidget {
 }
 
 class _NoSearchResult extends StatelessWidget {
-  const _NoSearchResult();
+  const _NoSearchResult({this.query = ''});
+
+  final String query;
 
   @override
   Widget build(BuildContext context) {
@@ -248,11 +347,18 @@ class _NoSearchResult extends StatelessWidget {
       padding: const EdgeInsets.only(top: 48),
       child: Column(
         children: [
-          const Icon(Icons.search_off, size: 56, color: AppColors.textHint),
-          const SizedBox(height: 12),
-          const Text(
-            '未找到匹配的厂商',
-            style: TextStyle(
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF2F2F2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.search_off, size: 32, color: AppColors.textHint),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            query.isEmpty ? '暂无数据' : '未找到匹配结果',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
@@ -260,7 +366,7 @@ class _NoSearchResult extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '试试换个关键词',
+            query.isEmpty ? '请添加服务商' : '试试换个关键词',
             style: TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary.withValues(alpha: 0.9),
@@ -268,6 +374,50 @@ class _NoSearchResult extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _StatsBar extends StatelessWidget {
+  const _StatsBar({required this.configs, required this.filtered});
+
+  final List<ApiConfig> configs;
+  final List<ApiConfig> filtered;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabledCount = configs.where((c) => c.isActive).length;
+    final filteredEnabled = filtered.where((c) => c.isActive).length;
+
+    return Row(
+      children: [
+        Text(
+          '共 ${filtered.length} 个服务商',
+          style: const TextStyle(
+            fontSize: 13,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        if (filteredEnabled > 0) ...[
+          const SizedBox(width: 8),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: AppColors.online,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$filteredEnabled 个已启用',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.online,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -1,11 +1,24 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+
+extension _StringSuffixExtension on String {
+  String replaceAllSuffix(String suffix) {
+    if (this.endsWith(suffix)) {
+      return substring(0, length - suffix.length);
+    }
+    return this;
+  }
+}
 
 /// API 服务编辑页（按 WeUI 风格重写）
 class ApiServicePage extends StatefulWidget {
@@ -24,8 +37,10 @@ class _ApiServicePageState extends State<ApiServicePage> {
 
   bool _showApiKey = false;
   bool _saving = false;
+  bool _testing = false;
   String? _error;
   String? _copiedHint;
+  String? _testResult;
 
   ApiConfig? _original;
 
@@ -85,6 +100,65 @@ class _ApiServicePageState extends State<ApiServicePage> {
     await Clipboard.setData(ClipboardData(text: url));
     if (!mounted) return;
     setState(() => _copiedHint = '已复制链接');
+  }
+
+  Future<void> _testConnection() async {
+    final apiKey = _apiKeyController.text.trim();
+    final baseUrl = _baseUrlController.text.trim();
+
+    if (apiKey.isEmpty || baseUrl.isEmpty) {
+      setState(() {
+        _testResult = null;
+        _error = '请先填写 API 密钥和主机地址';
+      });
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    setState(() {
+      _testing = true;
+      _error = null;
+      _testResult = null;
+    });
+
+    try {
+      // 构建测试请求 - 使用 /models 端点测试连接
+      final uri = Uri.parse('${baseUrl.trim().replaceAllSuffix('/')}/models');
+      final client = http.Client();
+      try {
+        final response = await client.get(
+          uri,
+          headers: {
+            'Authorization': 'Bearer ${apiKey.split(',').first.trim()}',
+            'Content-Type': 'application/json',
+          },
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          setState(() => _testResult = '连接成功 ✓');
+        } else if (response.statusCode == 401) {
+          setState(() => _testResult = null);
+          setState(() => _error = '连接失败：API 密钥无效 (401 Unauthorized)');
+        } else if (response.statusCode == 404) {
+          // 端点不存在，但连接是通的
+          setState(() => _testResult = '连接成功 ✓ (端点不支持)');
+        } else {
+          setState(() => _testResult = null);
+          setState(() => _error = '连接失败：${response.statusCode} ${response.reasonPhrase ?? ""}');
+        }
+      } finally {
+        client.close();
+      }
+    } on TimeoutException {
+      setState(() => _testResult = null);
+      setState(() => _error = '连接超时：请检查主机地址是否正确');
+    } catch (e) {
+      setState(() => _testResult = null);
+      setState(() => _error = '连接失败：${e.toString().contains('SocketException') ? '无法连接到服务器，请检查主机地址' : e.toString()}');
+    } finally {
+      if (!mounted) return;
+      setState(() => _testing = false);
+    }
   }
 
   String _guessDocsUrl({required String name, required String baseUrl}) {
@@ -316,13 +390,46 @@ class _ApiServicePageState extends State<ApiServicePage> {
                   ),
                 ],
                 const SizedBox(height: 22),
-                const Text(
-                  'API 主机',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'API 主机',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _testing ? null : _testConnection,
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        minimumSize: Size.zero,
+                      ),
+                      child: _testing
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.wifi_find, size: 14),
+                                SizedBox(width: 4),
+                                Text(
+                                  '测试连接',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10),
                 _PillInput(
@@ -332,6 +439,31 @@ class _ApiServicePageState extends State<ApiServicePage> {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _submit(),
                 ),
+                if (_testResult != null) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFA5D6A7), width: 0.8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Color(0xFF4CAF50), size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          _testResult!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF2E7D32),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (_error != null) ...[
                   const SizedBox(height: 14),
                   _InlineError(text: _error!),

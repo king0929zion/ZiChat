@@ -77,52 +77,18 @@ class _BaseModelsBody extends StatelessWidget {
     final models = AiBaseModelsConfig.fromMap(baseConfig) ?? const AiBaseModelsConfig();
 
     if (configs.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
-        children: const [
-          Icon(Icons.api_outlined, size: 56, color: AppColors.textHint),
-          SizedBox(height: 12),
-          Text(
-            '还没有服务商',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            '请先在“模型服务”中添加并启用服务商',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-        ],
+      return _EmptyState(
+        icon: Icons.api_outlined,
+        title: '还没有服务商',
+        subtitle: '请先在"模型服务"中添加并启用服务商',
       );
     }
 
     if (pickableConfigs.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
-        children: const [
-          Icon(Icons.toggle_off_outlined, size: 56, color: AppColors.textHint),
-          SizedBox(height: 12),
-          Text(
-            '还没有启用的服务商',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          SizedBox(height: 6),
-          Text(
-            '请先在“模型服务”中启用至少一个服务商',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-        ],
+      return _EmptyState(
+        icon: Icons.toggle_off_outlined,
+        title: '还没有启用的服务商',
+        subtitle: '请先在"模型服务"中启用至少一个服务商',
       );
     }
 
@@ -379,19 +345,19 @@ class _SettingRow extends StatelessWidget {
               }
             : null,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
                         color: enabled
                             ? AppColors.textPrimary
                             : AppColors.textDisabled,
@@ -403,7 +369,7 @@ class _SettingRow extends StatelessWidget {
                         description!,
                         style: const TextStyle(
                           fontSize: 12,
-                          height: 1.35,
+                          height: 1.4,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -412,22 +378,18 @@ class _SettingRow extends StatelessWidget {
                 ),
               ),
               if (value != null) ...[
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: Text(
-                      value!,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 13,
-                        height: 1.2,
-                        color: enabled
-                            ? AppColors.textSecondary
-                            : AppColors.textDisabled,
-                      ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    value!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: enabled
+                          ? AppColors.textSecondary
+                          : AppColors.textDisabled,
                     ),
                   ),
                 ),
@@ -436,9 +398,10 @@ class _SettingRow extends StatelessWidget {
                 const SizedBox(width: 8),
                 trailing!,
               ] else if (showArrow) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Icon(
                   Icons.chevron_right,
+                  size: 20,
                   color: enabled ? AppColors.textHint : AppColors.textDisabled,
                 ),
               ],
@@ -455,6 +418,57 @@ class _ModelSelection {
 
   final String configId;
   final String model;
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 80),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F2F2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 32, color: AppColors.textHint),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary.withValues(alpha: 0.9),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Future<_ModelSelection?> _showModelPicker({
@@ -482,13 +496,21 @@ Future<_ModelSelection?> _showModelPicker({
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
+    isDismissible: true,
+    enableDrag: true,
     builder: (ctx) {
-      return _ModelPickerSheet(
-        title: title,
-        configs: configs,
-        initialConfigId: selectedConfig.id,
-        initialModel: initSelectedModel,
-        allowClear: allowClear,
+      return Container(
+        decoration: const BoxDecoration(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          color: AppColors.surface,
+        ),
+        child: _ModelPickerSheet(
+          title: title,
+          configs: configs,
+          initialConfigId: selectedConfig.id,
+          initialModel: initSelectedModel,
+          allowClear: allowClear,
+        ),
       );
     },
   );
@@ -537,104 +559,179 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
         _model ?? config.selectedModel ?? (allModels.isEmpty ? null : allModels.first);
 
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Material(
-            color: AppColors.surface,
-            child: DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.72,
-              minChildSize: 0.45,
-              maxChildSize: 0.92,
-              builder: (ctx, scrollController) {
-                return ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-                  children: [
-                    Center(
-                      child: Text(
-                        widget.title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    WeuiPillSearchBar(
-                      controller: _searchController,
-                      hintText: '搜索…',
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final c in widget.configs)
-                          _ProviderChip(
-                            name: c.name,
-                            selected: c.id == _configId,
-                            onTap: () => setState(() {
-                              _configId = c.id;
-                              _model = c.selectedModel ??
-                                  (c.models.isEmpty ? null : c.models.first);
-                              _searchController.clear();
-                            }),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    if (widget.allowClear)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(
-                            const _ModelSelection(configId: '', model: ''),
-                          ),
-                          child: const Text('清除（不使用）'),
-                        ),
-                      ),
-                    if (models.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 16),
-                        child: Text(
-                          '该服务商暂无匹配模型，请先在服务商详情页导入模型。',
-                          style: TextStyle(fontSize: 13, color: AppColors.textHint),
-                        ),
-                      )
-                    else
-                      WeuiInsetCard(
-                        margin: EdgeInsets.zero,
-                        child: Column(
-                          children: [
-                            for (int i = 0; i < models.length; i++) ...[
-                              _ModelPickRow(
-                                model: models[i],
-                                selected: selectedModel == models[i],
-                                onTap: () => Navigator.of(context).pop(
-                                  _ModelSelection(
-                                    configId: _configId,
-                                    model: models[i],
-                                  ),
-                                ),
-                              ),
-                              if (i < models.length - 1)
-                                const Divider(height: 1, color: AppColors.divider),
-                            ],
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              },
+      top: false,
+      bottom: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 顶部拖动条
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-        ),
+          const SizedBox(height: 16),
+          // 标题
+          Text(
+            widget.title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // 搜索框
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF2F2F2),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 14),
+                  const Icon(Icons.search, size: 18, color: AppColors.textHint),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (_) => setState(() {}),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.textPrimary,
+                      ),
+                      cursorColor: AppColors.primary,
+                      decoration: InputDecoration(
+                        hintText: '搜索模型…',
+                        hintStyle: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.textHint,
+                        ),
+                        border: InputBorder.none,
+                        isCollapsed: true,
+                      ),
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {});
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.cancel,
+                          size: 16,
+                          color: AppColors.textHint,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 服务商选择
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              spacing: 8,
+              children: [
+                for (final c in widget.configs)
+                  _ProviderChip(
+                    name: c.name,
+                    selected: c.id == _configId,
+                    onTap: () => setState(() {
+                      _configId = c.id;
+                      _model = c.selectedModel ??
+                          (c.models.isEmpty ? null : c.models.first);
+                      _searchController.clear();
+                    }),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // 清除按钮
+          if (widget.allowClear)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(
+                    const _ModelSelection(configId: '', model: ''),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: const Color(0xFFF2F2F2),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                  child: const Text(
+                    '不使用',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
+          // 模型列表
+          Expanded(
+            child: models.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.search_off, size: 40, color: AppColors.textHint),
+                        const SizedBox(height: 12),
+                        Text(
+                          query.isEmpty
+                              ? '该服务商暂无模型'
+                              : '未找到匹配模型',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: models.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: AppColors.divider),
+                    itemBuilder: (ctx, index) {
+                      final model = models[index];
+                      final isSelected = selectedModel == model;
+                      return _ModelPickRow(
+                        model: model,
+                        selected: isSelected,
+                        onTap: () => Navigator.of(context).pop(
+                          _ModelSelection(
+                            configId: _configId,
+                            model: model,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -707,22 +804,22 @@ class _ModelPickRow extends StatelessWidget {
         HapticFeedback.selectionClick();
         onTap();
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         child: Row(
           children: [
             Container(
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 color: selected ? AppColors.primary : Colors.transparent,
                 shape: BoxShape.circle,
                 border: selected
                     ? null
-                    : Border.all(color: AppColors.divider, width: 1.5),
+                    : Border.all(color: AppColors.border, width: 1.5),
               ),
               child: selected
-                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                  ? const Icon(Icons.check, size: 12, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -733,7 +830,7 @@ class _ModelPickRow extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 15,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                   color: selected ? AppColors.primary : AppColors.textPrimary,
                 ),
               ),

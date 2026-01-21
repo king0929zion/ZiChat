@@ -489,30 +489,67 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
 
                     WeuiSectionTitle(
                       title: '模型',
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: _openBaseModels,
-                            icon: const Icon(Icons.tune, size: 20),
-                            color: AppColors.link,
-                            splashRadius: 18,
-                          ),
-                          IconButton(
-                            onPressed: () => _showModelActions(config),
-                            icon: const Icon(Icons.add, size: 22),
-                            color: AppColors.textPrimary,
-                            splashRadius: 18,
-                          ),
-                        ],
+                      trailing: TextButton.icon(
+                        onPressed: () => _showModelActions(config),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('添加'),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          minimumSize: Size.zero,
+                        ),
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: WeuiPillSearchBar(
-                        controller: _modelSearchController,
-                        hintText: '搜索模型…',
-                        onChanged: (_) => setState(() {}),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF2F2F2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 12),
+                            const Icon(Icons.search, size: 18, color: AppColors.textHint),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _modelSearchController,
+                                onChanged: (_) => setState(() {}),
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.textPrimary,
+                                ),
+                                cursorColor: AppColors.primary,
+                                decoration: InputDecoration(
+                                  hintText: '搜索模型…',
+                                  hintStyle: const TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.textHint,
+                                  ),
+                                  border: InputBorder.none,
+                                  isCollapsed: true,
+                                ),
+                              ),
+                            ),
+                            if (_modelSearchController.text.isNotEmpty)
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  _modelSearchController.clear();
+                                  setState(() {});
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.all(6),
+                                  child: Icon(
+                                    Icons.cancel,
+                                    size: 16,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
+                              ),
+                            const SizedBox(width: 4),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -716,33 +753,44 @@ class _GroupHeader extends StatelessWidget {
           HapticFeedback.selectionClick();
           onTap();
         },
-        child: SizedBox(
-          height: 52,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Icon(
-                  collapsed ? Icons.expand_more : Icons.expand_less,
-                  size: 22,
-                  color: AppColors.textPrimary,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                collapsed ? Icons.expand_more : Icons.expand_less,
+                size: 20,
+                color: AppColors.textPrimary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                WeuiBadge(count: count),
-              ],
-            ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -773,95 +821,88 @@ class _ModelRow extends StatelessWidget {
       color: AppColors.surface,
       child: InkWell(
         onTap: onTap,
-        child: SizedBox(
-          height: 56,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                ProviderAvatar(name: leadingName, size: 30, radius: 10),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: selected
-                                    ? AppColors.primary
-                                    : AppColors.textPrimary,
-                                fontWeight:
-                                    selected ? FontWeight.w600 : FontWeight.w500,
-                              ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // 选中状态指示器
+              Container(
+                width: 18,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.primary : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: selected ? null : Border.all(color: AppColors.border, width: 1.5),
+                ),
+                child: selected
+                    ? const Icon(Icons.check, size: 11, color: Colors.white)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: selected ? AppColors.primary : AppColors.textPrimary,
+                              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                             ),
-                          ),
-                          if (selected) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text(
-                                '默认',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      if (!selected)
-                        Text(
-                          fullModel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textHint,
                           ),
                         ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onRemove,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: const Color(0x0DFA5151),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0x33FA5151),
-                        width: 0.8,
+                        if (selected) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '默认',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (!selected)
+                      Text(
+                        fullModel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textHint,
+                        ),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.remove,
-                      size: 18,
-                      color: AppColors.error,
-                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onRemove,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: AppColors.textHint.withValues(alpha: 0.6),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
