@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/services/notification_service.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
 /// 主动消息服务（简化版）
@@ -51,10 +52,27 @@ class ProactiveMessageService {
 
   /// 检查并触发主动消息
   Future<void> _checkAndTrigger() async {
-    // 检查是否有配置的 API
-    final config = ApiConfigStorage.getActiveConfig();
-    if (config == null || config.models.isEmpty) {
-      return; // 没有配置 API，不触发
+    final configs = ApiConfigStorage.getAllConfigs();
+    if (configs.isEmpty) return;
+
+    final enabled = ApiConfigStorage.getEnabledConfigs();
+    final fallback =
+        ApiConfigStorage.getActiveConfig() ?? (enabled.isNotEmpty ? enabled.first : configs.first);
+
+    final storedBase = await AiConfigStorage.loadBaseModelsConfig();
+    final base = storedBase ?? const AiBaseModelsConfig();
+
+    final useBaseChat = base.hasChatModel;
+    final config = useBaseChat
+        ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallback)
+        : fallback;
+
+    final model = useBaseChat
+        ? (base.chatModel ?? '').trim()
+        : ((config.selectedModel ?? (config.models.isNotEmpty ? config.models.first : '')).trim());
+
+    if (config.baseUrl.trim().isEmpty || config.apiKey.trim().isEmpty || model.isEmpty) {
+      return;
     }
 
     final now = DateTime.now();
@@ -83,7 +101,7 @@ class ProactiveMessageService {
     }
 
     // 生成消息
-    final message = await _generateRandomMessage(config);
+    final message = await _generateRandomMessage(config, model);
 
     // 发送消息
     if (message != null && message.isNotEmpty) {
@@ -111,7 +129,7 @@ class ProactiveMessageService {
   }
 
   /// 生成随机主动消息
-  Future<String?> _generateRandomMessage(ApiConfig config) async {
+  Future<String?> _generateRandomMessage(ApiConfig config, String model) async {
     try {
       final prompts = [
         '突然想到你了，发条消息看看你在干嘛。生成一条简短的打招呼消息。',
@@ -135,7 +153,6 @@ $prompt
 ''';
 
       // 使用配置的第一个模型
-      final model = config.models.first;
       final uri = _joinUri(config.baseUrl, 'chat/completions');
 
       final response = await http.post(

@@ -5,6 +5,7 @@ import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/model_services/api_service_page.dart';
+import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/provider_detail_page.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
 import 'package:zichat/storage/api_config_storage.dart';
@@ -48,6 +49,13 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
     );
   }
 
+  Future<void> _openBaseModels() async {
+    HapticFeedback.lightImpact();
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BaseModelsPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,6 +85,37 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
           ),
         ),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(22),
+                  onTap: _openBaseModels,
+                  child: const Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Color(0x0D000000),
+                        shape: BoxShape.circle,
+                      ),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(
+                          Icons.tune,
+                          size: 20,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: WeuiCircleIconButton(

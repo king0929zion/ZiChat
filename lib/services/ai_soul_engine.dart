@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
 /// AI 灵魂引擎
@@ -369,11 +370,29 @@ class AiSoulEngine {
   
   /// 使用 AI 生成更丰富的事件
   Future<LifeEvent?> generateAiEvent() async {
-    if (!ApiConfigStorage.hasConfig()) return null;
-
     try {
-      final config = ApiConfigStorage.getActiveConfig();
-      if (config == null || config.models.isEmpty) return null;
+      final configs = ApiConfigStorage.getAllConfigs();
+      if (configs.isEmpty) return null;
+
+      final enabled = ApiConfigStorage.getEnabledConfigs();
+      final fallback = ApiConfigStorage.getActiveConfig() ??
+          (enabled.isNotEmpty ? enabled.first : configs.first);
+
+      final storedBase = await AiConfigStorage.loadBaseModelsConfig();
+      final base = storedBase ?? const AiBaseModelsConfig();
+
+      final useBaseChat = base.hasChatModel;
+      final config = useBaseChat
+          ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallback)
+          : fallback;
+
+      final model = useBaseChat
+          ? (base.chatModel ?? '').trim()
+          : (config.models.isNotEmpty ? config.models.first : '').trim();
+
+      if (config.baseUrl.trim().isEmpty || config.apiKey.trim().isEmpty || model.isEmpty) {
+        return null;
+      }
 
       final prompt = '''
 你是一个角色扮演助手。请为一个${profile.role}角色生成一个随机的日常生活小事件。
@@ -392,13 +411,13 @@ class AiSoulEngine {
 ''';
 
       final response = await http.post(
-        Uri.parse('${config.baseUrl}/chat/completions'),
+        _joinUri(config.baseUrl, 'chat/completions'),
         headers: {
           'Authorization': 'Bearer ${config.apiKey}',
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'model': config.models.first,
+          'model': model,
           'messages': [{'role': 'user', 'content': prompt}],
           'temperature': 0.9,
           'max_tokens': 200,
@@ -428,6 +447,13 @@ class AiSoulEngine {
       debugPrint('Generate AI event error: $e');
     }
     return null;
+  }
+
+  static Uri _joinUri(String base, String path) {
+    if (base.endsWith('/')) {
+      return Uri.parse('$base$path');
+    }
+    return Uri.parse('$base/$path');
   }
   
   // ==================== 亲密度系统 ====================

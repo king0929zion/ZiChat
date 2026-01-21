@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zichat/config/app_config.dart';
+import 'package:zichat/config/no_glow_scroll_behavior.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/home_page.dart';
 import 'package:zichat/services/chat_event_manager.dart';
@@ -90,6 +91,7 @@ class ZiChatApp extends StatelessWidget {
       title: 'ZiChat',
       debugShowCheckedModeBanner: false,
       theme: AppConfig.createTheme(),
+      scrollBehavior: const NoGlowScrollBehavior(),
       home: const AppRouter(),
     );
   }

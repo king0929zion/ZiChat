@@ -67,18 +67,19 @@ class ApiConfigStorage {
 
   /// 设置活动配置
   static Future<void> setActiveConfig(String id) async {
-    // 取消所有活动的配置
-    final configs = getAllConfigs();
-    for (final config in configs) {
-      if (config.isActive) {
-        await saveConfig(config.copyWith(isActive: false));
-      }
-    }
-    // 设置新的活动配置
+    await setEnabled(id, true);
+  }
+
+  /// 启用/禁用配置（允许多个同时启用）
+  static Future<void> setEnabled(String id, bool enabled) async {
     final target = getConfig(id);
-    if (target != null) {
-      await saveConfig(target.copyWith(isActive: true));
-    }
+    if (target == null) return;
+    await saveConfig(target.copyWith(isActive: enabled));
+  }
+
+  /// 获取所有已启用的配置
+  static List<ApiConfig> getEnabledConfigs() {
+    return getAllConfigs().where((c) => c.isActive).toList();
   }
 
   /// 获取当前活动的配置

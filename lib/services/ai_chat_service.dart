@@ -12,6 +12,33 @@ import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
+class _ResolvedAiModels {
+  const _ResolvedAiModels({
+    required this.chatConfig,
+    required this.chatModel,
+    required this.chatModelSupportsImage,
+    required this.ocrEnabled,
+    required this.ocrConfig,
+    required this.ocrModel,
+    required this.ocrModelSupportsImage,
+  });
+
+  final ApiConfig chatConfig;
+  final String chatModel;
+  final bool chatModelSupportsImage;
+
+  final bool ocrEnabled;
+  final ApiConfig? ocrConfig;
+  final String? ocrModel;
+  final bool ocrModelSupportsImage;
+
+  bool get canOcr =>
+      ocrEnabled &&
+      ocrModelSupportsImage &&
+      ocrConfig != null &&
+      (ocrModel?.trim().isNotEmpty ?? false);
+}
+
 /// 统一的 AI 对话服务
 /// 支持流式响应和智能上下文管理
 class AiChatService {
@@ -45,15 +72,75 @@ class AiChatService {
     return _basePromptCache;
   }
 
-  /// 获取当前活动的 API 配置
-  static Future<ApiConfig> _getActiveConfig() async {
-    final config = ApiConfigStorage.getActiveConfig();
-    if (config == null || config.models.isEmpty) {
-      throw Exception(
-        '请先在“我-设置-通用-AI 设置-模型服务”中添加并启用服务商，并导入模型',
-      );
+  static Future<_ResolvedAiModels> _resolveModels() async {
+    final configs = ApiConfigStorage.getAllConfigs();
+    if (configs.isEmpty) {
+      throw Exception('请先在“设置-通用-AI 设置”中添加模型服务');
     }
-    return config;
+
+    final enabled = ApiConfigStorage.getEnabledConfigs();
+    final activeFallback = ApiConfigStorage.getActiveConfig();
+    final fallbackConfig =
+        activeFallback ?? (enabled.isNotEmpty ? enabled.first : configs.first);
+
+    final storedBase = await AiConfigStorage.loadBaseModelsConfig();
+    final base = storedBase ?? const AiBaseModelsConfig();
+
+    final useBaseChat = base.hasChatModel;
+
+    final chatConfig = useBaseChat
+        ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallbackConfig)
+        : fallbackConfig;
+
+    final chatModel = useBaseChat
+        ? (base.chatModel ?? '').trim()
+        : ((chatConfig.selectedModel ??
+                    (chatConfig.models.isNotEmpty ? chatConfig.models.first : ''))
+                .trim());
+
+    final chatModelSupportsImage =
+        useBaseChat ? base.chatModelSupportsImage : chatConfig.chatModelSupportsImage;
+
+    if (chatConfig.baseUrl.trim().isEmpty || chatConfig.apiKey.trim().isEmpty) {
+      throw Exception('请先在“模型服务-API 服务”中填写主机与密钥');
+    }
+    if (chatModel.isEmpty) {
+      throw Exception('请先在“模型服务”中导入模型，并在“基础模型”设置默认对话模型');
+    }
+
+    ApiConfig? ocrConfig;
+    String? ocrModel;
+    bool ocrEnabled = false;
+    bool ocrModelSupportsImage = true;
+
+    if (!chatModelSupportsImage) {
+      if (storedBase != null) {
+        ocrEnabled = base.ocrEnabled && base.hasOcrModel;
+        ocrModelSupportsImage = base.ocrModelSupportsImage;
+        if (ocrEnabled && ocrModelSupportsImage) {
+          ocrConfig = ApiConfigStorage.getConfig((base.ocrConfigId ?? '').trim());
+          ocrModel = (base.ocrModel ?? '').trim();
+        }
+      } else {
+        ocrEnabled = chatConfig.ocrEnabled &&
+            (chatConfig.ocrModel?.trim().isNotEmpty ?? false);
+        ocrModelSupportsImage = chatConfig.ocrModelSupportsImage;
+        if (ocrEnabled && ocrModelSupportsImage) {
+          ocrConfig = chatConfig;
+          ocrModel = chatConfig.ocrModel?.trim();
+        }
+      }
+    }
+
+    return _ResolvedAiModels(
+      chatConfig: chatConfig,
+      chatModel: chatModel,
+      chatModelSupportsImage: chatModelSupportsImage,
+      ocrEnabled: ocrEnabled,
+      ocrConfig: ocrConfig,
+      ocrModel: ocrModel,
+      ocrModelSupportsImage: ocrModelSupportsImage,
+    );
   }
 
   static bool _contextAlreadyHasUserInput(
@@ -91,16 +178,14 @@ class AiChatService {
     return 0;
   }
 
-  static Future<String> _ocrImageIfNeeded(
-    ApiConfig config,
-    String imagePath,
-  ) async {
-    if (!config.ocrEnabled) return '';
-    if (!config.ocrModelSupportsImage) return '';
-    final ocrModel = config.ocrModel;
-    if (ocrModel == null || ocrModel.trim().isEmpty) return '';
+  static Future<String> _ocrImage({
+    required ApiConfig config,
+    required String model,
+    required String imagePath,
+  }) async {
+    if (model.trim().isEmpty) return '';
 
-    final cacheKey = '$ocrModel|$imagePath';
+    final cacheKey = '${config.id}|$model|$imagePath';
     final cached = _ocrCache[cacheKey];
     if (cached != null) return cached;
 
@@ -133,7 +218,7 @@ class AiChatService {
     await for (final chunk in _callOpenAiStream(
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
-      model: ocrModel,
+      model: model,
       messages: ocrMessages,
       temperature: 0,
       topP: 1,
@@ -152,7 +237,7 @@ class AiChatService {
 
   static Future<Map<String, dynamic>?> _chatMessageToApiMessage(
     ChatMessage message,
-    ApiConfig config, {
+    _ResolvedAiModels models, {
     required int imageCount,
   }) async {
     final direction = message.direction;
@@ -178,11 +263,8 @@ class AiChatService {
         }
 
         final allowImage = imageCount < _maxImagesInContext;
-        final canOcr = config.ocrEnabled &&
-            config.ocrModelSupportsImage &&
-            (config.ocrModel?.trim().isNotEmpty ?? false);
 
-        if (config.chatModelSupportsImage && allowImage) {
+        if (models.chatModelSupportsImage && allowImage) {
           final dataUrl = await _imagePathToDataUrl(path);
           if (dataUrl == null) {
             return {'role': role, 'content': '[图片]'};
@@ -200,8 +282,12 @@ class AiChatService {
           };
         }
 
-        if (allowImage && canOcr) {
-          final ocrText = await _ocrImageIfNeeded(config, path);
+        if (allowImage && models.canOcr) {
+          final ocrText = await _ocrImage(
+            config: models.ocrConfig!,
+            model: models.ocrModel!,
+            imagePath: path,
+          );
           return {
             'role': role,
             'content':
@@ -228,7 +314,7 @@ class AiChatService {
 
   static Future<List<Map<String, dynamic>>> _buildMessagesFromContext(
     List<ChatMessage> contextMessages,
-    ApiConfig config,
+    _ResolvedAiModels models,
   ) async {
     final result = <Map<String, dynamic>>[];
     int tokenCount = 0;
@@ -238,7 +324,7 @@ class AiChatService {
       final msg = contextMessages[i];
       final built = await _chatMessageToApiMessage(
         msg,
-        config,
+        models,
         imageCount: imageCount,
       );
       if (built == null) continue;
@@ -271,11 +357,10 @@ class AiChatService {
     final hasContext = contextMessages != null && contextMessages.isNotEmpty;
     if (normalizedInput.isEmpty && !hasContext) return;
 
-    // 获取活动配置
-    final config = await _getActiveConfig();
-
-    // 使用配置的选定模型（或第一个作为后备）
-    final model = config.selectedModel ?? config.models.first;
+    // 获取当前使用的模型（基础模型配置优先）
+    final models = await _resolveModels();
+    final config = models.chatConfig;
+    final model = models.chatModel;
 
     // 模拟真人回复延迟 (800ms - 2000ms)
     final initialDelay = 800 + _random.nextInt(1200);
@@ -290,7 +375,7 @@ class AiChatService {
     }
 
     if (hasContext) {
-      final context = await _buildMessagesFromContext(contextMessages!, config);
+      final context = await _buildMessagesFromContext(contextMessages!, models);
       messages.addAll(context);
 
       if (normalizedInput.isNotEmpty &&

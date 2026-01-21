@@ -66,7 +66,7 @@ class _ChatsPageState extends State<ChatsPage> {
                   ? _buildEmptyState()
                   : ListView.builder(
                       padding: EdgeInsets.zero,
-                      physics: const BouncingScrollPhysics(),
+                      physics: const ClampingScrollPhysics(),
                       itemCount: chats.length,
                       itemBuilder: (context, index) {
                         final chat = chats[index];

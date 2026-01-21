@@ -1,31 +1,61 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:zichat/models/api_config.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 
 /// 图像生成服务
 /// 支持 OpenAI 兼容格式的图像生成 API（如 DALL-E）
 class ImageGenService {
+  static AiBaseModelsConfig _loadBaseModels() {
+    try {
+      final raw = Hive.box(AiConfigStorage.boxName).get('base_models');
+      if (raw is Map) {
+        return AiBaseModelsConfig.fromMap(raw) ?? const AiBaseModelsConfig();
+      }
+    } catch (_) {}
+    return const AiBaseModelsConfig();
+  }
+
   /// 检查是否可用
   static bool get isAvailable {
-    final config = ApiConfigStorage.getActiveConfig();
-    return config != null && config.models.isNotEmpty;
+    final base = _loadBaseModels();
+    if (base.hasImageGenModel) {
+      final config = ApiConfigStorage.getConfig((base.imageGenConfigId ?? '').trim());
+      final model = (base.imageGenModel ?? '').trim();
+      return config != null &&
+          config.baseUrl.trim().isNotEmpty &&
+          config.apiKey.trim().isNotEmpty &&
+          model.isNotEmpty;
+    }
+    final enabled = ApiConfigStorage.getEnabledConfigs();
+    final fallback = enabled.isNotEmpty ? enabled : ApiConfigStorage.getAllConfigs();
+    return fallback.any((c) => c.models.isNotEmpty);
   }
 
   /// 获取用于图像生成的 API 配置
   static ApiConfig? _getImageConfig() {
-    final allConfigs = ApiConfigStorage.getAllConfigs();
-    // 优先选择支持图像生成的配置
+    final enabled = ApiConfigStorage.getEnabledConfigs();
+    final allConfigs = enabled.isNotEmpty ? enabled : ApiConfigStorage.getAllConfigs();
+
+    // 优先选择看起来支持图像生成的配置
     for (final config in allConfigs) {
-      if (config.models.any((m) => m.toLowerCase().contains('dall') ||
+      if (config.models.any((m) =>
+          m.toLowerCase().contains('dall') ||
           m.toLowerCase().contains('image') ||
           m.toLowerCase().contains('stable-diffusion'))) {
         return config;
       }
     }
-    // 否则返回活动配置
-    return ApiConfigStorage.getActiveConfig();
+
+    // 否则返回第一条可用配置
+    try {
+      return allConfigs.first;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 生成图片
@@ -36,19 +66,32 @@ class ImageGenService {
     int? width,
     int? height,
   }) async {
-    final config = _getImageConfig();
+    final base = _loadBaseModels();
+    final selectedConfig = base.hasImageGenModel
+        ? ApiConfigStorage.getConfig((base.imageGenConfigId ?? '').trim())
+        : null;
+
+    final config = selectedConfig ?? _getImageConfig();
     if (config == null) {
       debugPrint('Image generation API not available');
       return null;
     }
 
     try {
-      // 查找支持图像生成的模型，或使用第一个模型
-      String model = config.models.firstWhere(
-        (m) => m.toLowerCase().contains('dall') ||
-            m.toLowerCase().contains('image'),
-        orElse: () => config.models.first,
-      );
+      final configuredModel = (base.imageGenModel ?? '').trim();
+      final model = configuredModel.isNotEmpty
+          ? configuredModel
+          : config.models.firstWhere(
+              (m) =>
+                  m.toLowerCase().contains('dall') ||
+                  m.toLowerCase().contains('image'),
+              orElse: () => config.models.isNotEmpty ? config.models.first : '',
+            );
+
+      if (model.trim().isEmpty) {
+        debugPrint('No image generation model configured');
+        return null;
+      }
 
       final uri = _joinUri(config.baseUrl, 'images/generations');
 

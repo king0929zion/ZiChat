@@ -67,20 +67,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   }
 
   Future<void> _toggleActive(ApiConfig config, bool value) async {
-    if (value) {
-      await ApiConfigStorage.setActiveConfig(config.id);
-      return;
-    }
-    if (!config.isActive) return;
-
-    final others = ApiConfigStorage.getAllConfigs()
-        .where((c) => c.id != config.id)
-        .toList();
-    if (others.isEmpty) {
-      _setModelsHint('至少需要保留一个已启用的服务');
-      return;
-    }
-    await ApiConfigStorage.setActiveConfig(others.first.id);
+    await ApiConfigStorage.setEnabled(config.id, value);
   }
 
   Future<void> _renameProvider(ApiConfig config) async {

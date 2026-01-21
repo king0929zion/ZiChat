@@ -86,14 +86,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildMobileLayout(ResponsiveInfo info) {
+    final topRegionColor =
+        _currentIndex == 3 ? AppColors.surface : AppColors.backgroundChat;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: topRegionColor,
       body: SafeArea(
         top: true,
         bottom: true,
         child: ResponsiveContainer(
           maxWidth: info.maxContentWidth,
-          backgroundColor: AppColors.surface,
+          backgroundColor: topRegionColor,
           child: Column(
             children: [
               HomeHeader(currentIndex: _currentIndex),
@@ -124,8 +126,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDesktopLayout(ResponsiveInfo info) {
+    final topRegionColor =
+        _currentIndex == 3 ? AppColors.surface : AppColors.backgroundChat;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: topRegionColor,
       body: SafeArea(
         child: Row(
           children: [
@@ -191,6 +195,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             // 主内容区
             Expanded(
               child: Container(
+                color: topRegionColor,
                 constraints: BoxConstraints(maxWidth: info.maxContentWidth),
                 child: Column(
                   children: [
@@ -308,7 +313,7 @@ class HomeHeader extends StatelessWidget {
 
     return Container(
       height: 52,
-      color: AppColors.surface,
+      color: AppColors.backgroundChat,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [

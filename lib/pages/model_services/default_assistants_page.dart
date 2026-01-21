@@ -5,6 +5,7 @@ import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/model_services/api_service_page.dart';
+import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/default_assistant_settings_page.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
 import 'package:zichat/storage/api_config_storage.dart';
@@ -24,6 +25,13 @@ class _DefaultAssistantsPageState extends State<DefaultAssistantsPage> {
     HapticFeedback.lightImpact();
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const ApiServicePage()),
+    );
+  }
+
+  Future<void> _openBaseModels() async {
+    HapticFeedback.lightImpact();
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const BaseModelsPage()),
     );
   }
 
@@ -117,6 +125,13 @@ class _DefaultAssistantsPageState extends State<DefaultAssistantsPage> {
             color: AppColors.textPrimary,
           ),
         ),
+        actions: [
+          IconButton(
+            onPressed: _openBaseModels,
+            icon: const Icon(Icons.tune, size: 22, color: AppColors.link),
+            splashRadius: 18,
+          ),
+        ],
       ),
       body: SafeArea(
         top: false,

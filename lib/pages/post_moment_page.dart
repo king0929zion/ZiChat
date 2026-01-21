@@ -149,7 +149,7 @@ class _PostMomentPageState extends State<PostMomentPage> {
                   // Main Content
                   Expanded(
                     child: ListView(
-                      physics: const BouncingScrollPhysics(
+                      physics: const ClampingScrollPhysics(
                         parent: AlwaysScrollableScrollPhysics(),
                       ),
                       padding: const EdgeInsets.fromLTRB(
