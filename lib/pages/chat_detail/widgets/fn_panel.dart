@@ -75,7 +75,7 @@ class _FnPanelState extends State<FnPanel> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
-              physics: const BouncingScrollPhysics(),
+              physics: const ClampingScrollPhysics(),
               itemCount: pages.length,
               onPageChanged: (index) {
                 setState(() => _pageIndex = index);

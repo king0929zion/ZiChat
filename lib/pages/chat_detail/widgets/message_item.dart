@@ -240,7 +240,6 @@ class _MessageContent extends StatefulWidget {
 
 class _MessageContentState extends State<_MessageContent> {
   final GlobalKey _bubbleKey = GlobalKey();
-  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -281,15 +280,7 @@ class _MessageContentState extends State<_MessageContent> {
                 HapticFeedback.mediumImpact();
                 _showActionMenu();
               },
-              onTapDown: (_) => setState(() => _pressed = true),
-              onTapUp: (_) => setState(() => _pressed = false),
-              onTapCancel: () => setState(() => _pressed = false),
-              onLongPressEnd: (_) => setState(() => _pressed = false),
-              child: AnimatedScale(
-                scale: _pressed ? 0.95 : 1.0,
-                duration: AppStyles.animationFast,
-                child: bubble,
-              ),
+              child: bubble,
             ),
             // 只显示发送失败状态
             if (widget.message.sendStatus == 'failed')

@@ -21,9 +21,7 @@ class EmojiPanel extends StatefulWidget {
 }
 
 class _EmojiPanelState extends State<EmojiPanel>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _slideController;
-  late Animation<Offset> _slideAnimation;
+    {
 
   static const List<String> _allEmojis = [
     '😀', '😁', '😂', '🤣', '😊', '😍', '😘', '😚',
@@ -39,75 +37,59 @@ class _EmojiPanelState extends State<EmojiPanel>
   @override
   void initState() {
     super.initState();
-    _slideController = AnimationController(
-      vsync: this,
-      duration: AppStyles.animationNormal,
-    );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    _slideController.forward();
   }
 
   @override
   void dispose() {
-    _slideController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: _slideAnimation,
-      child: Container(
-        color: AppColors.backgroundChat,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildTopIcons(),
-            const SizedBox(height: 8),
-            _buildHandleBar(),
-            const SizedBox(height: 8),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.recentEmojis.isNotEmpty) ...[
-                      const Text(
-                        '最近使用',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      _buildEmojiWrap(widget.recentEmojis),
-                      const SizedBox(height: 16),
-                    ],
+    return Container(
+      color: AppColors.backgroundChat,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildTopIcons(),
+          const SizedBox(height: 8),
+          _buildHandleBar(),
+          const SizedBox(height: 8),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              physics: const ClampingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.recentEmojis.isNotEmpty) ...[
                     const Text(
-                      '所有表情',
+                      '最近使用',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    _buildEmojiWrap(_allEmojis),
-                    const SizedBox(height: 8),
+                    _buildEmojiWrap(widget.recentEmojis),
+                    const SizedBox(height: 16),
                   ],
-                ),
+                  const Text(
+                    '所有表情',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _buildEmojiWrap(_allEmojis),
+                  const SizedBox(height: 8),
+                ],
               ),
             ),
-            _buildDeleteRow(),
-          ],
-        ),
+          ),
+          _buildDeleteRow(),
+        ],
       ),
     );
   }
@@ -209,10 +191,10 @@ class _EmojiItemState extends State<_EmojiItem>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
+      duration: AppStyles.animationFast,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.15).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
   }
 

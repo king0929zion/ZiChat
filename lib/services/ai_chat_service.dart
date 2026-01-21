@@ -347,15 +347,8 @@ class AiChatService {
     if (!hasContext) {
       // 记录 AI 回复到历史（过滤 thinking + 移除 tool marker）
       final historyText = AiToolsService.removeToolMarkers(finalContent).trim();
-      if (historyText.contains('||')) {
-        for (final part in historyText
-            .split('||')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)) {
-          _addToHistory(chatId, 'assistant', part);
-        }
-      } else {
-        _addToHistory(chatId, 'assistant', historyText);
+      for (final part in splitReplyParts(historyText)) {
+        _addToHistory(chatId, 'assistant', part);
       }
     }
   }
@@ -379,6 +372,45 @@ class AiChatService {
     return result.trim();
   }
 
+  static List<String> splitReplyParts(String text) {
+    var normalized = text.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+    normalized = normalized.replaceAll('｜', '|').trim();
+    if (normalized.isEmpty) return const [];
+
+    final pipeParts = normalized
+        .split('||')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (pipeParts.length > 1) return pipeParts;
+
+    if (!normalized.contains('||') && normalized.contains('\n')) {
+      final lineParts = normalized
+          .split(RegExp(r'\n+'))
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
+      if (_looksLikeMultiMessage(lineParts)) return lineParts;
+    }
+
+    return pipeParts.isNotEmpty ? pipeParts : [normalized];
+  }
+
+  static bool _looksLikeMultiMessage(List<String> parts) {
+    if (parts.length <= 1) return false;
+    if (parts.length > 10) return false;
+    int maxLen = 0;
+    int totalLen = 0;
+    for (final part in parts) {
+      final len = part.length;
+      totalLen += len;
+      if (len > maxLen) maxLen = len;
+    }
+    final avgLen = totalLen / parts.length;
+    return maxLen <= 80 || avgLen <= 36;
+  }
+
   /// 普通发送 (兼容旧接口)
   static Future<List<String>> sendChat({
     required String chatId,
@@ -396,18 +428,7 @@ class AiChatService {
 
     final raw = buffer.toString();
 
-    // 按 || 分隔成多条消息
-    final List<String> parts = raw
-        .split('||')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    if (parts.isEmpty && raw.trim().isNotEmpty) {
-      parts.add(raw.trim());
-    }
-
-    return parts;
+    return splitReplyParts(raw);
   }
 
   /// 构建系统提示词（简化版）

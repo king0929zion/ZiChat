@@ -108,18 +108,25 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   void _scrollToBottom({bool animated = true}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        final maxExtent = _scrollController.position.maxScrollExtent;
-        if (animated) {
-          _scrollController.animateTo(
-            maxExtent,
-            duration: AppStyles.animationNormal,
-            curve: Curves.easeOutCubic,
-          );
-        } else {
+      if (!mounted) return;
+      if (!_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      final maxExtent = position.maxScrollExtent;
+      final distance = (maxExtent - position.pixels).abs();
+      if (distance < 1) return;
+
+      try {
+        // 新消息到来时保持“贴底”，避免频繁的滚动动画造成“跳动”
+        if (!animated || distance < 240) {
           _scrollController.jumpTo(maxExtent);
+          return;
         }
-      }
+        _scrollController.animateTo(
+          maxExtent,
+          duration: AppStyles.animationNormal,
+          curve: Curves.easeOutCubic,
+        );
+      } catch (_) {}
     });
   }
 
@@ -455,32 +462,30 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       // 移除工具标记后的文本
       final cleanText = AiToolsService.removeToolMarkers(filteredText);
 
-      // 按 || 分隔成多条消息
-      final parts = cleanText
-          .split('||')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList();
+      final parts = AiChatService.splitReplyParts(cleanText);
 
-      // 依次添加消息，带延迟模拟真实聊天节奏
-      if (parts.isEmpty && cleanText.trim().isNotEmpty) {
-        // 只有一条消息
+      if (parts.isEmpty) {
+        setState(() {
+          _messages.add(ChatMessage.system(
+            id: 'sys-${DateTime.now().millisecondsSinceEpoch}',
+            text: '收到空回复，请重试',
+          ));
+          _aiRequesting = false;
+        });
+      } else if (parts.length == 1) {
         setState(() {
           _messages.add(ChatMessage.text(
             id: aiMessageId,
-            text: cleanText.trim(),
+            text: parts.first,
             isOutgoing: false,
           ));
           _aiRequesting = false;
         });
-      } else if (parts.isNotEmpty) {
-        // 多条消息，依次显示带延迟
+        _scrollToBottom(animated: false);
+      } else {
         for (int i = 0; i < parts.length; i++) {
           if (i > 0) {
-            // 后续消息有延迟，模拟打字
-            await Future.delayed(
-              Duration(milliseconds: 300 + parts[i].length * 20),
-            );
+            await Future.delayed(const Duration(milliseconds: 180));
           }
           if (!mounted) return;
           setState(() {
@@ -493,12 +498,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               _aiRequesting = false;
             }
           });
-          _scrollToBottom();
+          _scrollToBottom(animated: false);
         }
-      } else {
-        setState(() {
-          _aiRequesting = false;
-        });
       }
 
       // 处理工具调用
@@ -1066,7 +1067,7 @@ class _MessageList extends StatelessWidget {
       ),
       child: ListView.builder(
         controller: scrollController,
-        physics: const BouncingScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         cacheExtent: 500,
         itemCount: itemCount,
