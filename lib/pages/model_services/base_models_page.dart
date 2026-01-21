@@ -111,9 +111,25 @@ class _BaseModelsBody extends StatelessWidget {
       placeholder: '未设置（可选）',
     );
 
+    final chatProvider = configs
+        .where((c) => c.id == (models.chatConfigId ?? '').trim())
+        .firstOrNull;
+    final chatOk = models.hasChatModel && (chatProvider?.isActive ?? false);
+
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
+        if (!chatOk)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: _InlineTip(
+              title: models.hasChatModel ? '默认对话服务商未启用' : '未设置默认对话模型',
+              message: models.hasChatModel
+                  ? '请先在“模型服务”中启用该服务商，或重新选择默认对话模型。'
+                  : '必须设置默认对话模型后才能使用 AI 功能。',
+              tone: models.hasChatModel ? _TipTone.warning : _TipTone.error,
+            ),
+          ),
         const WeuiSectionTitle(title: '默认对话'),
         WeuiInsetCard(
           child: Column(
@@ -309,7 +325,9 @@ class _BaseModelsBody extends StatelessWidget {
     if (m.isEmpty || id.isEmpty) return placeholder;
     final provider = configs.where((c) => c.id == id).firstOrNull;
     final name = provider?.name ?? '未知';
-    return '$m | $name';
+    final disabledSuffix =
+        (provider != null && !provider.isActive) ? '（未启用）' : '';
+    return '$m | $name$disabledSuffix';
   }
 }
 
@@ -466,6 +484,73 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+enum _TipTone { warning, error }
+
+class _InlineTip extends StatelessWidget {
+  const _InlineTip({
+    required this.title,
+    required this.message,
+    required this.tone,
+  });
+
+  final String title;
+  final String message;
+  final _TipTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final isError = tone == _TipTone.error;
+    final bg = isError ? const Color(0xFFFFF0F0) : const Color(0xFFFFFBE6);
+    final border = isError ? const Color(0xFFFFE0E0) : const Color(0xFFFFF1B8);
+    final color = isError ? AppColors.error : const Color(0xFFAD6800);
+    final icon = isError ? Icons.error_outline : Icons.info_outline;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border, width: 0.8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.35,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

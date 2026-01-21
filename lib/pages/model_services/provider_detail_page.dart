@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:hive/hive.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
@@ -10,6 +10,7 @@ import 'package:zichat/pages/model_services/api_service_page.dart';
 import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
 import 'package:zichat/services/model_detector_service.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/widgets/weui/weui_switch.dart';
 
@@ -67,7 +68,80 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   }
 
   Future<void> _toggleActive(ApiConfig config, bool value) async {
+    if (!value) {
+      final refs = _baseModelRolesForConfig(
+        baseModels: _readBaseModelsConfig(),
+        configId: config.id,
+      );
+      if (refs.isNotEmpty) {
+        _setModelsHint('该服务商正在用于基础模型：${refs.join('、')}。请先在“基础模型”中更换后再禁用。');
+        return;
+      }
+    }
     await ApiConfigStorage.setEnabled(config.id, value);
+  }
+
+  AiBaseModelsConfig _readBaseModelsConfig() {
+    final raw = Hive.box(AiConfigStorage.boxName).get('base_models');
+    if (raw is Map) {
+      return AiBaseModelsConfig.fromMap(raw) ?? const AiBaseModelsConfig();
+    }
+    return const AiBaseModelsConfig();
+  }
+
+  List<String> _baseModelRolesForConfig({
+    required AiBaseModelsConfig baseModels,
+    required String configId,
+  }) {
+    final roles = <String>[];
+    if (baseModels.hasChatModel && baseModels.chatConfigId == configId) {
+      roles.add('默认对话');
+    }
+    if (baseModels.ocrEnabled &&
+        baseModels.hasOcrModel &&
+        baseModels.ocrConfigId == configId) {
+      roles.add('OCR');
+    }
+    if (baseModels.hasImageGenModel && baseModels.imageGenConfigId == configId) {
+      roles.add('生图');
+    }
+    return roles;
+  }
+
+  Future<void> _detachBaseModelsReferences(String configId) async {
+    final current = _readBaseModelsConfig();
+    var next = current;
+    var changed = false;
+
+    if (current.chatConfigId == configId) {
+      next = next.copyWith(
+        chatConfigId: null,
+        chatModel: null,
+        chatModelSupportsImage: false,
+      );
+      changed = true;
+    }
+
+    if (current.ocrConfigId == configId) {
+      next = next.copyWith(
+        ocrEnabled: false,
+        ocrConfigId: null,
+        ocrModel: null,
+        ocrModelSupportsImage: true,
+      );
+      changed = true;
+    }
+
+    if (current.imageGenConfigId == configId) {
+      next = next.copyWith(
+        imageGenConfigId: null,
+        imageGenModel: null,
+      );
+      changed = true;
+    }
+
+    if (!changed) return;
+    await AiConfigStorage.saveBaseModelsConfig(next);
   }
 
   Future<void> _renameProvider(ApiConfig config) async {
@@ -127,6 +201,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     if (ok != true) return;
 
     HapticFeedback.mediumImpact();
+    await _detachBaseModelsReferences(config.id);
     await ApiConfigStorage.deleteConfig(config.id);
 
     if (!mounted) return;
@@ -413,9 +488,15 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480),
-            child: ValueListenableBuilder<Box<String>>(
-              valueListenable: ApiConfigStorage.listenable(),
-              builder: (context, box, _) {
+            child: ValueListenableBuilder<Box>(
+              valueListenable: Hive.box(AiConfigStorage.boxName).listenable(
+                keys: const ['base_models'],
+              ),
+              builder: (context, _, __) {
+                final baseModels = _readBaseModelsConfig();
+                return ValueListenableBuilder<Box<String>>(
+                  valueListenable: ApiConfigStorage.listenable(),
+                  builder: (context, box, _) {
                 final config = ApiConfigStorage.getConfig(widget.configId);
                 if (config == null) {
                   return const Center(
@@ -426,6 +507,10 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                   );
                 }
 
+                final roles = _baseModelRolesForConfig(
+                  baseModels: baseModels,
+                  configId: config.id,
+                );
                 final groups = _groupModels(config.models);
 
                 return ListView(
@@ -456,6 +541,33 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                         ],
                       ),
                     ),
+                    if (roles.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            for (final role in roles) WeuiTag(label: role),
+                          ],
+                        ),
+                      ),
+                    if (_modelsError != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _InlineMessage(
+                          text: _modelsError!,
+                          tone: _InlineTone.error,
+                        ),
+                      )
+                    else if (_modelsHint != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _InlineMessage(
+                          text: _modelsHint!,
+                          tone: _InlineTone.hint,
+                        ),
+                      ),
 
                     const WeuiSectionTitle(title: '管理'),
                     WeuiInsetCard(
@@ -483,6 +595,35 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                             title: 'API 服务',
                             onTap: () => _openApiService(config),
                           ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _ManageRow(
+                            title: '基础模型',
+                            onTap: _openBaseModels,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  roles.isEmpty ? '未使用' : roles.join('、'),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: roles.isEmpty
+                                        ? FontWeight.w400
+                                        : FontWeight.w600,
+                                    color: roles.isEmpty
+                                        ? AppColors.textHint
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  size: 20,
+                                  color: AppColors.textHint,
+                                ),
+                              ],
+                            ),
+                            showArrow: false,
+                          ),
                         ],
                       ),
                     ),
@@ -501,75 +642,13 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2F2F2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 12),
-                            const Icon(Icons.search, size: 18, color: AppColors.textHint),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _modelSearchController,
-                                onChanged: (_) => setState(() {}),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  color: AppColors.textPrimary,
-                                ),
-                                cursorColor: AppColors.primary,
-                                decoration: InputDecoration(
-                                  hintText: '搜索模型…',
-                                  hintStyle: const TextStyle(
-                                    fontSize: 15,
-                                    color: AppColors.textHint,
-                                  ),
-                                  border: InputBorder.none,
-                                  isCollapsed: true,
-                                ),
-                              ),
-                            ),
-                            if (_modelSearchController.text.isNotEmpty)
-                              GestureDetector(
-                                behavior: HitTestBehavior.opaque,
-                                onTap: () {
-                                  _modelSearchController.clear();
-                                  setState(() {});
-                                },
-                                child: const Padding(
-                                  padding: EdgeInsets.all(6),
-                                  child: Icon(
-                                    Icons.cancel,
-                                    size: 16,
-                                    color: AppColors.textHint,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(width: 4),
-                          ],
-                        ),
+                      child: WeuiPillSearchBar(
+                        controller: _modelSearchController,
+                        hintText: '搜索模型',
+                        onChanged: (_) => setState(() {}),
                       ),
                     ),
                     const SizedBox(height: 12),
-
-                    if (_modelsError != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _InlineMessage(
-                          text: _modelsError!,
-                          tone: _InlineTone.error,
-                        ),
-                      )
-                    else if (_modelsHint != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: _InlineMessage(
-                          text: _modelsHint!,
-                          tone: _InlineTone.hint,
-                        ),
-                      ),
 
                     if (config.models.isEmpty)
                       Padding(
@@ -631,7 +710,9 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                   ],
                 );
               },
-            ),
+            );
+          },
+        ),
           ),
         ),
       ),

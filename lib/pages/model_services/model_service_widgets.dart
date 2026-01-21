@@ -357,3 +357,32 @@ class WeuiBadge extends StatelessWidget {
   }
 }
 
+class WeuiTag extends StatelessWidget {
+  const WeuiTag({super.key, required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppStyles.radiusXLarge),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.24),
+          width: 0.5,
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          height: 1.1,
+          color: AppColors.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
