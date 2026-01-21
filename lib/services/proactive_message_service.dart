@@ -52,24 +52,15 @@ class ProactiveMessageService {
 
   /// 检查并触发主动消息
   Future<void> _checkAndTrigger() async {
-    final configs = ApiConfigStorage.getAllConfigs();
-    if (configs.isEmpty) return;
-
-    final enabled = ApiConfigStorage.getEnabledConfigs();
-    final fallback =
-        ApiConfigStorage.getActiveConfig() ?? (enabled.isNotEmpty ? enabled.first : configs.first);
-
     final storedBase = await AiConfigStorage.loadBaseModelsConfig();
-    final base = storedBase ?? const AiBaseModelsConfig();
+    if (storedBase == null || !storedBase.hasChatModel) return;
 
-    final useBaseChat = base.hasChatModel;
-    final config = useBaseChat
-        ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallback)
-        : fallback;
+    final base = storedBase;
+    final config = ApiConfigStorage.getConfig((base.chatConfigId ?? '').trim());
+    if (config == null) return;
+    if (!config.isActive) return;
 
-    final model = useBaseChat
-        ? (base.chatModel ?? '').trim()
-        : ((config.selectedModel ?? (config.models.isNotEmpty ? config.models.first : '')).trim());
+    final model = (base.chatModel ?? '').trim();
 
     if (config.baseUrl.trim().isEmpty || config.apiKey.trim().isEmpty || model.isEmpty) {
       return;

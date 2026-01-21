@@ -19,43 +19,24 @@ class ImageGenService {
     return const AiBaseModelsConfig();
   }
 
-  /// 检查是否可用
-  static bool get isAvailable {
+  static ({ApiConfig config, String model})? _resolve() {
     final base = _loadBaseModels();
-    if (base.hasImageGenModel) {
-      final config = ApiConfigStorage.getConfig((base.imageGenConfigId ?? '').trim());
-      final model = (base.imageGenModel ?? '').trim();
-      return config != null &&
-          config.baseUrl.trim().isNotEmpty &&
-          config.apiKey.trim().isNotEmpty &&
-          model.isNotEmpty;
-    }
-    final enabled = ApiConfigStorage.getEnabledConfigs();
-    final fallback = enabled.isNotEmpty ? enabled : ApiConfigStorage.getAllConfigs();
-    return fallback.any((c) => c.models.isNotEmpty);
+    if (!base.hasChatModel) return null;
+    if (!base.hasImageGenModel) return null;
+
+    final configId = (base.imageGenConfigId ?? '').trim();
+    final model = (base.imageGenModel ?? '').trim();
+    final config = ApiConfigStorage.getConfig(configId);
+    if (config == null) return null;
+    if (!config.isActive) return null;
+    if (config.baseUrl.trim().isEmpty || config.apiKey.trim().isEmpty) return null;
+    if (model.isEmpty) return null;
+    return (config: config, model: model);
   }
 
-  /// 获取用于图像生成的 API 配置
-  static ApiConfig? _getImageConfig() {
-    final enabled = ApiConfigStorage.getEnabledConfigs();
-    final allConfigs = enabled.isNotEmpty ? enabled : ApiConfigStorage.getAllConfigs();
-
-    // 优先选择看起来支持图像生成的配置
-    for (final config in allConfigs) {
-      if (config.models.any((m) =>
-          m.toLowerCase().contains('dall') ||
-          m.toLowerCase().contains('image') ||
-          m.toLowerCase().contains('stable-diffusion'))) {
-        return config;
-      }
-    }
-
-    // 否则返回第一条可用配置
-    try {
-      return allConfigs.first;
-    } catch (_) {
-      return null;
-    }
+  /// 检查是否可用
+  static bool get isAvailable {
+    return _resolve() != null;
   }
 
   /// 生成图片
@@ -66,32 +47,15 @@ class ImageGenService {
     int? width,
     int? height,
   }) async {
-    final base = _loadBaseModels();
-    final selectedConfig = base.hasImageGenModel
-        ? ApiConfigStorage.getConfig((base.imageGenConfigId ?? '').trim())
-        : null;
-
-    final config = selectedConfig ?? _getImageConfig();
-    if (config == null) {
+    final resolved = _resolve();
+    if (resolved == null) {
       debugPrint('Image generation API not available');
       return null;
     }
 
     try {
-      final configuredModel = (base.imageGenModel ?? '').trim();
-      final model = configuredModel.isNotEmpty
-          ? configuredModel
-          : config.models.firstWhere(
-              (m) =>
-                  m.toLowerCase().contains('dall') ||
-                  m.toLowerCase().contains('image'),
-              orElse: () => config.models.isNotEmpty ? config.models.first : '',
-            );
-
-      if (model.trim().isEmpty) {
-        debugPrint('No image generation model configured');
-        return null;
-      }
+      final config = resolved.config;
+      final model = resolved.model;
 
       final uri = _joinUri(config.baseUrl, 'images/generations');
 

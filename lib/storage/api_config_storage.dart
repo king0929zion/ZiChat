@@ -65,11 +65,6 @@ class ApiConfigStorage {
     await _safeBox.delete(id);
   }
 
-  /// 设置活动配置
-  static Future<void> setActiveConfig(String id) async {
-    await setEnabled(id, true);
-  }
-
   /// 启用/禁用配置（允许多个同时启用）
   static Future<void> setEnabled(String id, bool enabled) async {
     final target = getConfig(id);
@@ -80,20 +75,5 @@ class ApiConfigStorage {
   /// 获取所有已启用的配置
   static List<ApiConfig> getEnabledConfigs() {
     return getAllConfigs().where((c) => c.isActive).toList();
-  }
-
-  /// 获取当前活动的配置
-  static ApiConfig? getActiveConfig() {
-    final configs = getAllConfigs();
-    try {
-      return configs.firstWhere((c) => c.isActive);
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// 检查是否已配置 API
-  static bool hasConfig() {
-    return getActiveConfig() != null;
   }
 }

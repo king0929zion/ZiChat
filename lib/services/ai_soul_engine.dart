@@ -371,24 +371,15 @@ class AiSoulEngine {
   /// 使用 AI 生成更丰富的事件
   Future<LifeEvent?> generateAiEvent() async {
     try {
-      final configs = ApiConfigStorage.getAllConfigs();
-      if (configs.isEmpty) return null;
-
-      final enabled = ApiConfigStorage.getEnabledConfigs();
-      final fallback = ApiConfigStorage.getActiveConfig() ??
-          (enabled.isNotEmpty ? enabled.first : configs.first);
-
       final storedBase = await AiConfigStorage.loadBaseModelsConfig();
-      final base = storedBase ?? const AiBaseModelsConfig();
+      if (storedBase == null || !storedBase.hasChatModel) return null;
 
-      final useBaseChat = base.hasChatModel;
-      final config = useBaseChat
-          ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallback)
-          : fallback;
+      final base = storedBase;
+      final config = ApiConfigStorage.getConfig((base.chatConfigId ?? '').trim());
+      if (config == null) return null;
+      if (!config.isActive) return null;
 
-      final model = useBaseChat
-          ? (base.chatModel ?? '').trim()
-          : (config.models.isNotEmpty ? config.models.first : '').trim();
+      final model = (base.chatModel ?? '').trim();
 
       if (config.baseUrl.trim().isEmpty || config.apiKey.trim().isEmpty || model.isEmpty) {
         return null;

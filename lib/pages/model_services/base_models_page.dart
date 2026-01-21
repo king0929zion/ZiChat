@@ -70,7 +70,7 @@ class _BaseModelsBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final configs = ApiConfigStorage.getAllConfigs();
     final enabledConfigs = configs.where((c) => c.isActive).toList();
-    final pickableConfigs = enabledConfigs.isNotEmpty ? enabledConfigs : configs;
+    final pickableConfigs = enabledConfigs;
 
     final baseConfig =
         Hive.box(AiConfigStorage.boxName).get('base_models') as Map?;
@@ -94,6 +94,31 @@ class _BaseModelsBody extends StatelessWidget {
           SizedBox(height: 6),
           Text(
             '请先在“模型服务”中添加并启用服务商',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+          ),
+        ],
+      );
+    }
+
+    if (pickableConfigs.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 48, 16, 24),
+        children: const [
+          Icon(Icons.toggle_off_outlined, size: 56, color: AppColors.textHint),
+          SizedBox(height: 12),
+          Text(
+            '还没有启用的服务商',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text(
+            '请先在“模型服务”中启用至少一个服务商',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),

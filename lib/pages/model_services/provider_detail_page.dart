@@ -7,7 +7,7 @@ import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/model_services/api_service_page.dart';
-import 'package:zichat/pages/model_services/default_assistants_page.dart';
+import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
 import 'package:zichat/services/model_detector_service.dart';
 import 'package:zichat/storage/api_config_storage.dart';
@@ -59,10 +59,10 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     );
   }
 
-  Future<void> _openDefaultAssistants() async {
+  Future<void> _openBaseModels() async {
     HapticFeedback.lightImpact();
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const DefaultAssistantsPage()),
+      MaterialPageRoute(builder: (_) => const BaseModelsPage()),
     );
   }
 
@@ -493,10 +493,9 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            onPressed: _openDefaultAssistants,
-                            icon:
-                                const Icon(Icons.favorite_border, size: 20),
-                            color: AppColors.textSecondary,
+                            onPressed: _openBaseModels,
+                            icon: const Icon(Icons.tune, size: 20),
+                            color: AppColors.link,
                             splashRadius: 18,
                           ),
                           IconButton(

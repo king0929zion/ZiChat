@@ -150,7 +150,19 @@ class AiToolsService {
   
   /// 生成工具使用的系统提示（已整合到主提示词）
   static String generateToolPrompt() {
-    return '';
+    final tools = <String>[];
+    if (ImageGenService.isAvailable) {
+      tools.add('image_gen(prompt)：生成图片，例如 <tool>image_gen(一只橘猫)</tool>');
+    }
+    tools.add('transfer(amount)：发送转账，例如 <tool>transfer(66.66)</tool>');
+    tools.add('emoji(name)：发送表情，例如 <tool>emoji(开心)</tool>');
+
+    return <String>[
+      '【可用工具】',
+      '调用格式：<tool>工具名(参数)</tool>',
+      ...tools.map((t) => '- $t'),
+      '注意：工具调用放在消息末尾，不要单独成行。',
+    ].join('\n');
   }
 }
 
@@ -167,8 +179,6 @@ enum AiToolType {
   generateImage,  // AI 生成图片
   sendTransfer,   // 发送转账
   sendEmoji,      // 发送表情
-  sendImage,      // 发送预设图片（已废弃，保留兼容）
-  sendVoice,      // 发送语音（暂未实现）
 }
 
 /// 转账结果

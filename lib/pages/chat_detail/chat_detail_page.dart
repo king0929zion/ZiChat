@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:zichat/constants/app_colors.dart';
@@ -14,6 +15,7 @@ import 'package:zichat/services/ai_chat_service.dart';
 import 'package:zichat/services/ai_tools_service.dart';
 import 'package:zichat/services/image_gen_service.dart';
 import 'package:zichat/services/user_data_manager.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/chat_storage.dart';
 import 'package:zichat/storage/chat_background_storage.dart';
 import 'package:zichat/storage/friend_storage.dart';
@@ -343,6 +345,51 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   bool get _hasText => _inputController.text.trim().isNotEmpty;
 
+  AiBaseModelsConfig _readBaseModelsFromHive() {
+    try {
+      final raw = Hive.box(AiConfigStorage.boxName).get('base_models');
+      if (raw is Map) {
+        return AiBaseModelsConfig.fromMap(raw) ?? const AiBaseModelsConfig();
+      }
+    } catch (_) {}
+    return const AiBaseModelsConfig();
+  }
+
+  bool _canUploadImage(AiBaseModelsConfig base) {
+    if (!base.hasChatModel) return false;
+    if (base.chatModelSupportsImage) return true;
+    return base.ocrEnabled && base.hasOcrModel && base.ocrModelSupportsImage;
+  }
+
+  Future<bool> _ensureChatModelConfigured({bool showToast = true}) async {
+    final base = await AiConfigStorage.loadBaseModelsConfig();
+    if (base != null && base.hasChatModel) return true;
+    if (showToast && mounted) {
+      WeuiToast.show(context, message: '请先在“模型服务-基础模型”配置默认对话模型');
+    }
+    return false;
+  }
+
+  Future<bool> _ensureCanUploadImage({bool showToast = true}) async {
+    final base = await AiConfigStorage.loadBaseModelsConfig();
+    if (base == null || !base.hasChatModel) {
+      if (showToast && mounted) {
+        WeuiToast.show(context, message: '请先在“模型服务-基础模型”配置默认对话模型');
+      }
+      return false;
+    }
+
+    final ok = base.chatModelSupportsImage ||
+        (base.ocrEnabled && base.hasOcrModel && base.ocrModelSupportsImage);
+    if (!ok && showToast && mounted) {
+      WeuiToast.show(
+        context,
+        message: '要发送图片，请开启“对话模型支持识图”或配置并启用 OCR 模型',
+      );
+    }
+    return ok;
+  }
+
   void _send() {
     final text = _inputController.text.trim();
     if (text.isEmpty) return;
@@ -364,6 +411,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   Future<void> _sendByAi() async {
     final String text = _inputController.text.trim();
     if (text.isEmpty || _aiRequesting) return;
+
+    if (!await _ensureChatModelConfigured()) return;
 
     _send();
 
@@ -535,21 +584,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       if (!mounted) return;
       
       switch (call.type) {
-        case AiToolType.sendImage:
-          // 发送图片
-          final description = call.params['description'] as String? ?? '';
-          final imagePath = _getImageForDescription(description);
-          if (imagePath != null) {
-            setState(() {
-              _messages.add(ChatMessage.image(
-                id: '$baseId-tool-$toolIndex',
-                imagePath: imagePath,
-                isOutgoing: false,
-              ));
-            });
-          }
-          break;
-          
         case AiToolType.sendTransfer:
           // 发送转账
           final amount = call.params['amount'] as double? ?? 0;
@@ -622,10 +656,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               }
             }
           }
-          break;
-          
-        case AiToolType.sendVoice:
-          // 发送语音（未实现）
           break;
       }
       
@@ -770,34 +800,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     return file.path;
   }
   
-  /// 根据描述获取对应的图片资源
-  String? _getImageForDescription(String description) {
-    final lowerDesc = description.toLowerCase();
-    
-    // 使用现有的图片资源
-    final availableImages = [
-      'assets/icon/discover/moments.jpeg',
-      'assets/icon/discover/channels.jpeg',
-      'assets/icon/discover/live.jpeg',
-      'assets/icon/discover/scan.jpeg',
-      'assets/icon/discover/shake.jpeg',
-      'assets/img-default.jpg',
-    ];
-    
-    // 根据描述关键词选择图片
-    if (lowerDesc.contains('风景') || lowerDesc.contains('天') || 
-        lowerDesc.contains('外面') || lowerDesc.contains('景')) {
-      return 'assets/icon/discover/moments.jpeg';
-    }
-    
-    if (lowerDesc.contains('视频') || lowerDesc.contains('直播')) {
-      return 'assets/icon/discover/channels.jpeg';
-    }
-    
-    // 默认随机选择
-    return availableImages[math.Random().nextInt(availableImages.length)];
-  }
-  
+
   /// 移除 thinking 标签及其内容
   String _removeThinkingContent(String text) {
     String result = text;
@@ -821,6 +824,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    if (!await _ensureCanUploadImage()) return;
     final ImagePicker picker = ImagePicker();
     final XFile? file = await picker.pickImage(
       source: source,
@@ -994,8 +998,31 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                           child: _showFn
                               ? SizedBox(
                                   height: 220,
-                                  child: FnPanel(
-                                    onItemTap: _handleFnTap,
+                                  child: ValueListenableBuilder<Box>(
+                                    valueListenable: Hive.box(
+                                      AiConfigStorage.boxName,
+                                    ).listenable(
+                                      keys: const ['base_models'],
+                                    ),
+                                    builder: (context, _, __) {
+                                      final base = _readBaseModelsFromHive();
+                                      final canSendImage = _canUploadImage(base);
+                                      final items = defaultFnItems
+                                          .map((item) => (item.label == '相册' ||
+                                                  item.label == '拍摄')
+                                              ? FnItem(
+                                                  label: item.label,
+                                                  asset: item.asset,
+                                                  enabled: canSendImage,
+                                                )
+                                              : item)
+                                          .toList();
+
+                                      return FnPanel(
+                                        items: items,
+                                        onItemTap: _handleFnTap,
+                                      );
+                                    },
                                   ),
                                 )
                               : const SizedBox.shrink(),

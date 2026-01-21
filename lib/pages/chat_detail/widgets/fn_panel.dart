@@ -11,10 +11,12 @@ class FnItem {
   const FnItem({
     required this.label,
     required this.asset,
+    this.enabled = true,
   });
 
   final String label;
   final String asset;
+  final bool enabled;
 }
 
 /// 默认功能项列表
@@ -161,48 +163,60 @@ class _FnCell extends StatefulWidget {
 class _FnCellState extends State<_FnCell> {
   bool _isPressed = false;
 
-  void _handleTap() {
-    HapticFeedback.lightImpact();
+  void _handleTap(bool enabled) {
+    if (enabled) {
+      HapticFeedback.lightImpact();
+    }
     widget.onTap();
   }
 
   @override
   Widget build(BuildContext context) {
+    final enabled = widget.item.enabled;
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: _handleTap,
-            onHighlightChanged: (value) => setState(() => _isPressed = value),
+            onTap: () => _handleTap(enabled),
+            onHighlightChanged:
+                enabled ? (value) => setState(() => _isPressed = value) : null,
             borderRadius: BorderRadius.circular(AppStyles.radiusLarge),
             splashColor: Colors.transparent,
-            highlightColor: AppColors.disabledBg,
+            highlightColor: enabled ? AppColors.disabledBg : Colors.transparent,
             child: Container(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: enabled ? AppColors.surface : const Color(0xFFF2F2F2),
                 borderRadius: BorderRadius.circular(AppStyles.radiusLarge),
                 border: Border.all(
-                  color: _isPressed ? AppColors.textDisabled : AppColors.border,
+                  color: enabled
+                      ? (_isPressed ? AppColors.textDisabled : AppColors.border)
+                      : AppColors.border,
                 ),
-                boxShadow: _isPressed
-                    ? null
-                    : [
+                boxShadow: (enabled && !_isPressed)
+                    ? [
                         BoxShadow(
                           color: AppColors.shadow.withValues(alpha: 0.06),
                           blurRadius: 2,
                           offset: const Offset(0, 1),
                         ),
-                      ],
+                      ]
+                    : null,
               ),
               child: Center(
                 child: SvgPicture.asset(
                   widget.item.asset,
                   width: 26,
                   height: 26,
+                  colorFilter: enabled
+                      ? null
+                      : const ColorFilter.mode(
+                          AppColors.textDisabled,
+                          BlendMode.srcIn,
+                        ),
                 ),
               ),
             ),
@@ -213,7 +227,9 @@ class _FnCellState extends State<_FnCell> {
           widget.item.label,
           style: TextStyle(
             fontSize: 12,
-            color: _isPressed ? AppColors.primary : AppColors.textPrimary,
+            color: enabled
+                ? (_isPressed ? AppColors.primary : AppColors.textPrimary)
+                : AppColors.textDisabled,
           ),
         ),
       ],

@@ -73,39 +73,30 @@ class AiChatService {
   }
 
   static Future<_ResolvedAiModels> _resolveModels() async {
-    final configs = ApiConfigStorage.getAllConfigs();
-    if (configs.isEmpty) {
-      throw Exception('请先在“设置-通用-AI 设置”中添加模型服务');
+    final storedBase = await AiConfigStorage.loadBaseModelsConfig();
+    if (storedBase == null || !storedBase.hasChatModel) {
+      throw Exception('请先在“模型服务-基础模型”配置默认对话模型');
     }
 
-    final enabled = ApiConfigStorage.getEnabledConfigs();
-    final activeFallback = ApiConfigStorage.getActiveConfig();
-    final fallbackConfig =
-        activeFallback ?? (enabled.isNotEmpty ? enabled.first : configs.first);
+    final base = storedBase;
 
-    final storedBase = await AiConfigStorage.loadBaseModelsConfig();
-    final base = storedBase ?? const AiBaseModelsConfig();
+    final chatConfig =
+        ApiConfigStorage.getConfig((base.chatConfigId ?? '').trim());
+    if (chatConfig == null) {
+      throw Exception('默认对话模型的服务商不存在，请重新选择');
+    }
+    if (!chatConfig.isActive) {
+      throw Exception('请先在“模型服务”中启用默认对话模型的服务商');
+    }
 
-    final useBaseChat = base.hasChatModel;
-
-    final chatConfig = useBaseChat
-        ? (ApiConfigStorage.getConfig(base.chatConfigId!.trim()) ?? fallbackConfig)
-        : fallbackConfig;
-
-    final chatModel = useBaseChat
-        ? (base.chatModel ?? '').trim()
-        : ((chatConfig.selectedModel ??
-                    (chatConfig.models.isNotEmpty ? chatConfig.models.first : ''))
-                .trim());
-
-    final chatModelSupportsImage =
-        useBaseChat ? base.chatModelSupportsImage : chatConfig.chatModelSupportsImage;
+    final chatModel = (base.chatModel ?? '').trim();
+    final chatModelSupportsImage = base.chatModelSupportsImage;
 
     if (chatConfig.baseUrl.trim().isEmpty || chatConfig.apiKey.trim().isEmpty) {
       throw Exception('请先在“模型服务-API 服务”中填写主机与密钥');
     }
     if (chatModel.isEmpty) {
-      throw Exception('请先在“模型服务”中导入模型，并在“基础模型”设置默认对话模型');
+      throw Exception('请先在“基础模型”设置默认对话模型');
     }
 
     ApiConfig? ocrConfig;
@@ -114,20 +105,21 @@ class AiChatService {
     bool ocrModelSupportsImage = true;
 
     if (!chatModelSupportsImage) {
-      if (storedBase != null) {
-        ocrEnabled = base.ocrEnabled && base.hasOcrModel;
-        ocrModelSupportsImage = base.ocrModelSupportsImage;
-        if (ocrEnabled && ocrModelSupportsImage) {
-          ocrConfig = ApiConfigStorage.getConfig((base.ocrConfigId ?? '').trim());
-          ocrModel = (base.ocrModel ?? '').trim();
-        }
-      } else {
-        ocrEnabled = chatConfig.ocrEnabled &&
-            (chatConfig.ocrModel?.trim().isNotEmpty ?? false);
-        ocrModelSupportsImage = chatConfig.ocrModelSupportsImage;
-        if (ocrEnabled && ocrModelSupportsImage) {
-          ocrConfig = chatConfig;
-          ocrModel = chatConfig.ocrModel?.trim();
+      ocrEnabled = base.ocrEnabled && base.hasOcrModel;
+      ocrModelSupportsImage = base.ocrModelSupportsImage;
+      if (ocrEnabled && ocrModelSupportsImage) {
+        final cfgId = (base.ocrConfigId ?? '').trim();
+        final model = (base.ocrModel ?? '').trim();
+        final cfg = ApiConfigStorage.getConfig(cfgId);
+        if (cfg != null &&
+            cfg.isActive &&
+            cfg.baseUrl.trim().isNotEmpty &&
+            cfg.apiKey.trim().isNotEmpty &&
+            model.isNotEmpty) {
+          ocrConfig = cfg;
+          ocrModel = model;
+        } else {
+          ocrEnabled = false;
         }
       }
     }
