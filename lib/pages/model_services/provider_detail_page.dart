@@ -9,7 +9,8 @@ import 'package:zichat/models/api_config.dart';
 import 'package:zichat/pages/model_services/api_service_page.dart';
 import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/model_service_widgets.dart';
-import 'package:zichat/services/model_detector_service.dart';
+import 'package:zichat/services/provider_balance_service.dart';
+import 'package:zichat/services/provider_model_service.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
 import 'package:zichat/widgets/weui/weui_switch.dart';
@@ -30,6 +31,8 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
   bool _detectingModels = false;
   String? _modelsHint;
   String? _modelsError;
+  bool _fetchingBalance = false;
+  String? _balanceLabel;
 
   Timer? _hintTimer;
 
@@ -51,6 +54,282 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
       if (!mounted) return;
       setState(() => _modelsHint = null);
     });
+  }
+
+  String _providerTypeLabel(ProviderType type) {
+    switch (type) {
+      case ProviderType.openai:
+        return 'OpenAI';
+      case ProviderType.google:
+        return 'Gemini';
+      case ProviderType.claude:
+        return 'Claude';
+    }
+  }
+
+  String _proxyLabel(ProviderProxy proxy) {
+    if (!proxy.enabled) return '未启用';
+    switch (proxy.type) {
+      case ProviderProxyType.http:
+        final username = (proxy.username ?? '').trim();
+        final hasAuth = username.isNotEmpty;
+        return '${proxy.address}:${proxy.port}${hasAuth ? "（认证）" : ""}';
+      case ProviderProxyType.none:
+        return '未启用';
+    }
+  }
+
+  String _formatBalance(num value) {
+    if (value is int) return value.toString();
+    final v = value.toDouble();
+    if (v.isFinite && v == v.roundToDouble()) return v.toStringAsFixed(0);
+    return v.toStringAsFixed(2);
+  }
+
+  Future<void> _fetchBalance(ApiConfig config) async {
+    if (_fetchingBalance) return;
+    if (!config.balanceOption.enabled) return;
+
+    HapticFeedback.lightImpact();
+    setState(() => _fetchingBalance = true);
+    try {
+      final value = await ProviderBalanceService.fetchBalance(config);
+      if (!mounted) return;
+      setState(() => _balanceLabel = _formatBalance(value));
+      _setModelsHint('余额已更新');
+    } catch (e) {
+      if (!mounted) return;
+      _setModelsHint('获取余额失败：$e');
+    } finally {
+      if (!mounted) return;
+      setState(() => _fetchingBalance = false);
+    }
+  }
+
+  Future<void> _editProxy(ApiConfig config) async {
+    HapticFeedback.lightImpact();
+    final current = config.proxy;
+
+    final addressController = TextEditingController(text: current.address);
+    final portController = TextEditingController(
+      text: current.port <= 0 ? '' : current.port.toString(),
+    );
+    final usernameController = TextEditingController(text: current.username ?? '');
+    final passwordController = TextEditingController(text: current.password ?? '');
+
+    ProviderProxyType type = current.type;
+    bool showPassword = false;
+    String? error;
+
+    ProviderProxy? result;
+    try {
+      result = await showModalBottomSheet<ProviderProxy>(
+        context: context,
+        backgroundColor: Colors.transparent,
+        isScrollControlled: true,
+        builder: (ctx) {
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                12,
+                0,
+                12,
+                12 + MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Material(
+                  color: AppColors.surface,
+                  child: StatefulBuilder(
+                    builder: (ctx, setModalState) {
+                      Widget buildTypeRow({
+                        required ProviderProxyType value,
+                        required String label,
+                      }) {
+                        final selected = type == value;
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            label,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          trailing: selected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: AppColors.primary,
+                                )
+                              : null,
+                          onTap: () => setModalState(() {
+                            type = value;
+                            error = null;
+                          }),
+                        );
+                      }
+
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(height: 12),
+                          const Text(
+                            '代理',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(height: 1, color: AppColors.divider),
+                          buildTypeRow(value: ProviderProxyType.none, label: '不使用代理'),
+                          const Divider(height: 1, color: AppColors.divider),
+                          buildTypeRow(value: ProviderProxyType.http, label: 'HTTP 代理'),
+                          const Divider(height: 1, color: AppColors.divider),
+                          if (type == ProviderProxyType.http) ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                              child: TextField(
+                                controller: addressController,
+                                keyboardType: TextInputType.url,
+                                decoration: const InputDecoration(
+                                  hintText: '代理地址，例如 127.0.0.1',
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1, color: AppColors.divider),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                              child: TextField(
+                                controller: portController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  hintText: '端口，例如 7890',
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1, color: AppColors.divider),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                              child: TextField(
+                                controller: usernameController,
+                                decoration: const InputDecoration(
+                                  hintText: '用户名（可选）',
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                            const Divider(height: 1, color: AppColors.divider),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                              child: TextField(
+                                controller: passwordController,
+                                obscureText: !showPassword,
+                                decoration: InputDecoration(
+                                  hintText: '密码（可选）',
+                                  border: InputBorder.none,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      showPassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setModalState(
+                                      () => showPassword = !showPassword,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if ((error ?? '').trim().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    error!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () => Navigator.of(ctx).pop(),
+                                    child: const Text('取消'),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: () {
+                                      if (type == ProviderProxyType.none) {
+                                        Navigator.of(ctx).pop(
+                                          const ProviderProxy.none(),
+                                        );
+                                        return;
+                                      }
+
+                                      final address = addressController.text.trim();
+                                      final portRaw = portController.text.trim();
+                                      final port = int.tryParse(portRaw) ?? 0;
+                                      if (address.isEmpty || port <= 0 || port > 65535) {
+                                        setModalState(() {
+                                          error = '请填写正确的代理地址与端口';
+                                        });
+                                        return;
+                                      }
+
+                                      final username = usernameController.text.trim();
+                                      final password = passwordController.text;
+                                      Navigator.of(ctx).pop(
+                                        ProviderProxy.http(
+                                          address: address,
+                                          port: port,
+                                          username:
+                                              username.isEmpty ? null : username,
+                                          password:
+                                              password.trim().isEmpty ? null : password,
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('保存'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      addressController.dispose();
+      portController.dispose();
+      usernameController.dispose();
+      passwordController.dispose();
+    }
+
+    if (result == null) return;
+    await ApiConfigStorage.saveConfig(config.copyWith(proxy: result));
+    _setModelsHint('已更新代理');
   }
 
   Future<void> _openApiService(ApiConfig config) async {
@@ -265,18 +544,15 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
     });
 
     try {
-      final models = await ModelDetectorService.detectModels(
-        baseUrl: config.baseUrl,
-        apiKey: config.apiKey,
-      );
+      final detectedModels = await ProviderModelService.detectModels(config);
 
       final byId = <String, ApiModel>{
         for (final model in config.models) model.modelId: model,
       };
-      for (final id in models) {
-        final trimmed = id.trim();
+      for (final model in detectedModels) {
+        final trimmed = model.modelId.trim();
         if (trimmed.isEmpty) continue;
-        byId.putIfAbsent(trimmed, () => ApiModel.fromLegacy(trimmed));
+        byId.putIfAbsent(trimmed, () => model);
       }
 
       final merged = byId.values.toList()
@@ -294,7 +570,7 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
         config.copyWith(models: merged, selectedModel: nextSelected),
       );
 
-      _setModelsHint('已导入 ${models.length} 个模型');
+      _setModelsHint('已导入 ${detectedModels.length} 个模型');
     } catch (e) {
       setState(() => _modelsError = e.toString());
     } finally {
@@ -606,8 +882,10 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                           _ManageRow(
                             title: '服务商类型',
                             trailing: _ProtocolPill(
-                              label: 'OpenAI',
-                              onTap: () => _setModelsHint('当前仅支持 OpenAI 协议'),
+                              label: _providerTypeLabel(config.type),
+                              onTap: () => _setModelsHint(
+                                _providerTypeLabel(config.type),
+                              ),
                             ),
                             showArrow: false,
                           ),
@@ -616,6 +894,67 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                             title: 'API 服务',
                             onTap: () => _openApiService(config),
                           ),
+                          const Divider(height: 1, color: AppColors.divider),
+                          _ManageRow(
+                            title: '代理',
+                            onTap: () => _editProxy(config),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  _proxyLabel(config.proxy),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textHint,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.chevron_right,
+                                  size: 20,
+                                  color: AppColors.textHint,
+                                ),
+                              ],
+                            ),
+                            showArrow: false,
+                          ),
+                          if (config.balanceOption.enabled) ...[
+                            const Divider(height: 1, color: AppColors.divider),
+                            _ManageRow(
+                              title: '余额',
+                              onTap: _fetchingBalance
+                                  ? null
+                                  : () => _fetchBalance(config),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _fetchingBalance
+                                        ? '获取中…'
+                                        : (_balanceLabel ?? '点击获取'),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: _balanceLabel == null
+                                          ? FontWeight.w400
+                                          : FontWeight.w600,
+                                      color: _balanceLabel == null
+                                          ? AppColors.textHint
+                                          : AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.refresh,
+                                    size: 18,
+                                    color: _fetchingBalance
+                                        ? AppColors.textHint
+                                        : AppColors.textSecondary,
+                                  ),
+                                ],
+                              ),
+                              showArrow: false,
+                            ),
+                          ],
                           const Divider(height: 1, color: AppColors.divider),
                           _ManageRow(
                             title: '基础模型',
