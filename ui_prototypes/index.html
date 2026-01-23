@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI 模型配置</title>
+    <style>
+        :root {
+            --bg-body: #ffffff;
+            --bg-card: #f2f2f7;
+            --bg-input: #ffffff;
+            --text-primary: #000000;
+            --text-secondary: #8e8e93;
+            --text-blue: #007aff;
+            --primary-accent: #333333;
+            --border-color: #e5e5ea;
+            --radius-input: 12px;
+            --radius-card: 20px;
+            --radius-full: 999px;
+            --nav-height: 56px;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            font-size: 16px;
+            overflow-x: hidden;
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 600px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding-bottom: 40px;
+        }
+
+        /* Navbar */
+        .navbar {
+            height: var(--nav-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            position: sticky;
+            top: 0;
+            background: var(--bg-body);
+            z-index: 50;
+        }
+
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .nav-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: opacity 0.2s;
+        }
+
+        .nav-btn:active {
+            opacity: 0.6;
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: #000;
+        }
+
+        .nav-btn.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Search Bar */
+        .search-bar {
+            margin: 8px 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-full);
+            height: 44px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            color: var(--text-secondary);
+        }
+
+        .search-bar svg {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            opacity: 0.5;
+            stroke: #666;
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+            color: var(--text-primary);
+        }
+
+        .search-bar input::placeholder {
+            color: #999;
+        }
+
+        /* Provider List */
+        .provider-list {
+            padding: 0 16px;
+            margin-top: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .provider-item {
+            background-color: var(--bg-card);
+            border-radius: var(--radius-card);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .provider-item:active {
+            transform: scale(0.98);
+        }
+
+        .provider-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .provider-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .provider-name {
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #34c759;
+            border-radius: 50%;
+        }
+
+        .chevron {
+            color: #c7c7cc;
+            font-size: 18px;
+        }
+
+        /* Form Sections */
+        .form-section {
+            padding: 0 20px;
+            margin-top: 20px;
+        }
+
+        .form-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-link {
+            font-size: 14px;
+            color: var(--text-blue);
+            cursor: pointer;
+        }
+
+        .input-box {
+            background: var(--bg-card);
+            border-radius: var(--radius-input);
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .input-box input {
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            width: 100%;
+            outline: none;
+        }
+
+        .helper-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* Defaults Page */
+        .defaults-list {
+            padding: 0 16px;
+            margin-top: 10px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            margin-top: 28px;
+        }
+
+        .section-header-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-header-title svg {
+            width: 18px;
+            height: 18px;
+            stroke: #555;
+        }
+
+        .section-header-action svg {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-blue);
+        }
+
+        .card-select {
+            background: #fff;
+            border: 1px solid #eee;
+            border-radius: 16px;
+            padding: 16px 18px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .card-select:active {
+            background: #f8f8f8;
+        }
+
+        .card-select-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .model-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .model-pill .divider {
+            color: #ddd;
+            font-weight: normal;
+            margin: 0 4px;
+        }
+
+        .model-pill .provider-tag {
+            color: #999;
+            font-weight: normal;
+        }
+
+        .model-desc {
+            margin-top: 10px;
+            font-size: 13px;
+            color: #999;
+            line-height: 1.5;
+        }
+
+        /* Config Detail Card */
+        .config-card {
+            background: var(--bg-card);
+            margin: 16px;
+            padding: 24px 20px;
+            border-radius: 24px;
+        }
+
+        .config-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .config-title-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .field-group {
+            margin-bottom: 16px;
+        }
+
+        .field-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+            margin-left: 4px;
+        }
+
+        .field-box {
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .field-box input,
+        .field-box select {
+            width: 100%;
+            border: none;
+            padding: 14px 16px;
+            font-size: 15px;
+            outline: none;
+            background: transparent;
+            -webkit-appearance: none;
+        }
+
+        .field-box-select {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .field-box-select svg {
+            width: 14px;
+            height: 14px;
+            fill: #999;
+        }
+
+        /* Model List */
+        .model-list-container {
+            padding: 0 16px;
+        }
+
+        .list-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 8px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .list-header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .model-item {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 0 18px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .model-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #000;
+        }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e9e9ea;
+            transition: .3s;
+            border-radius: 32px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 28px;
+            width: 28px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        input:checked+.slider {
+            background-color: #333;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Bottom Sheet */
+        .bottom-sheet-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .bottom-sheet-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bottom-sheet {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #fff;
+            border-radius: 24px 24px 0 0;
+            z-index: 101;
+            transform: translateY(100%);
+            transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+            max-height: 75vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bottom-sheet.active {
+            transform: translateY(0);
+        }
+
+        .sheet-handle {
+            width: 36px;
+            height: 5px;
+            background: #d1d1d6;
+            border-radius: 3px;
+            margin: 12px auto 8px;
+        }
+
+        .sheet-header {
+            padding: 12px 20px 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sheet-title {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .sheet-close {
+            font-size: 15px;
+            color: var(--text-blue);
+            cursor: pointer;
+        }
+
+        .sheet-search {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .sheet-search input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .sheet-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 16px 40px;
+        }
+
+        .sheet-item {
+            padding: 16px;
+            border-radius: 14px;
+            margin-bottom: 8px;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .sheet-item:active {
+            background: #e8e8ed;
+        }
+
+        .sheet-item.selected {
+            background: #e8e8ed;
+            border: 2px solid #333;
+        }
+
+        .sheet-item-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sheet-item-title {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .sheet-item-sub {
+            font-size: 13px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .check-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .check-icon svg {
+            width: 14px;
+            height: 14px;
+            stroke: #fff;
+            stroke-width: 3;
+        }
+
+        /* Views */
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <!-- Navbar -->
+        <div class="navbar">
+            <button class="nav-btn" id="nav-left" onclick="goBack()">
+                <svg viewBox="0 0 24 24">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+                </svg>
+            </button>
+            <div class="nav-title" id="nav-title">模型服务</div>
+            <button class="nav-btn" id="nav-right" onclick="handleRightClick()">
+                <svg viewBox="0 0 24 24">
+                    <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- View 1: Provider List -->
+        <div id="view-home" class="view active">
+            <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                <input type="text" placeholder="输入厂商名称">
+            </div>
+
+            <div class="provider-list">
+                <div class="provider-item" onclick="goto('view-defaults')">
+                    <div class="provider-left">
+                        <div class="provider-icon">⚙️</div>
+                        <span class="provider-name">默认助手设置</span>
+                    </div>
+                    <span class="chevron">›</span>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'Qwen'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#6366f1;">❖</div>
+                        <span class="provider-name">Qwen</span>
+                    </div>
+                    <div class="status-dot"></div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'Doubao'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#a855f7;">◆</div>
+                        <span class="provider-name">Doubao</span>
+                    </div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'OpenAI'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#000;">⌘</div>
+                        <span class="provider-name">OpenAI</span>
+                    </div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'Anthropic'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#f97316;">✳</div>
+                        <span class="provider-name">Anthropic</span>
+                    </div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'Google'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#ea4335;">G</div>
+                        <span class="provider-name">Google</span>
+                    </div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'Ollama'})">
+                    <div class="provider-left">
+                        <div class="provider-icon">🦙</div>
+                        <span class="provider-name">Ollama</span>
+                    </div>
+                </div>
+
+                <div class="provider-item" onclick="goto('view-detail', {name: 'DeepSeek'})">
+                    <div class="provider-left">
+                        <div class="provider-icon" style="color:#3b82f6;">⚡</div>
+                        <span class="provider-name">DeepSeek</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View 2: Add Provider -->
+        <div id="view-add" class="view">
+            <div class="form-section">
+                <div class="form-label-row">
+                    <span class="form-label">API 密钥</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                </div>
+                <div class="input-box">
+                    <input type="password" placeholder="请输入 API 密钥">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                </div>
+                <div class="form-label-row" style="margin-top:6px;">
+                    <span class="helper-text">多个密钥用逗号分隔</span>
+                    <span class="form-link">获取 API 密钥</span>
+                </div>
+
+                <div class="form-label-row" style="margin-top: 28px;">
+                    <span class="form-label">API 主机</span>
+                </div>
+                <div class="input-box">
+                    <input type="text" value="https://api.siliconflow.cn">
+                </div>
+            </div>
+        </div>
+
+        <!-- View 3: Default Assistants -->
+        <div id="view-defaults" class="view">
+            <div class="defaults-list">
+                <!-- Default Chat -->
+                <div class="section-header">
+                    <div class="section-header-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                            <line x1="9" y1="9" x2="15" y2="9" />
+                            <line x1="9" y1="13" x2="12" y2="13" />
+                        </svg>
+                        默认助手
+                    </div>
+                    <div class="section-header-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-select" onclick="openModelSheet('default')">
+                    <div class="card-select-row">
+                        <div class="model-pill">
+                            <span style="color:#6366f1;">❖</span>
+                            <span id="default-model-name">Qwen3-8B</span>
+                            <span class="divider">|</span>
+                            <span class="provider-tag" id="default-model-provider">CherryAI</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ccc">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="model-desc">创建新助手时使用的助手，如果未设置助手，将使用此助手</div>
+
+                <!-- Quick -->
+                <div class="section-header" style="margin-top:32px;">
+                    <div class="section-header-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                        </svg>
+                        快速助手
+                    </div>
+                    <div class="section-header-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-select" onclick="openModelSheet('quick')">
+                    <div class="card-select-row">
+                        <div class="model-pill">
+                            <span style="color:#3b82f6;">⚡</span>
+                            <span id="quick-model-name">DeepSeek-V3</span>
+                            <span class="divider">|</span>
+                            <span class="provider-tag" id="quick-model-provider">硅基流动</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ccc">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="model-desc">用于简单任务的助手，例如话题命名和关键字提取</div>
+
+                <!-- Translation -->
+                <div class="section-header" style="margin-top:32px;">
+                    <div class="section-header-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <path d="M5 8l6 6" />
+                            <path d="M4 14l6-6 2-3" />
+                            <path d="M2 5h12" />
+                            <path d="M7 2v3" />
+                            <path d="M22 22l-5-10-5 10" />
+                            <path d="M14 18h6" />
+                        </svg>
+                        翻译助手
+                    </div>
+                    <div class="section-header-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                            <circle cx="12" cy="12" r="3" />
+                            <path
+                                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1.08-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1.08 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-select" onclick="openModelSheet('translate')">
+                    <div class="card-select-row">
+                        <div class="model-pill">
+                            <span style="color:#10b981;">●</span>
+                            <span id="translate-model-name">GLM-4.5-Flash</span>
+                            <span class="divider">|</span>
+                            <span class="provider-tag" id="translate-model-provider">CherryAI</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="#ccc">
+                            <path d="M7 10l5 5 5-5z" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="model-desc">用于翻译服务的助手</div>
+            </div>
+        </div>
+
+        <!-- View 4: Provider Detail -->
+        <div id="view-detail" class="view">
+            <div class="config-card">
+                <div class="config-header">
+                    <div class="config-title-row">
+                        <span style="color:#6366f1; font-size:24px;">❖</span>
+                        <span id="detail-provider-name">Qwen</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+                    <span style="font-size:15px;">是否启用</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label">API 类型</div>
+                    <div class="field-box">
+                        <div class="field-box-select">
+                            <span>OpenAI</span>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label">OpenAI API</div>
+                    <div class="field-box">
+                        <div class="field-box-select">
+                            <span>Chat Completions API</span>
+                            <svg viewBox="0 0 24 24">
+                                <path d="M7 10l5 5 5-5z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label">API 地址</div>
+                    <div class="field-box">
+                        <input type="text" value="https://dashscope.aliyuncs.com/">
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <div class="field-label">API Key</div>
+                    <div class="field-box">
+                        <input type="text" value="sk-6fd54ceb14ea408fa8e9419d2">
+                    </div>
+                </div>
+            </div>
+
+            <div class="provider-item" style="margin: 0 16px; background: #e9e9ea;" onclick="goto('view-models')">
+                <div class="provider-left">
+                    <div class="provider-icon">🤖</div>
+                    <div>
+                        <div class="provider-name" style="font-size:16px;">模型列表</div>
+                        <div style="font-size:13px; color:#666; margin-top:2px;">已选 0 / 168</div>
+                    </div>
+                </div>
+                <span class="chevron">›</span>
+            </div>
+        </div>
+
+        <!-- View 5: Model List -->
+        <div id="view-models" class="view">
+            <div class="search-bar">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                <input type="text" placeholder="名称或 ID">
+            </div>
+
+            <div class="model-list-container">
+                <div class="list-header-row">
+                    <span>已选 0 / 168</span>
+                    <div class="list-header-right">
+                        <span>全选</span>
+                        <label class="switch" style="transform:scale(0.85);">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div id="models-container"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bottom Sheet for Model Selection -->
+    <div class="bottom-sheet-overlay" id="sheet-overlay" onclick="closeModelSheet()"></div>
+    <div class="bottom-sheet" id="model-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-header">
+            <span class="sheet-title">选择模型</span>
+            <span class="sheet-close" onclick="closeModelSheet()">完成</span>
+        </div>
+        <div class="sheet-search">
+            <input type="text" placeholder="搜索模型...">
+        </div>
+        <div class="sheet-list" id="sheet-list">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <script>
+        // --- Data ---
+        const modelList = [
+            "codeqwen1.5-7b-chat",
+            "deepseek-r1",
+            "deepseek-r1-distill-llama-70b",
+            "deepseek-r1-distill-llama-8b",
+            "deepseek-r1-distill-qwen-1.5b",
+            "deepseek-r1-distill-qwen-14b",
+            "deepseek-r1-distill-qwen-32b",
+            "deepseek-v3",
+            "glm-4-5-flash",
+            "gpt-4o"
+        ];
+
+        const sheetModels = [
+            { name: "Qwen3-8B", provider: "CherryAI", icon: "❖", color: "#6366f1" },
+            { name: "DeepSeek-V3", provider: "硅基流动", icon: "⚡", color: "#3b82f6" },
+            { name: "GLM-4.5-Flash", provider: "CherryAI", icon: "●", color: "#10b981" },
+            { name: "GPT-4o", provider: "OpenAI", icon: "⌘", color: "#000" },
+            { name: "Claude 3.5 Sonnet", provider: "Anthropic", icon: "✳", color: "#f97316" },
+            { name: "Gemini 1.5 Pro", provider: "Google", icon: "G", color: "#ea4335" },
+            { name: "Qwen-Max", provider: "Qwen", icon: "❖", color: "#6366f1" },
+            { name: "DeepSeek-R1", provider: "DeepSeek", icon: "⚡", color: "#3b82f6" }
+        ];
+
+        const navTitleMap = {
+            'view-home': '模型服务',
+            'view-add': 'API 服务',
+            'view-defaults': '默认助手',
+            'view-detail': 'Qwen',
+            'view-models': '模型列表'
+        };
+
+        let historyStack = ['view-home'];
+        let currentSheetTarget = null;
+
+        // --- Navigation ---
+        function goto(viewId, params = {}) {
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+
+            if (historyStack[historyStack.length - 1] !== viewId) {
+                historyStack.push(viewId);
+            }
+            updateNav(viewId, params);
+
+            if (viewId === 'view-models') {
+                renderModels();
+            }
+            if (viewId === 'view-detail' && params.name) {
+                document.getElementById('detail-provider-name').textContent = params.name;
+            }
+        }
+
+        function goBack() {
+            if (historyStack.length <= 1) return;
+            historyStack.pop();
+            const prevView = historyStack[historyStack.length - 1];
+
+            document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+            document.getElementById(prevView).classList.add('active');
+            updateNav(prevView, {});
+        }
+
+        function updateNav(viewId, params) {
+            const titleEl = document.getElementById('nav-title');
+            const leftBtn = document.getElementById('nav-left');
+            const rightBtn = document.getElementById('nav-right');
+
+            titleEl.textContent = params.name || navTitleMap[viewId];
+
+            // Left button visibility
+            if (viewId === 'view-home') {
+                leftBtn.classList.add('hidden');
+            } else {
+                leftBtn.classList.remove('hidden');
+            }
+
+            // Right button (Plus icon)
+            if (viewId === 'view-home' || viewId === 'view-models') {
+                rightBtn.classList.remove('hidden');
+                rightBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>`;
+                rightBtn.onclick = viewId === 'view-home' ? () => goto('view-add') : () => { };
+            } else if (viewId === 'view-detail') {
+                rightBtn.classList.remove('hidden');
+                rightBtn.innerHTML = `<svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>`;
+                rightBtn.onclick = () => goBack();
+            } else {
+                rightBtn.classList.add('hidden');
+            }
+        }
+
+        function handleRightClick() {
+            goto('view-add');
+        }
+
+        // --- Render Models Page ---
+        function renderModels() {
+            const container = document.getElementById('models-container');
+            if (container.children.length > 0) return;
+
+            modelList.forEach(m => {
+                const div = document.createElement('div');
+                div.className = 'model-item';
+                div.innerHTML = `
+                <span class="model-name">${m}</span>
+                <label class="switch" style="transform:scale(0.9);">
+                    <input type="checkbox">
+                    <span class="slider"></span>
+                </label>
+            `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- Bottom Sheet ---
+        function openModelSheet(target) {
+            currentSheetTarget = target;
+            document.getElementById('sheet-overlay').classList.add('active');
+            document.getElementById('model-sheet').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            renderSheetModels();
+        }
+
+        function closeModelSheet() {
+            document.getElementById('sheet-overlay').classList.remove('active');
+            document.getElementById('model-sheet').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        function renderSheetModels() {
+            const list = document.getElementById('sheet-list');
+            list.innerHTML = '';
+
+            // Get current selection
+            let currentName = '';
+            if (currentSheetTarget === 'default') {
+                currentName = document.getElementById('default-model-name').textContent;
+            } else if (currentSheetTarget === 'quick') {
+                currentName = document.getElementById('quick-model-name').textContent;
+            } else if (currentSheetTarget === 'translate') {
+                currentName = document.getElementById('translate-model-name').textContent;
+            }
+
+            sheetModels.forEach(m => {
+                const isSelected = m.name === currentName;
+                const div = document.createElement('div');
+                div.className = 'sheet-item' + (isSelected ? ' selected' : '');
+                div.onclick = () => selectModel(m);
+                div.innerHTML = `
+                <div class="sheet-item-left">
+                    <span style="color:${m.color}; font-size:20px;">${m.icon}</span>
+                    <div>
+                        <div class="sheet-item-title">${m.name}</div>
+                        <div class="sheet-item-sub">${m.provider}</div>
+                    </div>
+                </div>
+                ${isSelected ? `
+                <div class="check-icon">
+                    <svg viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>` : ''}
+            `;
+                list.appendChild(div);
+            });
+        }
+
+        function selectModel(model) {
+            if (currentSheetTarget === 'default') {
+                document.getElementById('default-model-name').textContent = model.name;
+                document.getElementById('default-model-provider').textContent = model.provider;
+            } else if (currentSheetTarget === 'quick') {
+                document.getElementById('quick-model-name').textContent = model.name;
+                document.getElementById('quick-model-provider').textContent = model.provider;
+            } else if (currentSheetTarget === 'translate') {
+                document.getElementById('translate-model-name').textContent = model.name;
+                document.getElementById('translate-model-provider').textContent = model.provider;
+            }
+            closeModelSheet();
+        }
+
+        // Init
+        updateNav('view-home', {});
+    </script>
+</body>
+
+</html>
