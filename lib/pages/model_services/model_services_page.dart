@@ -262,6 +262,7 @@ class _CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return Padding(
       padding: const EdgeInsets.all(8),
       child: Material(
@@ -269,14 +270,20 @@ class _CircleIconButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap?.call();
-          },
+          onTap: !enabled
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  onTap?.call();
+                },
           child: SizedBox(
             width: 40,
             height: 40,
-            child: Icon(icon, size: 22, color: Colors.black),
+            child: Icon(
+              icon,
+              size: 22,
+              color: enabled ? Colors.black : Colors.grey[400],
+            ),
           ),
         ),
       ),
@@ -290,11 +297,13 @@ class _SearchBar extends StatelessWidget {
     required this.controller,
     this.hintText = '搜索',
     this.onChanged,
+    this.autofocus = false,
   });
 
   final TextEditingController controller;
   final String hintText;
   final ValueChanged<String>? onChanged;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -312,6 +321,7 @@ class _SearchBar extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
+              autofocus: autofocus,
               onChanged: onChanged,
               style: const TextStyle(fontSize: 16, color: Colors.black),
               decoration: InputDecoration(
@@ -321,6 +331,28 @@ class _SearchBar extends StatelessWidget {
                 isCollapsed: true,
               ),
             ),
+          ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              if (value.text.trim().isEmpty) return const SizedBox.shrink();
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  controller.clear();
+                  onChanged?.call('');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Icon(
+                    Icons.cancel,
+                    size: 18,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
