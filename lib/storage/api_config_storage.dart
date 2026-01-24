@@ -85,6 +85,16 @@ class ApiConfigStorage {
     final existing = getAllConfigs();
     final existingIds = existing.map((c) => c.id).toSet();
 
+    // 移除已废弃的内置服务商（不再支持 Gemini / Claude 的特殊 API 格式）
+    if (existingIds.contains('builtin-gemini')) {
+      await deleteConfig('builtin-gemini');
+      existingIds.remove('builtin-gemini');
+    }
+    if (existingIds.contains('builtin-claude')) {
+      await deleteConfig('builtin-claude');
+      existingIds.remove('builtin-claude');
+    }
+
     final builtIns = <ApiConfig>[
       ApiConfig(
         id: 'builtin-openai',
@@ -111,51 +121,6 @@ class ApiConfigStorage {
         isActive: false,
         createdAt: DateTime.now(),
         sortOrder: 0,
-        builtIn: true,
-      ),
-      ApiConfig(
-        id: 'builtin-gemini',
-        type: ProviderType.google,
-        name: 'Gemini',
-        baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-        apiKey: '',
-        models: const [
-          ApiModel(
-            id: 'gemini-1.5-flash',
-            modelId: 'gemini-1.5-flash',
-            displayName: 'Gemini 1.5 Flash',
-            inputModalities: [ModelModality.text, ModelModality.image],
-          ),
-          ApiModel(
-            id: 'gemini-1.5-pro',
-            modelId: 'gemini-1.5-pro',
-            displayName: 'Gemini 1.5 Pro',
-            inputModalities: [ModelModality.text, ModelModality.image],
-          ),
-        ],
-        isActive: false,
-        createdAt: DateTime.now(),
-        sortOrder: 1,
-        builtIn: true,
-      ),
-      ApiConfig(
-        id: 'builtin-claude',
-        type: ProviderType.claude,
-        name: 'Anthropic',
-        baseUrl: 'https://api.anthropic.com/v1',
-        apiKey: '',
-        models: const [
-          ApiModel(
-            id: 'claude-3-5-sonnet-latest',
-            modelId: 'claude-3-5-sonnet-latest',
-            displayName: 'Claude 3.5 Sonnet',
-            inputModalities: [ModelModality.text, ModelModality.image],
-            abilities: [ModelAbility.reasoning],
-          ),
-        ],
-        isActive: false,
-        createdAt: DateTime.now(),
-        sortOrder: 2,
         builtIn: true,
       ),
       ApiConfig(

@@ -4,6 +4,7 @@ import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/pages/settings_general_page.dart';
 import 'package:zichat/pages/settings_chat_page.dart';
+import 'package:zichat/pages/settings_ai_page.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -60,6 +61,14 @@ class SettingsPage extends StatelessWidget {
                   margin: const EdgeInsets.only(top: 12),
                   children: [
                     WeuiCell(title: '通知', onTap: showTodo),
+                    WeuiCell(
+                      title: 'AI 设置',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const SettingsAiPage()),
+                        );
+                      },
+                    ),
                     WeuiCell(
                       title: '聊天',
                       onTap: () {

@@ -1,7 +1,5 @@
 enum ProviderType {
   openai,
-  google,
-  claude,
 }
 
 enum ProviderProxyType {

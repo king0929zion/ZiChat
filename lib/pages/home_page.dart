@@ -69,7 +69,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: AppColors.surface,
+      systemNavigationBarColor: AppColors.backgroundChat,
       systemNavigationBarIconBrightness: Brightness.dark,
     ));
 
@@ -419,7 +419,7 @@ class HomeTabBar extends StatelessWidget {
     return Container(
       height: 60,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.backgroundChat,
         border: Border(
           top: BorderSide(color: AppColors.border, width: 0.5),
         ),
@@ -431,7 +431,6 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '微信',
             iconAsset: AppAssets.tabChats,
-            iconActiveAsset: AppAssets.tabChatsActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -439,7 +438,6 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '通讯录',
             iconAsset: AppAssets.tabContacts,
-            iconActiveAsset: AppAssets.tabContactsActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -447,7 +445,6 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '发现',
             iconAsset: AppAssets.tabDiscover,
-            iconActiveAsset: AppAssets.tabDiscoverActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -455,7 +452,6 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '我',
             iconAsset: AppAssets.tabMe,
-            iconActiveAsset: AppAssets.tabMeActive,
             onTap: onTap,
           ),
         ],
@@ -465,14 +461,13 @@ class HomeTabBar extends StatelessWidget {
 }
 
 /// 底部导航项
-class HomeTabItem extends StatefulWidget {
+class HomeTabItem extends StatelessWidget {
   const HomeTabItem({
     super.key,
     required this.index,
     required this.currentIndex,
     required this.label,
     required this.iconAsset,
-    required this.iconActiveAsset,
     required this.onTap,
   });
 
@@ -480,90 +475,46 @@ class HomeTabItem extends StatefulWidget {
   final int currentIndex;
   final String label;
   final String iconAsset;
-  final String iconActiveAsset;
   final ValueChanged<int> onTap;
 
   @override
-  State<HomeTabItem> createState() => _HomeTabItemState();
-}
-
-class _HomeTabItemState extends State<HomeTabItem>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
-    _scaleAnimation = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.96), weight: 1),
-      TweenSequenceItem(tween: Tween(begin: 0.96, end: 1.0), weight: 1),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didUpdateWidget(HomeTabItem oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.index == widget.currentIndex &&
-        oldWidget.currentIndex != widget.currentIndex) {
-      _controller.forward(from: 0);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final bool active = widget.index == widget.currentIndex;
+    final bool active = index == currentIndex;
 
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => widget.onTap(widget.index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: active ? _scaleAnimation.value : 1.0,
-                  child: child,
-                );
-              },
-              child: SizedBox(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => onTap(index),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
                 width: 26,
                 height: 26,
-                child: AnimatedSwitcher(
-                  duration: AppStyles.animationFast,
+                child: Center(
                   child: SvgPicture.asset(
-                    active ? widget.iconActiveAsset : widget.iconAsset,
-                    key: ValueKey(active),
+                    iconAsset,
                     width: 26,
                     height: 26,
+                    colorFilter: ColorFilter.mode(
+                      active ? AppColors.primary : AppColors.textSecondary,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 2),
-            AnimatedDefaultTextStyle(
-              duration: AppStyles.animationFast,
-              style: TextStyle(
-                fontSize: 12,
-                color: active ? AppColors.primary : AppColors.textSecondary,
-                fontWeight: active ? FontWeight.w500 : FontWeight.normal,
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: active ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight: active ? FontWeight.w500 : FontWeight.normal,
+                ),
               ),
-              child: Text(widget.label),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

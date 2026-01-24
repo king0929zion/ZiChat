@@ -1,53 +1,14 @@
 import 'package:hive/hive.dart';
 
-/// 全局 AI 配置（OpenAI / Gemini 等）
-class AiGlobalConfig {
-  AiGlobalConfig({
-    required this.provider, // 'openai' 或 'gemini'
-    required this.apiBaseUrl,
-    required this.apiKey,
-    required this.model,
-    required this.persona,
-  });
-
-  final String provider;
-  final String apiBaseUrl;
-  final String apiKey;
-  final String model;
-  final String persona;
-
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'provider': provider,
-      'apiBaseUrl': apiBaseUrl,
-      'apiKey': apiKey,
-      'model': model,
-      'persona': persona,
-    };
-  }
-
-  static AiGlobalConfig? fromMap(Map<dynamic, dynamic>? map) {
-    if (map == null) return null;
-    return AiGlobalConfig(
-      provider: (map['provider'] ?? 'openai').toString(),
-      apiBaseUrl: (map['apiBaseUrl'] ?? '').toString(),
-      apiKey: (map['apiKey'] ?? '').toString(),
-      model: (map['model'] ?? '').toString(),
-      persona: (map['persona'] ?? '').toString(),
-    );
-  }
-}
-
-/// 基础模型配置（默认对话 / OCR / 生图）
+/// 基础模型配置（对话 / 视觉 / 生图）
 class AiBaseModelsConfig {
   const AiBaseModelsConfig({
     this.chatConfigId,
     this.chatModel,
     this.chatModelSupportsImage = false,
-    this.ocrConfigId,
-    this.ocrModel,
-    this.ocrEnabled = false,
-    this.ocrModelSupportsImage = true,
+    this.visionConfigId,
+    this.visionModel,
+    this.visionModelSupportsImage = true,
     this.imageGenConfigId,
     this.imageGenModel,
   });
@@ -56,10 +17,9 @@ class AiBaseModelsConfig {
   final String? chatModel;
   final bool chatModelSupportsImage;
 
-  final String? ocrConfigId;
-  final String? ocrModel;
-  final bool ocrEnabled;
-  final bool ocrModelSupportsImage;
+  final String? visionConfigId;
+  final String? visionModel;
+  final bool visionModelSupportsImage;
 
   final String? imageGenConfigId;
   final String? imageGenModel;
@@ -68,10 +28,9 @@ class AiBaseModelsConfig {
     Object? chatConfigId = _unset,
     Object? chatModel = _unset,
     bool? chatModelSupportsImage,
-    Object? ocrConfigId = _unset,
-    Object? ocrModel = _unset,
-    bool? ocrEnabled,
-    bool? ocrModelSupportsImage,
+    Object? visionConfigId = _unset,
+    Object? visionModel = _unset,
+    bool? visionModelSupportsImage,
     Object? imageGenConfigId = _unset,
     Object? imageGenModel = _unset,
   }) {
@@ -79,9 +38,11 @@ class AiBaseModelsConfig {
         chatConfigId == _unset ? this.chatConfigId : chatConfigId as String?;
     final nextChatModel =
         chatModel == _unset ? this.chatModel : chatModel as String?;
-    final nextOcrConfigId =
-        ocrConfigId == _unset ? this.ocrConfigId : ocrConfigId as String?;
-    final nextOcrModel = ocrModel == _unset ? this.ocrModel : ocrModel as String?;
+    final nextVisionConfigId = visionConfigId == _unset
+        ? this.visionConfigId
+        : visionConfigId as String?;
+    final nextVisionModel =
+        visionModel == _unset ? this.visionModel : visionModel as String?;
     final nextImageGenConfigId = imageGenConfigId == _unset
         ? this.imageGenConfigId
         : imageGenConfigId as String?;
@@ -94,10 +55,10 @@ class AiBaseModelsConfig {
       chatModel: nextChatModel,
       chatModelSupportsImage:
           chatModelSupportsImage ?? this.chatModelSupportsImage,
-      ocrConfigId: nextOcrConfigId,
-      ocrModel: nextOcrModel,
-      ocrEnabled: ocrEnabled ?? this.ocrEnabled,
-      ocrModelSupportsImage: ocrModelSupportsImage ?? this.ocrModelSupportsImage,
+      visionConfigId: nextVisionConfigId,
+      visionModel: nextVisionModel,
+      visionModelSupportsImage:
+          visionModelSupportsImage ?? this.visionModelSupportsImage,
       imageGenConfigId: nextImageGenConfigId,
       imageGenModel: nextImageGenModel,
     );
@@ -110,10 +71,9 @@ class AiBaseModelsConfig {
       'chatConfigId': chatConfigId,
       'chatModel': chatModel,
       'chatModelSupportsImage': chatModelSupportsImage,
-      'ocrConfigId': ocrConfigId,
-      'ocrModel': ocrModel,
-      'ocrEnabled': ocrEnabled,
-      'ocrModelSupportsImage': ocrModelSupportsImage,
+      'visionConfigId': visionConfigId,
+      'visionModel': visionModel,
+      'visionModelSupportsImage': visionModelSupportsImage,
       'imageGenConfigId': imageGenConfigId,
       'imageGenModel': imageGenModel,
     };
@@ -121,14 +81,23 @@ class AiBaseModelsConfig {
 
   static AiBaseModelsConfig? fromMap(Map<dynamic, dynamic>? map) {
     if (map == null) return null;
+
+    // 兼容旧字段（ocr* -> vision*）
+    final visionConfigId = map['visionConfigId']?.toString() ??
+        map['ocrConfigId']?.toString();
+    final visionModel =
+        map['visionModel']?.toString() ?? map['ocrModel']?.toString();
+    final visionModelSupportsImage = map['visionModelSupportsImage'] as bool? ??
+        map['ocrModelSupportsImage'] as bool? ??
+        true;
+
     return AiBaseModelsConfig(
       chatConfigId: map['chatConfigId']?.toString(),
       chatModel: map['chatModel']?.toString(),
       chatModelSupportsImage: map['chatModelSupportsImage'] as bool? ?? false,
-      ocrConfigId: map['ocrConfigId']?.toString(),
-      ocrModel: map['ocrModel']?.toString(),
-      ocrEnabled: map['ocrEnabled'] as bool? ?? false,
-      ocrModelSupportsImage: map['ocrModelSupportsImage'] as bool? ?? true,
+      visionConfigId: visionConfigId,
+      visionModel: visionModel,
+      visionModelSupportsImage: visionModelSupportsImage,
       imageGenConfigId: map['imageGenConfigId']?.toString(),
       imageGenModel: map['imageGenModel']?.toString(),
     );
@@ -137,8 +106,8 @@ class AiBaseModelsConfig {
   bool get hasChatModel =>
       (chatConfigId ?? '').trim().isNotEmpty && (chatModel ?? '').trim().isNotEmpty;
 
-  bool get hasOcrModel =>
-      (ocrConfigId ?? '').trim().isNotEmpty && (ocrModel ?? '').trim().isNotEmpty;
+  bool get hasVisionModel =>
+      (visionConfigId ?? '').trim().isNotEmpty && (visionModel ?? '').trim().isNotEmpty;
 
   bool get hasImageGenModel =>
       (imageGenConfigId ?? '').trim().isNotEmpty &&
@@ -148,25 +117,10 @@ class AiBaseModelsConfig {
 /// 负责存储 / 读取 AI 相关配置
 class AiConfigStorage {
   static const String boxName = 'ai_config';
-  static const String _globalKey = 'global';
   static const String _baseModelsKey = 'base_models';
   static const String _contactPrefix = 'contact:';
 
   static Box<dynamic> get _box => Hive.box<dynamic>(boxName);
-
-  /// 读取全局配置
-  static Future<AiGlobalConfig?> loadGlobalConfig() async {
-    final dynamic raw = _box.get(_globalKey);
-    if (raw is Map) {
-      return AiGlobalConfig.fromMap(raw);
-    }
-    return null;
-  }
-
-  /// 保存全局配置
-  static Future<void> saveGlobalConfig(AiGlobalConfig config) async {
-    await _box.put(_globalKey, config.toMap());
-  }
 
   /// 读取基础模型配置
   static Future<AiBaseModelsConfig?> loadBaseModelsConfig() async {

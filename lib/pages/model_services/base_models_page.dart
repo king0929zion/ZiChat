@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
 import 'package:zichat/storage/ai_config_storage.dart';
@@ -13,9 +15,9 @@ class BaseModelsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundChat,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.backgroundChat,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
@@ -24,11 +26,11 @@ class BaseModelsPage extends StatelessWidget {
           onTap: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          '默认助手',
+          '默认助手配置',
           style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w600,
-            color: Colors.black,
+            color: AppColors.textPrimary,
           ),
         ),
       ),
@@ -66,7 +68,7 @@ class _BaseModelsBody extends StatelessWidget {
       return _EmptyState(
         icon: Icons.api_outlined,
         title: '还没有服务商',
-        subtitle: '请先在"模型服务"中添加并启用服务商',
+        subtitle: '请先在"AI 设置-供应商配置"中添加并启用服务商',
       );
     }
 
@@ -74,7 +76,7 @@ class _BaseModelsBody extends StatelessWidget {
       return _EmptyState(
         icon: Icons.toggle_off_outlined,
         title: '还没有启用的服务商',
-        subtitle: '请先在"模型服务"中启用至少一个服务商',
+        subtitle: '请先在"AI 设置-供应商配置"中启用至少一个服务商',
       );
     }
 
@@ -83,19 +85,18 @@ class _BaseModelsBody extends StatelessWidget {
       children: [
         const SizedBox(height: 10),
 
-        // 默认助手
+        // 对话模型
         _SectionHeader(
           icon: Icons.chat_bubble_outline,
-          title: '默认助手',
+          title: '对话模型',
         ),
         _ModelSelectCard(
           modelName: models.chatModel ?? '未设置',
           providerName: _getProviderName(configs, models.chatConfigId),
           iconColor: const Color(0xFF6366f1),
-          icon: '❖',
           onTap: () => _showModelPicker(
             context: context,
-            title: '选择默认对话模型',
+            title: '选择对话模型',
             configs: enabledConfigs,
             initialConfigId: models.chatConfigId,
             initialModel: models.chatModel,
@@ -115,38 +116,41 @@ class _BaseModelsBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
           child: Text(
-            '创建新助手时使用的助手，如果未设置助手，将使用此助手',
-            style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.4),
+            '用于所有对话的默认模型',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
         ),
 
         const SizedBox(height: 32),
 
-        // 快速助手
+        // 视觉模型
         _SectionHeader(
-          icon: Icons.flash_on,
-          title: '快速助手',
+          icon: Icons.image_outlined,
+          title: '视觉模型',
         ),
         _ModelSelectCard(
-          modelName: models.ocrModel ?? '未设置',
-          providerName: _getProviderName(configs, models.ocrConfigId),
+          modelName: models.visionModel ?? '未设置',
+          providerName: _getProviderName(configs, models.visionConfigId),
           iconColor: const Color(0xFF3b82f6),
-          icon: '⚡',
           onTap: () => _showModelPicker(
             context: context,
-            title: '选择快速助手模型',
+            title: '选择视觉模型',
             configs: enabledConfigs,
-            initialConfigId: models.ocrConfigId,
-            initialModel: models.ocrModel,
+            initialConfigId: models.visionConfigId,
+            initialModel: models.visionModel,
+            modelFilter: (m) => m.supportsImageInput,
             onSelected: (configId, model) async {
               final selectedConfig = configs.where((c) => c.id == configId).firstOrNull;
               final selectedModel = selectedConfig?.getModelById(model);
               await AiConfigStorage.saveBaseModelsConfig(
                 models.copyWith(
-                  ocrEnabled: true,
-                  ocrConfigId: configId,
-                  ocrModel: model,
-                  ocrModelSupportsImage: selectedModel?.supportsImageInput ?? true,
+                  visionConfigId: configId,
+                  visionModel: model,
+                  visionModelSupportsImage: selectedModel?.supportsImageInput ?? true,
                 ),
               );
             },
@@ -155,23 +159,26 @@ class _BaseModelsBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
           child: Text(
-            '用于简单任务的助手，例如话题命名和关键字提取',
-            style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.4),
+            '当对话模型不支持识图时，用于解析图片并把结果交给对话模型',
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
         ),
 
         const SizedBox(height: 32),
 
-        // 生图助手
+        // 生图模型
         _SectionHeader(
           icon: Icons.image_outlined,
-          title: '生图助手',
+          title: '生图模型',
         ),
         _ModelSelectCard(
           modelName: models.imageGenModel ?? '未设置',
           providerName: _getProviderName(configs, models.imageGenConfigId),
           iconColor: const Color(0xFF10b981),
-          icon: '🎨',
           onTap: () => _showModelPicker(
             context: context,
             title: '选择生图模型',
@@ -192,7 +199,11 @@ class _BaseModelsBody extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
           child: Text(
             '用于图片生成的模型',
-            style: TextStyle(fontSize: 13, color: Colors.grey[500], height: 1.4),
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
           ),
         ),
 
@@ -213,6 +224,7 @@ class _BaseModelsBody extends StatelessWidget {
     required List<ApiConfig> configs,
     required String? initialConfigId,
     required String? initialModel,
+    bool Function(ApiModel model)? modelFilter,
     required Future<void> Function(String configId, String model) onSelected,
   }) {
     if (configs.isEmpty) return;
@@ -226,6 +238,7 @@ class _BaseModelsBody extends StatelessWidget {
         configs: configs,
         initialConfigId: initialConfigId ?? configs.first.id,
         initialModel: initialModel,
+        modelFilter: modelFilter,
         onSelected: onSelected,
       ),
     );
@@ -242,6 +255,7 @@ class _ModelPickerSheet extends StatefulWidget {
     required this.configs,
     required this.initialConfigId,
     required this.initialModel,
+    this.modelFilter,
     required this.onSelected,
   });
 
@@ -249,6 +263,7 @@ class _ModelPickerSheet extends StatefulWidget {
   final List<ApiConfig> configs;
   final String initialConfigId;
   final String? initialModel;
+  final bool Function(ApiModel model)? modelFilter;
   final Future<void> Function(String configId, String model) onSelected;
 
   @override
@@ -278,12 +293,14 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
     
     for (final config in widget.configs) {
       for (final model in config.models) {
+        if (widget.modelFilter != null && !widget.modelFilter!(model)) {
+          continue;
+        }
         options.add(_ModelOption(
           configId: config.id,
           modelId: model.modelId,
           providerName: config.name,
           iconColor: _getProviderColor(config.name),
-          icon: _getProviderIcon(config.name),
         ));
       }
     }
@@ -301,19 +318,17 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
     final n = name.toLowerCase();
     if (n.contains('qwen') || n.contains('通义')) return '❖';
     if (n.contains('openai') || n.contains('gpt')) return '⌘';
-    if (n.contains('claude') || n.contains('anthropic')) return '✳';
-    if (n.contains('google') || n.contains('gemini')) return 'G';
     if (n.contains('deepseek')) return '⚡';
-    return '●';
+    return '?';
   }
 
   Color _getProviderColor(String name) {
     final n = name.toLowerCase();
     if (n.contains('qwen') || n.contains('通义')) return const Color(0xFF6366f1);
     if (n.contains('openai') || n.contains('gpt')) return Colors.black;
-    if (n.contains('claude') || n.contains('anthropic')) return const Color(0xFFf97316);
-    if (n.contains('google') || n.contains('gemini')) return const Color(0xFFea4335);
     if (n.contains('deepseek')) return const Color(0xFF3b82f6);
+    if (n.contains('doubao')) return const Color(0xFFa855f7);
+    if (n.contains('ollama')) return const Color(0xFF16a34a);
     return const Color(0xFF666666);
   }
 
@@ -433,20 +448,16 @@ class _ModelPickerSheetState extends State<_ModelPickerSheet> {
                       },
                       child: Container(
                         padding: const EdgeInsets.all(16),
-                        decoration: isSelected
-                            ? BoxDecoration(
-                                border: Border.all(color: Colors.black, width: 2),
-                                borderRadius: BorderRadius.circular(14),
-                              )
-                            : null,
                         child: Row(
                           children: [
                             // 图标
-                            Text(
-                              option.icon,
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: option.iconColor,
+                            SvgPicture.asset(
+                              AppAssets.iconAiRobot,
+                              width: 20,
+                              height: 20,
+                              colorFilter: ColorFilter.mode(
+                                option.iconColor,
+                                BlendMode.srcIn,
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -510,14 +521,12 @@ class _ModelOption {
     required this.modelId,
     required this.providerName,
     required this.iconColor,
-    required this.icon,
   });
 
   final String configId;
   final String modelId;
   final String providerName;
   final Color iconColor;
-  final String icon;
 }
 
 // ============================================================================
@@ -572,18 +581,16 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey[600]),
+          Icon(icon, size: 18, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           Text(
             title,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
+              color: AppColors.textSecondary,
             ),
           ),
-          const Spacer(),
-          Icon(Icons.settings, size: 20, color: const Color(0xFF007AFF)),
         ],
       ),
     );
@@ -595,20 +602,18 @@ class _ModelSelectCard extends StatelessWidget {
     required this.modelName,
     required this.providerName,
     required this.iconColor,
-    required this.icon,
     required this.onTap,
   });
 
   final String modelName;
   final String providerName;
   final Color iconColor;
-  final String icon;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -616,44 +621,60 @@ class _ModelSelectCard extends StatelessWidget {
           HapticFeedback.selectionClick();
           onTap();
         },
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFEEEEEE)),
-            borderRadius: BorderRadius.circular(16),
-          ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 10, 14),
           child: Row(
             children: [
-              // 图标
-              Text(
-                icon,
-                style: TextStyle(fontSize: 20, color: iconColor),
-              ),
-              const SizedBox(width: 12),
-              // 模型名
-              Text(
-                modelName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ),
-              if (providerName.isNotEmpty) ...[
-                Text(
-                  '  |  ',
-                  style: TextStyle(color: Colors.grey[300]),
-                ),
-                Text(
-                  providerName,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[500],
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppAssets.iconAiRobot,
+                    width: 22,
+                    height: 22,
+                    colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
                   ),
                 ),
-              ],
-              const Spacer(),
-              // 下拉箭头
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        modelName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        providerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
             ],
           ),

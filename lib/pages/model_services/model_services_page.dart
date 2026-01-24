@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:zichat/constants/app_assets.dart';
+import 'package:zichat/constants/app_colors.dart';
 import 'package:zichat/models/api_config.dart';
-import 'package:zichat/pages/model_services/base_models_page.dart';
 import 'package:zichat/pages/model_services/provider_detail_page.dart';
+import 'package:zichat/storage/ai_config_storage.dart';
 import 'package:zichat/storage/api_config_storage.dart';
+import 'package:zichat/widgets/weui/weui.dart';
 
-/// 模型服务页 - 对标 HTML 原型
+/// 供应商配置页
 class ModelServicesPage extends StatefulWidget {
   const ModelServicesPage({super.key});
 
@@ -16,12 +20,18 @@ class ModelServicesPage extends StatefulWidget {
 }
 
 class _ModelServicesPageState extends State<ModelServicesPage> {
-  final TextEditingController _searchController = TextEditingController();
+  void _toast(String message) => WeuiToast.show(context, message: message);
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  List<String> _baseModelRolesForConfig({required String configId}) {
+    final raw = Hive.box(AiConfigStorage.boxName).get('base_models');
+    if (raw is! Map) return [];
+    final base = AiBaseModelsConfig.fromMap(raw) ?? const AiBaseModelsConfig();
+
+    final roles = <String>[];
+    if (base.hasChatModel && base.chatConfigId == configId) roles.add('对话模型');
+    if (base.hasVisionModel && base.visionConfigId == configId) roles.add('视觉模型');
+    if (base.hasImageGenModel && base.imageGenConfigId == configId) roles.add('生图模型');
+    return roles;
   }
 
   Future<void> _openProvider(ApiConfig config) async {
@@ -31,48 +41,28 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
     );
   }
 
-  Future<void> _openBaseModels() async {
-    HapticFeedback.lightImpact();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const BaseModelsPage()),
-    );
-  }
-
-  List<ApiConfig> _filterConfigs(List<ApiConfig> configs) {
-    final q = _searchController.text.trim().toLowerCase();
-    if (q.isEmpty) return configs;
-    return configs.where((c) {
-      if (c.name.toLowerCase().contains(q)) return true;
-      if (c.baseUrl.toLowerCase().contains(q)) return true;
-      for (final m in c.models) {
-        if (m.modelId.toLowerCase().contains(q)) return true;
-      }
-      return false;
-    }).toList();
-  }
-
-  Future<void> _showAddProviderSheet(List<ApiConfig> current) async {
+  Future<void> _addProvider(List<ApiConfig> current) async {
     HapticFeedback.lightImpact();
     final nextOrder = current.isEmpty
         ? 100
-        : (current.map((c) => c.sortOrder ?? 100).reduce((a, b) => a > b ? a : b) + 1);
-
-    final type = await showModalBottomSheet<ProviderType>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) => _AddProviderSheet(),
-    );
-
-    if (type == null) return;
+        : (current
+                .map((c) => c.sortOrder ?? 100)
+                .reduce((a, b) => a > b ? a : b) +
+            1);
 
     final now = DateTime.now();
     final id = const Uuid().v4();
-    final config = _buildDefaultProvider(
+    final config = ApiConfig(
       id: id,
-      type: type,
-      sortOrder: nextOrder,
+      type: ProviderType.openai,
+      name: '新服务商',
+      baseUrl: '',
+      apiKey: '',
+      models: const [],
+      isActive: false,
       createdAt: now,
+      sortOrder: nextOrder,
+      builtIn: false,
     );
 
     await ApiConfigStorage.saveConfig(config);
@@ -80,360 +70,322 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
     await _openProvider(config);
   }
 
-  ApiConfig _buildDefaultProvider({
-    required String id,
-    required ProviderType type,
-    required int sortOrder,
-    required DateTime createdAt,
-  }) {
-    switch (type) {
-      case ProviderType.google:
-        return ApiConfig(
-          id: id,
-          type: ProviderType.google,
-          name: 'Google',
-          baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
-          apiKey: '',
-          models: const [],
-          isActive: false,
-          createdAt: createdAt,
-          sortOrder: sortOrder,
-          builtIn: false,
-        );
-      case ProviderType.claude:
-        return ApiConfig(
-          id: id,
-          type: ProviderType.claude,
-          name: 'Anthropic',
-          baseUrl: 'https://api.anthropic.com/v1',
-          apiKey: '',
-          models: const [],
-          isActive: false,
-          createdAt: createdAt,
-          sortOrder: sortOrder,
-          builtIn: false,
-        );
-      case ProviderType.openai:
-        return ApiConfig(
-          id: id,
-          type: ProviderType.openai,
-          name: 'OpenAI',
-          baseUrl: 'https://api.openai.com/v1',
-          apiKey: '',
-          models: const [],
-          isActive: false,
-          createdAt: createdAt,
-          sortOrder: sortOrder,
-          builtIn: false,
-        );
+  Future<bool> _confirmDeleteProvider(ApiConfig config) async {
+    if (config.builtIn) {
+      _toast('内置服务商不可删除');
+      return false;
     }
+
+    final refs = _baseModelRolesForConfig(configId: config.id);
+    if (refs.isNotEmpty) {
+      _toast('该服务商正在用于：${refs.join('、')}');
+      return false;
+    }
+
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return SafeArea(
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 36,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '删除服务商',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    '确定删除“${config.name}”？',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: const Color(0xFFEDEDED),
+                          foregroundColor: AppColors.textPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size.fromHeight(44),
+                        ),
+                        child: const Text('取消'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: AppColors.error,
+                          foregroundColor: AppColors.textWhite,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          minimumSize: const Size.fromHeight(44),
+                        ),
+                        child: const Text('删除'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    return ok == true;
+  }
+
+  Future<void> _deleteProvider(ApiConfig config) async {
+    HapticFeedback.mediumImpact();
+    await ApiConfigStorage.deleteConfig(config.id);
+  }
+
+  Future<void> _toggleEnabled(ApiConfig config, bool enabled) async {
+    if (!enabled) {
+      final refs = _baseModelRolesForConfig(configId: config.id);
+      if (refs.isNotEmpty) {
+        _toast('该服务商正在用于：${refs.join('、')}');
+        return;
+      }
+    }
+    await ApiConfigStorage.setEnabled(config.id, enabled);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
+      backgroundColor: AppColors.backgroundChat,
+      appBar: AppBar(
+        backgroundColor: AppColors.backgroundChat,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Navigator.of(context).pop(),
+          icon: SvgPicture.asset(
+            AppAssets.iconGoBack,
+            width: 12,
+            height: 20,
+            colorFilter: const ColorFilter.mode(
+              AppColors.textPrimary,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+        title: const Text(
+          '供应商配置',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              final configs = ApiConfigStorage.getAllConfigs();
+              _addProvider(configs);
+            },
+            icon: SvgPicture.asset(
+              AppAssets.iconPlus,
+              width: 20,
+              height: 20,
+              colorFilter: const ColorFilter.mode(
+                AppColors.textPrimary,
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: SafeArea(
-        top: false,
-        bottom: true,
-        child: ValueListenableBuilder<Box<String>>(
-          valueListenable: ApiConfigStorage.listenable(),
-          builder: (context, box, _) {
-            final configs = ApiConfigStorage.getAllConfigs();
-            final filtered = _filterConfigs(configs);
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ValueListenableBuilder<Box<String>>(
+              valueListenable: ApiConfigStorage.listenable(),
+              builder: (context, box, _) {
+                final configs = ApiConfigStorage.getAllConfigs();
 
-            return Column(
-              children: [
-                // 搜索栏
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: _SearchBar(
-                    controller: _searchController,
-                    hintText: '输入厂商名称',
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                // 列表
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    children: [
-                      // 默认助手入口
-                      _ProviderTile(
-                        icon: '⚙️',
-                        name: '默认助手设置',
-                        onTap: _openBaseModels,
-                        showChevron: true,
-                      ),
-                      const SizedBox(height: 12),
-                      // 供应商列表
-                      ...filtered.map((config) => Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ProviderTile(
-                          icon: _getProviderIcon(config),
-                          iconColor: _getProviderColor(config),
-                          name: config.name,
-                          isActive: config.isActive,
-                          onTap: () => _openProvider(config),
+                return ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  children: [
+                    if (configs.isEmpty)
+                      _EmptyState(onAdd: () => _addProvider(configs))
+                    else
+                      ...configs.map(
+                        (config) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Dismissible(
+                            key: ValueKey(config.id),
+                            direction: DismissDirection.endToStart,
+                            confirmDismiss: (_) => _confirmDeleteProvider(config),
+                            background: Container(
+                              alignment: Alignment.centerRight,
+                              padding: const EdgeInsets.only(right: 18),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Text(
+                                '删除',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            onDismissed: (_) => _deleteProvider(config),
+                            child: _ProviderTile(
+                              config: config,
+                              onTap: () => _openProvider(config),
+                              onToggleEnabled: (v) => _toggleEnabled(config, v),
+                            ),
+                          ),
                         ),
-                      )),
-                      if (configs.isEmpty)
-                        _EmptyState(onAdd: () => _showAddProviderSheet(configs)),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
   }
+}
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      centerTitle: true,
-      leading: _CircleIconButton(
-        icon: Icons.arrow_back_ios_new,
-        onTap: () => Navigator.of(context).pop(),
-      ),
-      title: const Text(
-        '模型服务',
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          color: Colors.black,
-        ),
-      ),
-      actions: [
-        _CircleIconButton(
-          icon: Icons.add,
-          onTap: () {
-            final configs = ApiConfigStorage.getAllConfigs();
-            _showAddProviderSheet(configs);
-          },
-        ),
-        const SizedBox(width: 8),
-      ],
-    );
-  }
+class _ProviderTile extends StatelessWidget {
+  const _ProviderTile({
+    required this.config,
+    required this.onTap,
+    required this.onToggleEnabled,
+  });
 
-  String _getProviderIcon(ApiConfig config) {
-    final name = config.name.toLowerCase();
-    if (name.contains('qwen') || name.contains('通义')) return '❖';
-    if (name.contains('openai') || name.contains('gpt')) return '⌘';
-    if (name.contains('claude') || name.contains('anthropic')) return '✳';
-    if (name.contains('google') || name.contains('gemini')) return 'G';
-    if (name.contains('deepseek')) return '⚡';
-    if (name.contains('ollama')) return '🦙';
-    if (name.contains('doubao') || name.contains('豆包')) return '◆';
-    return config.name.isNotEmpty ? config.name[0].toUpperCase() : 'AI';
-  }
+  final ApiConfig config;
+  final VoidCallback onTap;
+  final ValueChanged<bool> onToggleEnabled;
 
   Color _getProviderColor(ApiConfig config) {
     final name = config.name.toLowerCase();
     if (name.contains('qwen') || name.contains('通义')) return const Color(0xFF6366f1);
     if (name.contains('openai') || name.contains('gpt')) return Colors.black;
-    if (name.contains('claude') || name.contains('anthropic')) return const Color(0xFFf97316);
-    if (name.contains('google') || name.contains('gemini')) return const Color(0xFFea4335);
     if (name.contains('deepseek')) return const Color(0xFF3b82f6);
     if (name.contains('doubao') || name.contains('豆包')) return const Color(0xFFa855f7);
+    if (name.contains('ollama')) return const Color(0xFF16a34a);
     return const Color(0xFF666666);
   }
-}
 
-// ============================================================================
-// 组件
-// ============================================================================
-
-/// 圆形图标按钮
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({
-    required this.icon,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onTap != null;
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Material(
-        color: const Color(0xFFF2F2F7),
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: !enabled
-              ? null
-              : () {
-                  HapticFeedback.selectionClick();
-                  onTap?.call();
-                },
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: Icon(
-              icon,
-              size: 22,
-              color: enabled ? Colors.black : Colors.grey[400],
-            ),
-          ),
-        ),
-      ),
-    );
+  String _subtitle(ApiConfig config) {
+    final url = config.baseUrl.trim();
+    if (url.isEmpty) return '未配置 API 地址与密钥';
+    final key = config.apiKey.trim();
+    if (key.isEmpty) return '未配置 API 密钥';
+    return url;
   }
-}
-
-/// 搜索栏
-class _SearchBar extends StatelessWidget {
-  const _SearchBar({
-    required this.controller,
-    this.hintText = '搜索',
-    this.onChanged,
-    this.autofocus = false,
-  });
-
-  final TextEditingController controller;
-  final String hintText;
-  final ValueChanged<String>? onChanged;
-  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF2F2F7),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.search, size: 18, color: Colors.grey[500]),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              autofocus: autofocus,
-              onChanged: onChanged,
-              style: const TextStyle(fontSize: 16, color: Colors.black),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: TextStyle(fontSize: 16, color: Colors.grey[400]),
-                border: InputBorder.none,
-                isCollapsed: true,
-              ),
-            ),
-          ),
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: controller,
-            builder: (context, value, _) {
-              if (value.text.trim().isEmpty) return const SizedBox.shrink();
-              return GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  HapticFeedback.selectionClick();
-                  controller.clear();
-                  onChanged?.call('');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Icon(
-                    Icons.cancel,
-                    size: 18,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 供应商卡片
-class _ProviderTile extends StatelessWidget {
-  const _ProviderTile({
-    required this.icon,
-    required this.name,
-    this.iconColor,
-    this.isActive,
-    this.showChevron = false,
-    this.onTap,
-  });
-
-  final String icon;
-  final String name;
-  final Color? iconColor;
-  final bool? isActive;
-  final bool showChevron;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
+    final color = _getProviderColor(config);
     return Material(
-      color: const Color(0xFFF2F2F7),
-      borderRadius: BorderRadius.circular(20),
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          onTap?.call();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
           child: Row(
             children: [
-              // 图标
-              SizedBox(
-                width: 28,
-                child: Text(
-                  icon,
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: iconColor ?? Colors.black,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppAssets.iconAiRobot,
+                    width: 22,
+                    height: 22,
+                    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              // 名称
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      config.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _subtitle(config),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // 状态点 / 箭头
-              if (isActive == true)
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF34c759),
-                    shape: BoxShape.circle,
-                  ),
-                )
-              else if (showChevron)
-                Text(
-                  '›',
-                  style: TextStyle(
-                    fontSize: 22,
-                    color: Colors.grey[400],
-                  ),
-                ),
+              const SizedBox(width: 8),
+              WeuiSwitch(
+                value: config.isActive,
+                onChanged: onToggleEnabled,
+              ),
             ],
           ),
         ),
@@ -442,7 +394,6 @@ class _ProviderTile extends StatelessWidget {
   }
 }
 
-/// 空状态
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onAdd});
 
@@ -450,161 +401,64 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 80),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF2F2F7),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.api_outlined, size: 40, color: Colors.grey[400]),
+    return Padding(
+      padding: const EdgeInsets.only(top: 80),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDEDED),
+              borderRadius: BorderRadius.circular(20),
             ),
-            const SizedBox(height: 20),
-            const Text(
-              '暂无模型服务',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '点击右上角 + 添加服务商',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-            ),
-            const SizedBox(height: 24),
-            OutlinedButton(
-              onPressed: onAdd,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+            child: Center(
+              child: SvgPicture.asset(
+                AppAssets.iconAiRobot,
+                width: 32,
+                height: 32,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.textHint,
+                  BlendMode.srcIn,
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '还没有服务商',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '添加一个服务商后即可配置模型',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 180,
+            child: ElevatedButton(
+              onPressed: onAdd,
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                minimumSize: const Size.fromHeight(44),
               ),
               child: const Text('添加服务商'),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 添加供应商底部弹窗
-class _AddProviderSheet extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 拖拽条
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 36,
-              height: 5,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            // 标题
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '添加服务商',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
-            // 选项
-            _SheetOption(
-              title: 'OpenAI 兼容',
-              subtitle: '适用于 OpenAI / SiliconFlow / DeepSeek 等',
-              onTap: () => Navigator.of(context).pop(ProviderType.openai),
-            ),
-            const Divider(height: 1, indent: 16, endIndent: 16),
-            _SheetOption(
-              title: 'Google Gemini',
-              subtitle: 'Google Gemini 官方 API',
-              onTap: () => Navigator.of(context).pop(ProviderType.google),
-            ),
-            const Divider(height: 1, indent: 16, endIndent: 16),
-            _SheetOption(
-              title: 'Anthropic Claude',
-              subtitle: 'Claude Messages API',
-              onTap: () => Navigator.of(context).pop(ProviderType.claude),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetOption extends StatelessWidget {
-  const _SheetOption({
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

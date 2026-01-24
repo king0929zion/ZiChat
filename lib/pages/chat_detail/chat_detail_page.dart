@@ -358,14 +358,14 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   bool _canUploadImage(AiBaseModelsConfig base) {
     if (!base.hasChatModel) return false;
     if (base.chatModelSupportsImage) return true;
-    return base.ocrEnabled && base.hasOcrModel && base.ocrModelSupportsImage;
+    return base.hasVisionModel && base.visionModelSupportsImage;
   }
 
   Future<bool> _ensureChatModelConfigured({bool showToast = true}) async {
     final base = await AiConfigStorage.loadBaseModelsConfig();
     if (base != null && base.hasChatModel) return true;
     if (showToast && mounted) {
-      WeuiToast.show(context, message: '请先在“模型服务-基础模型”配置默认对话模型');
+      WeuiToast.show(context, message: '请先在“AI 设置-默认助手配置”配置对话模型');
     }
     return false;
   }
@@ -374,17 +374,17 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final base = await AiConfigStorage.loadBaseModelsConfig();
     if (base == null || !base.hasChatModel) {
       if (showToast && mounted) {
-        WeuiToast.show(context, message: '请先在“模型服务-基础模型”配置默认对话模型');
+        WeuiToast.show(context, message: '请先在“AI 设置-默认助手配置”配置对话模型');
       }
       return false;
     }
 
-    final ok = base.chatModelSupportsImage ||
-        (base.ocrEnabled && base.hasOcrModel && base.ocrModelSupportsImage);
+    final ok =
+        base.chatModelSupportsImage || (base.hasVisionModel && base.visionModelSupportsImage);
     if (!ok && showToast && mounted) {
       WeuiToast.show(
         context,
-        message: '要发送图片，请开启“对话模型支持识图”或配置并启用 OCR 模型',
+        message: '要发送图片，请选择支持识图的对话模型，或配置视觉模型',
       );
     }
     return ok;
@@ -846,7 +846,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     _saveMessages();
     _scrollToBottom();
 
-    // 图片消息也触发一次 AI 回复（支持视觉模型或 OCR 回退）
+    // 图片消息也触发一次 AI 回复（支持视觉模型回退）
     await _requestAiReply();
   }
 

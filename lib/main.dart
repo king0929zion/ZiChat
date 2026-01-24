@@ -38,7 +38,7 @@ void _setupSystemUI() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
-    systemNavigationBarColor: AppColors.surface,
+    systemNavigationBarColor: AppColors.backgroundChat,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 }

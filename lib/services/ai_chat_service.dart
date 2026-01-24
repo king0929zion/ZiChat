@@ -17,26 +17,23 @@ class _ResolvedAiModels {
     required this.chatConfig,
     required this.chatModel,
     required this.chatModelSupportsImage,
-    required this.ocrEnabled,
-    required this.ocrConfig,
-    required this.ocrModel,
-    required this.ocrModelSupportsImage,
+    required this.visionConfig,
+    required this.visionModel,
+    required this.visionModelSupportsImage,
   });
 
   final ApiConfig chatConfig;
   final String chatModel;
   final bool chatModelSupportsImage;
 
-  final bool ocrEnabled;
-  final ApiConfig? ocrConfig;
-  final String? ocrModel;
-  final bool ocrModelSupportsImage;
+  final ApiConfig? visionConfig;
+  final String? visionModel;
+  final bool visionModelSupportsImage;
 
-  bool get canOcr =>
-      ocrEnabled &&
-      ocrModelSupportsImage &&
-      ocrConfig != null &&
-      (ocrModel?.trim().isNotEmpty ?? false);
+  bool get canVision =>
+      visionModelSupportsImage &&
+      visionConfig != null &&
+      (visionModel?.trim().isNotEmpty ?? false);
 }
 
 /// 统一的 AI 对话服务
@@ -56,8 +53,8 @@ class AiChatService {
   // 多模态：上下文最多携带图片数量（避免 payload 过大）
   static const int _maxImagesInContext = 2;
 
-  // OCR 结果缓存（同一图片路径 + OCR 模型）
-  static final Map<String, String> _ocrCache = {};
+  // 视觉解析结果缓存（同一图片路径 + 视觉模型）
+  static final Map<String, String> _visionCache = {};
 
   // 随机数生成器
   static final _random = math.Random();
@@ -75,7 +72,7 @@ class AiChatService {
   static Future<_ResolvedAiModels> _resolveModels() async {
     final storedBase = await AiConfigStorage.loadBaseModelsConfig();
     if (storedBase == null || !storedBase.hasChatModel) {
-      throw Exception('请先在“模型服务-基础模型”配置默认对话模型');
+      throw Exception('请先在“AI 设置-默认助手配置”配置对话模型');
     }
 
     final base = storedBase;
@@ -83,43 +80,39 @@ class AiChatService {
     final chatConfig =
         ApiConfigStorage.getConfig((base.chatConfigId ?? '').trim());
     if (chatConfig == null) {
-      throw Exception('默认对话模型的服务商不存在，请重新选择');
+      throw Exception('对话模型的服务商不存在，请重新选择');
     }
     if (!chatConfig.isActive) {
-      throw Exception('请先在“模型服务”中启用默认对话模型的服务商');
+      throw Exception('请先在“AI 设置-供应商配置”中启用对话模型的服务商');
     }
 
     final chatModel = (base.chatModel ?? '').trim();
     final chatModelSupportsImage = base.chatModelSupportsImage;
 
     if (chatConfig.baseUrl.trim().isEmpty || chatConfig.apiKey.trim().isEmpty) {
-      throw Exception('请先在“模型服务-API 服务”中填写主机与密钥');
+      throw Exception('请先在“AI 设置-供应商配置”中填写 API 地址与密钥');
     }
     if (chatModel.isEmpty) {
-      throw Exception('请先在“基础模型”设置默认对话模型');
+      throw Exception('请先在“默认助手配置”设置对话模型');
     }
 
-    ApiConfig? ocrConfig;
-    String? ocrModel;
-    bool ocrEnabled = false;
-    bool ocrModelSupportsImage = true;
+    ApiConfig? visionConfig;
+    String? visionModel;
+    bool visionModelSupportsImage = true;
 
     if (!chatModelSupportsImage) {
-      ocrEnabled = base.ocrEnabled && base.hasOcrModel;
-      ocrModelSupportsImage = base.ocrModelSupportsImage;
-      if (ocrEnabled && ocrModelSupportsImage) {
-        final cfgId = (base.ocrConfigId ?? '').trim();
-        final model = (base.ocrModel ?? '').trim();
+      visionModelSupportsImage = base.visionModelSupportsImage;
+      if (base.hasVisionModel && visionModelSupportsImage) {
+        final cfgId = (base.visionConfigId ?? '').trim();
+        final model = (base.visionModel ?? '').trim();
         final cfg = ApiConfigStorage.getConfig(cfgId);
         if (cfg != null &&
             cfg.isActive &&
             cfg.baseUrl.trim().isNotEmpty &&
             cfg.apiKey.trim().isNotEmpty &&
             model.isNotEmpty) {
-          ocrConfig = cfg;
-          ocrModel = model;
-        } else {
-          ocrEnabled = false;
+          visionConfig = cfg;
+          visionModel = model;
         }
       }
     }
@@ -128,10 +121,9 @@ class AiChatService {
       chatConfig: chatConfig,
       chatModel: chatModel,
       chatModelSupportsImage: chatModelSupportsImage,
-      ocrEnabled: ocrEnabled,
-      ocrConfig: ocrConfig,
-      ocrModel: ocrModel,
-      ocrModelSupportsImage: ocrModelSupportsImage,
+      visionConfig: visionConfig,
+      visionModel: visionModel,
+      visionModelSupportsImage: visionModelSupportsImage,
     );
   }
 
@@ -170,7 +162,7 @@ class AiChatService {
     return 0;
   }
 
-  static Future<String> _ocrImage({
+  static Future<String> _describeImage({
     required ApiConfig config,
     required String model,
     required String imagePath,
@@ -178,13 +170,13 @@ class AiChatService {
     if (model.trim().isEmpty) return '';
 
     final cacheKey = '${config.id}|$model|$imagePath';
-    final cached = _ocrCache[cacheKey];
+    final cached = _visionCache[cacheKey];
     if (cached != null) return cached;
 
     final dataUrl = await _imagePathToDataUrl(imagePath);
     if (dataUrl == null) return '';
 
-    final ocrMessages = <Map<String, dynamic>>[
+    final visionMessages = <Map<String, dynamic>>[
       {
         'role': 'system',
         'content':
@@ -212,7 +204,7 @@ class AiChatService {
       apiKey: config.apiKey,
       chatCompletionsPath: config.chatCompletionsPath,
       model: model,
-      messages: ocrMessages,
+      messages: visionMessages,
       temperature: 0,
       topP: 1,
       maxTokens: 1024,
@@ -224,7 +216,7 @@ class AiChatService {
     final text = AiToolsService.removeToolMarkers(_removeThinkingContent(raw))
         .trim();
 
-    _ocrCache[cacheKey] = text;
+    _visionCache[cacheKey] = text;
     return text;
   }
 
@@ -275,16 +267,16 @@ class AiChatService {
           };
         }
 
-        if (allowImage && models.canOcr) {
-          final ocrText = await _ocrImage(
-            config: models.ocrConfig!,
-            model: models.ocrModel!,
+        if (allowImage && models.canVision) {
+          final visionText = await _describeImage(
+            config: models.visionConfig!,
+            model: models.visionModel!,
             imagePath: path,
           );
           return {
             'role': role,
             'content':
-                ocrText.trim().isEmpty ? '[图片]' : '【图片解析】\n$ocrText',
+                visionText.trim().isEmpty ? '[图片]' : '【图片解析】\n$visionText',
             '__imageUsed': true,
           };
         }
@@ -513,8 +505,7 @@ class AiChatService {
   /// 构建系统提示词（简化版）
   static Future<String> _buildSystemPrompt(String chatId, String? friendPrompt) async {
     final basePrompt = await _getBasePrompt();
-    final globalConfig = await AiConfigStorage.loadGlobalConfig();
-    final globalPersona = (globalConfig?.persona ?? '').trim();
+    const globalPersona = '';
 
     final buffer = StringBuffer();
 

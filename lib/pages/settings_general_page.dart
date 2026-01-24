@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
-import 'package:zichat/pages/model_services/model_services_page.dart';
 import 'package:zichat/pages/settings_language_page.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
@@ -35,12 +34,6 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
   Future<void> _openLanguagePage() async {
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const SettingsLanguagePage()),
-    );
-  }
-
-  void _openAiSettings() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ModelServicesPage()),
     );
   }
 
@@ -110,12 +103,6 @@ class _SettingsGeneralPageState extends State<SettingsGeneralPage> {
                       title: '字体大小',
                       onTap: _showFeatureDevToast,
                     ),
-                  ],
-                ),
-                WeuiCellGroup(
-                  title: '智能功能',
-                  children: [
-                    WeuiCell(title: 'AI 设置', onTap: _openAiSettings),
                   ],
                 ),
                 WeuiCellGroup(
