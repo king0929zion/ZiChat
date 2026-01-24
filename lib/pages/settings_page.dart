@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:zichat/constants/app_assets.dart';
 import 'package:zichat/constants/app_colors.dart';
+import 'package:zichat/pages/model_services/base_models_page.dart';
+import 'package:zichat/pages/model_services/model_services_page.dart';
 import 'package:zichat/pages/settings_general_page.dart';
 import 'package:zichat/pages/settings_chat_page.dart';
-import 'package:zichat/pages/settings_ai_page.dart';
 import 'package:zichat/widgets/weui/weui.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -62,10 +63,18 @@ class SettingsPage extends StatelessWidget {
                   children: [
                     WeuiCell(title: '通知', onTap: showTodo),
                     WeuiCell(
-                      title: 'AI 设置',
+                      title: '供应商配置',
                       onTap: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SettingsAiPage()),
+                          MaterialPageRoute(builder: (_) => const ModelServicesPage()),
+                        );
+                      },
+                    ),
+                    WeuiCell(
+                      title: '默认助手配置',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const BaseModelsPage()),
                         );
                       },
                     ),

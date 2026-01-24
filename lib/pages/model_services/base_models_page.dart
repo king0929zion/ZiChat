@@ -68,7 +68,7 @@ class _BaseModelsBody extends StatelessWidget {
       return _EmptyState(
         icon: Icons.api_outlined,
         title: '还没有服务商',
-        subtitle: '请先在"AI 设置-供应商配置"中添加并启用服务商',
+        subtitle: '请先在"设置-供应商配置"中添加并启用服务商',
       );
     }
 
@@ -76,7 +76,7 @@ class _BaseModelsBody extends StatelessWidget {
       return _EmptyState(
         icon: Icons.toggle_off_outlined,
         title: '还没有启用的服务商',
-        subtitle: '请先在"AI 设置-供应商配置"中启用至少一个服务商',
+        subtitle: '请先在"设置-供应商配置"中启用至少一个服务商',
       );
     }
 

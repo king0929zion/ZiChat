@@ -365,7 +365,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final base = await AiConfigStorage.loadBaseModelsConfig();
     if (base != null && base.hasChatModel) return true;
     if (showToast && mounted) {
-      WeuiToast.show(context, message: '请先在“AI 设置-默认助手配置”配置对话模型');
+      WeuiToast.show(context, message: '请先在“设置-默认助手配置”配置对话模型');
     }
     return false;
   }
@@ -374,7 +374,7 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final base = await AiConfigStorage.loadBaseModelsConfig();
     if (base == null || !base.hasChatModel) {
       if (showToast && mounted) {
-        WeuiToast.show(context, message: '请先在“AI 设置-默认助手配置”配置对话模型');
+        WeuiToast.show(context, message: '请先在“设置-默认助手配置”配置对话模型');
       }
       return false;
     }

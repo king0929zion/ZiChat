@@ -86,8 +86,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildMobileLayout(ResponsiveInfo info) {
-    final topRegionColor =
-        _currentIndex == 3 ? AppColors.surface : AppColors.backgroundChat;
+    final topRegionColor = AppColors.backgroundChat;
     return Scaffold(
       backgroundColor: topRegionColor,
       body: SafeArea(
@@ -126,8 +125,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDesktopLayout(ResponsiveInfo info) {
-    final topRegionColor =
-        _currentIndex == 3 ? AppColors.surface : AppColors.backgroundChat;
+    final topRegionColor = AppColors.backgroundChat;
     return Scaffold(
       backgroundColor: topRegionColor,
       body: SafeArea(
@@ -431,6 +429,7 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '微信',
             iconAsset: AppAssets.tabChats,
+            activeIconAsset: AppAssets.tabChatsActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -438,6 +437,7 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '通讯录',
             iconAsset: AppAssets.tabContacts,
+            activeIconAsset: AppAssets.tabContactsActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -445,6 +445,7 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '发现',
             iconAsset: AppAssets.tabDiscover,
+            activeIconAsset: AppAssets.tabDiscoverActive,
             onTap: onTap,
           ),
           HomeTabItem(
@@ -452,6 +453,7 @@ class HomeTabBar extends StatelessWidget {
             currentIndex: currentIndex,
             label: '我',
             iconAsset: AppAssets.tabMe,
+            activeIconAsset: AppAssets.tabMeActive,
             onTap: onTap,
           ),
         ],
@@ -468,6 +470,7 @@ class HomeTabItem extends StatelessWidget {
     required this.currentIndex,
     required this.label,
     required this.iconAsset,
+    required this.activeIconAsset,
     required this.onTap,
   });
 
@@ -475,11 +478,14 @@ class HomeTabItem extends StatelessWidget {
   final int currentIndex;
   final String label;
   final String iconAsset;
+  final String activeIconAsset;
   final ValueChanged<int> onTap;
 
   @override
   Widget build(BuildContext context) {
     final bool active = index == currentIndex;
+    final iconColor = active ? AppColors.primary : Colors.black;
+    final iconPath = active ? activeIconAsset : iconAsset;
 
     return Expanded(
       child: Material(
@@ -494,11 +500,11 @@ class HomeTabItem extends StatelessWidget {
                 height: 26,
                 child: Center(
                   child: SvgPicture.asset(
-                    iconAsset,
+                    iconPath,
                     width: 26,
                     height: 26,
                     colorFilter: ColorFilter.mode(
-                      active ? AppColors.primary : AppColors.textSecondary,
+                      iconColor,
                       BlendMode.srcIn,
                     ),
                   ),

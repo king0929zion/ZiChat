@@ -71,11 +71,6 @@ class _ModelServicesPageState extends State<ModelServicesPage> {
   }
 
   Future<bool> _confirmDeleteProvider(ApiConfig config) async {
-    if (config.builtIn) {
-      _toast('内置服务商不可删除');
-      return false;
-    }
-
     final refs = _baseModelRolesForConfig(configId: config.id);
     if (refs.isNotEmpty) {
       _toast('该服务商正在用于：${refs.join('、')}');

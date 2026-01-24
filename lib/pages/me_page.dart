@@ -61,7 +61,7 @@ class _MePageState extends State<MePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
+      color: AppColors.backgroundChat,
       child: ListView(
         padding: const EdgeInsets.only(bottom: 8),
         children: [

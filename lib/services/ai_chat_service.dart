@@ -72,7 +72,7 @@ class AiChatService {
   static Future<_ResolvedAiModels> _resolveModels() async {
     final storedBase = await AiConfigStorage.loadBaseModelsConfig();
     if (storedBase == null || !storedBase.hasChatModel) {
-      throw Exception('请先在“AI 设置-默认助手配置”配置对话模型');
+      throw Exception('请先在“设置-默认助手配置”配置对话模型');
     }
 
     final base = storedBase;
@@ -83,14 +83,14 @@ class AiChatService {
       throw Exception('对话模型的服务商不存在，请重新选择');
     }
     if (!chatConfig.isActive) {
-      throw Exception('请先在“AI 设置-供应商配置”中启用对话模型的服务商');
+      throw Exception('请先在“设置-供应商配置”中启用对话模型的服务商');
     }
 
     final chatModel = (base.chatModel ?? '').trim();
     final chatModelSupportsImage = base.chatModelSupportsImage;
 
     if (chatConfig.baseUrl.trim().isEmpty || chatConfig.apiKey.trim().isEmpty) {
-      throw Exception('请先在“AI 设置-供应商配置”中填写 API 地址与密钥');
+      throw Exception('请先在“设置-供应商配置”中填写 API 地址与密钥');
     }
     if (chatModel.isEmpty) {
       throw Exception('请先在“默认助手配置”设置对话模型');

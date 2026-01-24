@@ -28,7 +28,6 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
 
   Timer? _debounce;
   ApiConfig? _latestConfig;
-  bool _obscureKey = true;
 
   void _toast(String message) => WeuiToast.show(context, message: message);
 
@@ -171,11 +170,11 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   children: [
-                    _Card(
+                          _Card(
                       child: Column(
                         children: [
                           _RowTile(
-                            title: '已启用',
+                            title: config.isActive ? '已启用' : '未启用',
                             trailing: WeuiSwitch(
                               value: config.isActive,
                               onChanged: (v) => _toggleEnabled(config, v),
@@ -201,20 +200,6 @@ class _ProviderDetailPageState extends State<ProviderDetailPage> {
                             title: 'API Key',
                             controller: _apiKeyController,
                             hintText: '支持逗号分隔多个 key',
-                            obscureText: _obscureKey,
-                            trailing: IconButton(
-                              onPressed: () {
-                                HapticFeedback.selectionClick();
-                                setState(() => _obscureKey = !_obscureKey);
-                              },
-                              icon: Icon(
-                                _obscureKey
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                                size: 20,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
                           ),
                         ],
                       ),
@@ -759,22 +744,25 @@ class _RowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+    return SizedBox(
+      height: 56,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 12, 0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
-          ),
-          trailing,
-        ],
+            trailing,
+          ],
+        ),
       ),
     );
   }
@@ -787,8 +775,6 @@ class _InputTile extends StatelessWidget {
     required this.hintText,
     this.keyboardType,
     this.textInputAction,
-    this.obscureText = false,
-    this.trailing,
   });
 
   final String title;
@@ -796,43 +782,53 @@ class _InputTile extends StatelessWidget {
   final String hintText;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
-  final bool obscureText;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 78,
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+    return SizedBox(
+      height: 56,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 10, 0),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 78,
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              textInputAction: textInputAction,
-              obscureText: obscureText,
-              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: hintText,
-                hintStyle: const TextStyle(fontSize: 15, color: AppColors.textHint),
-                border: InputBorder.none,
-                isCollapsed: true,
+            Expanded(
+              child: Center(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  textInputAction: textInputAction,
+                  maxLines: 1,
+                  textAlignVertical: TextAlignVertical.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: AppColors.textPrimary,
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isCollapsed: true,
+                  ).copyWith(
+                    hintText: hintText,
+                    hintStyle: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
-          if (trailing != null) trailing!,
-        ],
+          ],
+        ),
       ),
     );
   }
